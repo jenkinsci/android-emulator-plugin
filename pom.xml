@@ -1,0 +1,51 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+  <parent>
+    <groupId>org.jvnet.hudson.plugins</groupId>
+    <artifactId>plugin</artifactId>
+    <version>1.340</version>
+    <relativePath>../pom.xml</relativePath>
+  </parent>
+
+  <artifactId>android-emulator</artifactId>
+  <packaging>hpi</packaging>
+  <version>1.0-SNAPSHOT</version>
+  <name>Android Emulator Plugin</name>
+  <url>http://wiki.hudson-ci.org/display/HUDSON/Android+Emulator+Plugin</url>
+  <developers>
+    <developer>
+      <id>orrc</id>
+      <name>Christopher Orr</name>
+      <email>chris@orr.me.uk</email>
+      <timezone>1</timezone>
+    </developer>
+  </developers>
+
+  <properties>
+    <version.port-allocator.plugin>1.5</version.port-allocator.plugin>
+  </properties>
+
+  <dependencies>
+    <dependency>
+      <groupId>org.jvnet.hudson.plugins</groupId>
+      <artifactId>port-allocator</artifactId>
+      <version>${version.port-allocator.plugin}</version>
+      <scope>compile</scope>
+    </dependency>
+  </dependencies>
+
+  <!-- get every artifact through maven.glassfish.org, which proxies all the artifacts that we need -->
+  <repositories>
+    <repository>
+      <id>m.g.o-public</id>
+      <url>http://maven.glassfish.org/content/groups/public/</url>
+    </repository>
+  </repositories>
+
+  <pluginRepositories>
+    <pluginRepository>
+      <id>m.g.o-public</id>
+      <url>http://maven.glassfish.org/content/groups/public/</url>
+    </pluginRepository>
+  </pluginRepositories>
+</project>

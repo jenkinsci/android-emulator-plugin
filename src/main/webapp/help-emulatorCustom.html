@@ -1,0 +1,24 @@
+<div>
+  Values specified here will be used to generate an Android emulator on-the-fly, if one doesn't
+  already exist with the given properties.  Note that each emulator may consume anywhere from 30
+  to 80MB of disk space on the build host.
+<p>
+  Each property will autocomplete to the standard Android SDK values, or you can provide custom
+  values, e.g. if you have additional platforms defined or want to use a custom resolution.
+</p>
+<p>
+  You can also do environment variable substitution for any of these properties, in the format: 
+  <tt>${VARIABLE_NAME}</tt> or <tt>$VARIABLE_NAME</tt>.
+</p>
+<p>
+  For example, if you have configured a
+  <a href="http://wiki.hudson-ci.org/display/HUDSON/Building+a+matrix+project" target="_blank">
+  matrix build</a> to include a &quot;density&quot; axis with values &quot;120 160 240&quot;, you
+  could enter <tt>${density}</tt> for the &quot;Screen density&quot; property below and the
+  appropriate substitution would be made when each individual build is executed.
+</p> 
+  Emulators are stored in the usual <tt>$HOME/.android/avd</tt> directory, named in the format:
+  <tt>hudson_[locale]_[density]_[resolution]_[target]</tt>.<br/>
+  For example: <tt>hudson_en-GB_160_HVGA_android-7</tt> for a British English, medium density, HVGA
+  device running Android 2.1.
+</div>
