@@ -222,11 +222,15 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
         return new Environment() {
             @Override
             public void buildEnvVars(Map<String, String> env) {
+                env.put("ANDROID_AVD_DEVICE", "localhost:"+ adbPort);
+                env.put("ANDROID_AVD_ADB_PORT", Integer.toString(adbPort));
+                env.put("ANDROID_AVD_USER_PORT", Integer.toString(userPort));
                 env.put("ANDROID_AVD_NAME", emuConfig.getAvdName());
                 if (!emuConfig.isNamedEmulator()) {
                     env.put("ANDROID_AVD_OS", emuConfig.getOsVersion().toString());
                     env.put("ANDROID_AVD_DENSITY", emuConfig.getScreenDensity().toString());
                     env.put("ANDROID_AVD_RESOLUTION", emuConfig.getScreenResolution().toString());
+                    env.put("ANDROID_AVD_SKIN", emuConfig.getScreenResolution().getSkinName());
                     env.put("ANDROID_AVD_LOCALE", emuConfig.getDeviceLocale());
                 }
             }

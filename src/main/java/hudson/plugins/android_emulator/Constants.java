@@ -33,7 +33,8 @@ class AndroidPlatform implements Serializable {
     static final AndroidPlatform SDK_2_0 = new AndroidPlatform("2.0", 5);
     static final AndroidPlatform SDK_2_0_1 = new AndroidPlatform("2.0.1", 6);
     static final AndroidPlatform SDK_2_1 = new AndroidPlatform("2.1", 7);
-    static final AndroidPlatform[] PRESETS = new AndroidPlatform[] { SDK_1_1, SDK_1_5, SDK_1_6, SDK_2_0, SDK_2_0_1, SDK_2_1 };
+    static final AndroidPlatform[] PRESETS = new AndroidPlatform[] { SDK_1_1, SDK_1_5, SDK_1_6,
+                                                                     SDK_2_0, SDK_2_0_1, SDK_2_1 };
 
     private final String name;
     private final int level;
@@ -148,28 +149,38 @@ class ScreenResolution implements Serializable {
 
     private static final long serialVersionUID = 1L;
 
-    static final ScreenResolution QVGA = new ScreenResolution(240, 320, "QVGA", ScreenDensity.LOW);
-    static final ScreenResolution WQVGA = new ScreenResolution(240, 400, "WQVGA", ScreenDensity.LOW);
-    static final ScreenResolution FWQVGA = new ScreenResolution(240, 432, "FWQVGA", ScreenDensity.LOW);
-    static final ScreenResolution HVGA = new ScreenResolution(320, 480, "HVGA", ScreenDensity.MEDIUM);
-    static final ScreenResolution WVGA = new ScreenResolution(480, 800, "WVGA", ScreenDensity.MEDIUM, ScreenDensity.HIGH);
-    static final ScreenResolution FWVGA = new ScreenResolution(480, 854, "FWVGA", ScreenDensity.MEDIUM, ScreenDensity.HIGH);
-    static final ScreenResolution[] PRESETS = new ScreenResolution[] { QVGA, WQVGA, FWQVGA, HVGA, WVGA, FWVGA };
+    static final ScreenResolution QVGA = new ScreenResolution(240, 320, "QVGA", "QVGA",
+            ScreenDensity.LOW);
+    static final ScreenResolution WQVGA = new ScreenResolution(240, 400, "WQVGA", "WQVGA400",
+            ScreenDensity.LOW);
+    static final ScreenResolution FWQVGA = new ScreenResolution(240, 432, "FWQVGA", "WQVGA432",
+            ScreenDensity.LOW);
+    static final ScreenResolution HVGA = new ScreenResolution(320, 480, "HVGA", "HVGA",
+            ScreenDensity.MEDIUM);
+    static final ScreenResolution WVGA = new ScreenResolution(480, 800, "WVGA", "WVGA800",
+            ScreenDensity.MEDIUM, ScreenDensity.HIGH);
+    static final ScreenResolution FWVGA = new ScreenResolution(480, 854, "FWVGA", "WVGA854",
+            ScreenDensity.MEDIUM, ScreenDensity.HIGH);
+    static final ScreenResolution[] PRESETS = new ScreenResolution[] { QVGA, WQVGA, FWQVGA,
+                                                                       HVGA, WVGA, FWVGA };
 
     private final int width;
     private final int height;
     private final String alias;
+    private final String skinName;
     private final ScreenDensity[] densities;
 
-    private ScreenResolution(int width, int height, String alias, ScreenDensity... applicableDensities) {
+    private ScreenResolution(int width, int height, String alias, String skinName,
+            ScreenDensity... applicableDensities) {
         this.width = width;
         this.height = height;
         this.alias = alias;
+        this.skinName = skinName;
         this.densities = applicableDensities;
     }
 
     private ScreenResolution(int width, int height) {
-        this(width, height, null, (ScreenDensity[]) null);
+        this(width, height, null, null, (ScreenDensity[]) null);
     }
 
     public static ScreenResolution valueOf(String resolution) {
@@ -213,17 +224,29 @@ class ScreenResolution implements Serializable {
         return alias == null;
     }
 
+    public String getSkinName() {
+        if (isCustomResolution()) {
+            return getDimensionString();
+        }
+
+        return skinName;
+    }
+
     public ScreenDensity[] getApplicableDensities() {
         return densities;
     }
 
+    public String getDimensionString() {
+        return width +"x"+ height;
+    }
+
     @Override
     public String toString() {
-        if (alias != null) {
-            return alias;
+        if (isCustomResolution()) {
+            return getDimensionString();
         }
 
-        return width +"x"+ height;
+        return alias;
     };
 
 }

@@ -131,7 +131,7 @@ class EmulatorConfig implements Serializable {
         sb.append("16M\r\n");
 
         sb.append("skin.name=");
-        sb.append(screenResolution.toString());
+        sb.append(screenResolution.getSkinName());
         sb.append("\r\n");
 
         sb.append("skin.path=");
@@ -140,7 +140,7 @@ class EmulatorConfig implements Serializable {
             sb.append(targetName);
             sb.append("/skins/");
         }
-        sb.append(screenResolution.toString());
+        sb.append(screenResolution.getSkinName());
         sb.append("\r\n");
 
         sb.append("hw.lcd.density=");
