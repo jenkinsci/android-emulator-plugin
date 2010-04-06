@@ -13,6 +13,7 @@ import hudson.model.BuildListener;
 import hudson.model.Computer;
 import hudson.model.Hudson;
 import hudson.model.Result;
+import hudson.model.TaskListener;
 import hudson.remoting.Callable;
 import hudson.tasks.BuildWrapper;
 import hudson.tasks.BuildWrapperDescriptor;
@@ -170,8 +171,9 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
         // Start emulator process
         log(logger, Messages.STARTING_EMULATOR());
         final long bootTime = System.currentTimeMillis();
+        final EnvVars buildEnvironment = build.getEnvironment(TaskListener.NULL);
         final ProcStarter procStarter = launcher.launch().stdout(logger).stderr(logger);
-        final Proc emulatorProcess = procStarter.envs(environment).cmds(emulatorCmd).start();
+        final Proc emulatorProcess = procStarter.envs(buildEnvironment).cmds(emulatorCmd).start();
 
         // Wait for TCP socket to become available
         boolean socket = waitForSocket(launcher, adbPort, ADB_CONNECT_TIMEOUT_MS);
