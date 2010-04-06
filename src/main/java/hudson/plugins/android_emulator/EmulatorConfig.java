@@ -243,7 +243,8 @@ class EmulatorConfig implements Serializable {
                 try {
                     new FilePath(avdDirectory).deleteRecursive();
                 } catch (InterruptedException e2) {}
-                throw new IOException(Messages.AVD_CREATION_INTERRUPTED(), e);
+                e.printStackTrace();
+                throw new IOException(Messages.AVD_CREATION_INTERRUPTED());
             }
 
             // Create metadata in AVD home

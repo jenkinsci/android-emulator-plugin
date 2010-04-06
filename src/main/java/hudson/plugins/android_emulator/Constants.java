@@ -1,5 +1,7 @@
 package hudson.plugins.android_emulator;
 
+import hudson.Util;
+
 import java.io.Serializable;
 
 interface Constants {
@@ -46,7 +48,7 @@ class AndroidPlatform implements Serializable {
     }
 
     public static AndroidPlatform valueOf(String version) {
-        if (version == null || version.trim().isEmpty()) {
+        if (Util.fixEmptyAndTrim(version) == null) {
             return null;
         }
 
@@ -108,7 +110,7 @@ class ScreenDensity implements Serializable {
     }
 
     public static ScreenDensity valueOf(String density) {
-        if (density == null || density.trim().isEmpty()) {
+        if (Util.fixEmptyAndTrim(density) == null) {
             return null;
         }
 
@@ -171,7 +173,7 @@ class ScreenResolution implements Serializable {
     }
 
     public static ScreenResolution valueOf(String resolution) {
-        if (resolution == null || resolution.trim().isEmpty()) {
+        if (Util.fixEmptyAndTrim(resolution) == null) {
             return null;
         }
 
