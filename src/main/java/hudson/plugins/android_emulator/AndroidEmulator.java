@@ -1,5 +1,6 @@
 package hudson.plugins.android_emulator;
 
+
 import hudson.EnvVars;
 import hudson.Extension;
 import hudson.FilePath;
@@ -52,7 +53,6 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
 
     private DescriptorImpl descriptor;
 
-    private transient final boolean useNamedEmulator;
     private final String avdName;
     private final String osVersion;
     private final String screenDensity;
@@ -67,11 +67,10 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
         this.screenDensity = screenDensity;
         this.screenResolution = screenResolution;
         this.deviceLocale = deviceLocale;
-        this.useNamedEmulator = avdName != null;
     }
 
     public boolean getUseNamedEmulator() {
-        return useNamedEmulator;
+        return avdName != null;
     }
 
     public String getOsVersion() {
@@ -147,10 +146,9 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
                 throws IOException, InterruptedException {
         // First ensure that emulator exists
         final Computer computer = Computer.currentComputer();
-        final EnvVars environment = computer.getEnvironment();
         final boolean emulatorAlreadyExists;
         try {
-            Callable<Boolean, IOException> task = emuConfig.getEmulatorCreationTask(androidHome);
+            Callable<Boolean, IOException> task = emuConfig.getEmulatorCreationTask(androidHome, launcher.isUnix());
             emulatorAlreadyExists = launcher.getChannel().call(task);
         } catch (FileNotFoundException ex) {
             log(logger, Messages.CANNOT_START_EMULATOR(ex.getMessage()));
@@ -166,7 +164,7 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
         // Compile complete command for starting emulator
         final String avdArgs = emuConfig.getCommandArguments();
         String emulatorArgs = String.format("-ports %s,%s %s", userPort, adbPort, avdArgs);
-        ArgumentListBuilder emulatorCmd = getToolCommand(launcher, androidHome, "emulator", "emulator.exe", emulatorArgs);
+        ArgumentListBuilder emulatorCmd = Utils.getToolCommand(launcher, androidHome, "emulator", "emulator.exe", emulatorArgs);
 
         // Start emulator process
         log(logger, Messages.STARTING_EMULATOR());
@@ -186,7 +184,7 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
 
         // Notify adb of our existence
         final String adbConnectArgs = "connect localhost:"+ adbPort;
-        ArgumentListBuilder adbConnectCmd = getToolCommand(launcher, androidHome, "adb", "adb.exe", adbConnectArgs);
+        ArgumentListBuilder adbConnectCmd = Utils.getToolCommand(launcher, androidHome, "adb", "adb.exe", adbConnectArgs);
         int result = procStarter.cmds(adbConnectCmd).stdout(new NullOutputStream()).start().join();
         if (result != 0) { // adb currently only ever returns 0!
             log(logger, Messages.CANNOT_CONNECT_TO_EMULATOR());
@@ -200,7 +198,7 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
         final FilePath logcatFile = build.getWorkspace().createTempFile("logcat_", ".log");
         final OutputStream logcatStream = logcatFile.write();
         final String logcatArgs = "-s localhost:"+ adbPort +" logcat -v time";
-        ArgumentListBuilder logcatCmd = getToolCommand(launcher, androidHome, "adb", "adb.exe", logcatArgs);
+        ArgumentListBuilder logcatCmd = Utils.getToolCommand(launcher, androidHome, "adb", "adb.exe", logcatArgs);
         final Proc logWriter = procStarter.cmds(logcatCmd).stdout(logcatStream).stderr(new NullOutputStream()).start();
 
         // Monitor device for boot completion signal
@@ -278,7 +276,7 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
             FilePath logcatFile, OutputStream logcatStream, File artifactsDir)
                 throws IOException, InterruptedException {
         // FIXME: Sometimes on Windows neither the emulator.exe nor the adb.exe processes die.
-        //        Launcher.kill(EnvVars) does appear to help either.
+        //        Launcher.kill(EnvVars) does not appear to help either.
         //        This is (a) inconsistent; (b) very annoying.
 
         // Stop emulator process and free up TCP ports
@@ -444,50 +442,6 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
     }
 
     /**
-     * Retrieves the path to the Android SDK tools directory, based on the given SDK root path.
-     *
-     * @param androidHome  The path to the Android SDK root, may be empty or <code>null</code>.
-     * @return  The path to the general Android SDK tools directory.
-     */
-    private String getAndroidToolsDirectory(final String androidHome) {
-        final String androidToolsDir;
-
-        // If no home was provided, we'll assume that everything is on the PATH
-        if (androidHome == null) {
-            androidToolsDir = "";
-        } else {
-            androidToolsDir = androidHome +"/tools/";
-        }
-
-        return androidToolsDir;
-    }
-
-    /**
-     * Generates a ready-to-use ArgumentListBuilder for one of the Android SDK tools.
-     *
-     * @param launcher The launcher for the remote node.
-     * @param androidHome The Android SDK root.
-     * @param unixCmd The executable to run on normal systems.
-     * @param windowsCmd The executable for elsewhere.
-     * @param args Any extra arguments for the command.
-     * @return Arguments including the full path to the SDK and any extra Windows stuff required.
-     */
-    private ArgumentListBuilder getToolCommand(Launcher launcher, String androidHome,
-            String unixCmd, String windowsCmd, String args) {
-        // Figure out where the tools are that we need
-        final String androidToolsDir = getAndroidToolsDirectory(androidHome);
-
-        // Build tool command
-        final String executable = launcher.isUnix() ? unixCmd : windowsCmd;
-        ArgumentListBuilder builder = new ArgumentListBuilder(androidToolsDir + executable);
-        if (args != null) {
-            builder.add(Util.tokenize(args));
-        }
-
-        return builder;
-    }
-
-    /**
      * Waits for a socket on the remote machine's localhost to become available, or times out.
      *
      * @param launcher The launcher for the remote node.
@@ -525,7 +479,7 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
 
         final String serialNo = "localhost:"+ port;
         final String args = "-s "+ serialNo +" shell getprop dev.bootcomplete";
-        ArgumentListBuilder cmd = getToolCommand(launcher, androidHome, "adb", "adb.exe", args);
+        ArgumentListBuilder cmd = Utils.getToolCommand(launcher, androidHome, "adb", "adb.exe", args);
 
         try {
             while (System.currentTimeMillis() < start + timeout) {
@@ -596,12 +550,14 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
             JSONObject config = formData.getJSONObject("useNamed");
             String useNamedValue = config.getString("value");
             if (Boolean.parseBoolean(useNamedValue)) {
-                avdName = config.getString("avdName");
+                avdName = Util.fixEmptyAndTrim(config.getString("avdName"));
             } else {
-                osVersion = config.getString("osVersion");
-                screenDensity = config.getString("screenDensity");
-                screenResolution = config.getString("screenResolution");
-                deviceLocale = config.getString("deviceLocale");
+                osVersion = Util.fixEmptyAndTrim(config.getString("osVersion"));
+                screenDensity = Util.fixEmptyAndTrim(config.getString("screenDensity"));
+                // TODO: Normalise "hvga" -> "HVGA" etc.
+                screenResolution = Util.fixEmptyAndTrim(config.getString("screenResolution"));
+                // TODO: Normalise "en-gb" -> "en_GB" etc.
+                deviceLocale = Util.fixEmptyAndTrim(config.getString("deviceLocale"));
             }
 
             return new AndroidEmulator(avdName, osVersion, screenDensity, screenResolution, deviceLocale);

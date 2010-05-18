@@ -19,7 +19,8 @@ interface Constants {
     static final String REGEX_LOCALE = "[a-z]{2}_[A-Z]{2}";
     static final String REGEX_SCREEN_DENSITY = "[0-9]{2,4}|[hlm]dpi";
     static final String REGEX_SCREEN_RESOLUTION = "[0-9]{3,4}x[0-9]{3,4}";
-    static final String REGEX_SCREEN_RESOLUTION_FULL = "F?[HQW]{1,2}VGA|"+ REGEX_SCREEN_RESOLUTION;
+    static final String REGEX_SCREEN_RESOLUTION_ALIAS = "([HQ]|F?WQ?)VGA";
+    static final String REGEX_SCREEN_RESOLUTION_FULL = REGEX_SCREEN_RESOLUTION_ALIAS +"|"+ REGEX_SCREEN_RESOLUTION;
 
 }
 
@@ -140,7 +141,7 @@ class ScreenDensity implements Serializable {
 
     @Override
     public String toString() {
-        return new Integer(dpi).toString();
+        return Integer.toString(dpi);
     };
 
 }
