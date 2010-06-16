@@ -1,17 +1,20 @@
 package hudson.plugins.android_emulator;
 
 import hudson.Util;
+import hudson.model.BuildListener;
 import hudson.remoting.Callable;
 import hudson.util.ArgumentListBuilder;
 import hudson.util.StreamCopyThread;
 
 import java.io.BufferedReader;
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.io.PrintStream;
 import java.io.PrintWriter;
 import java.io.Serializable;
 import java.util.HashMap;
@@ -130,8 +133,8 @@ class EmulatorConfig implements Serializable {
      * @param isUnix  Whether the target system is sane.
      * @return A Callable that will handle the detection/creation of an appropriate AVD.
      */
-    public Callable<Boolean, IOException> getEmulatorCreationTask(String androidHome, boolean isUnix) {
-        return new EmulatorCreationTask(androidHome, isUnix);
+    public Callable<Boolean, AndroidEmulatorException> getEmulatorCreationTask(String androidHome, boolean isUnix, BuildListener listener) {
+        return new EmulatorCreationTask(androidHome, isUnix, listener);
     }
 
     private File getAvdHome(final File homeDir) {
@@ -206,20 +209,27 @@ class EmulatorConfig implements Serializable {
      * <code>FALSE</code> if an AVD was newly created, and throws an IOException if the given AVD
      * or parts required to generate a new AVD were not found.
      */
-    // TODO: Throw more specific class of exception
-    private final class EmulatorCreationTask implements Callable<Boolean, IOException> {
+    private final class EmulatorCreationTask implements Callable<Boolean, AndroidEmulatorException> {
 
         private static final long serialVersionUID = 1L;
         private final String androidHome;
         private final boolean isUnix;
 
-        public EmulatorCreationTask(String androidHome, boolean isUnix) {
+        private final BuildListener listener;
+        private transient PrintStream logger;
+
+        public EmulatorCreationTask(String androidHome, boolean isUnix, BuildListener listener) {
             this.androidHome = androidHome;
             this.isUnix = isUnix;
+            this.listener = listener;
         }
 
         @Override
-        public Boolean call() throws IOException {
+        public Boolean call() throws AndroidEmulatorException {
+            if (logger == null) {
+                logger = listener.getLogger();
+            }
+
             final File homeDir = new File(System.getProperty("user.home"));
             final File avdDirectory = getAvdDirectory(homeDir);
 
@@ -227,16 +237,19 @@ class EmulatorConfig implements Serializable {
             if (avdDirectory.exists()) {
                 return true;
             } else if (isNamedEmulator()) {
-                throw new FileNotFoundException(Messages.AVD_DOES_NOT_EXIST(avdName));
+                throw new EmulatorDiscoveryException(Messages.AVD_DOES_NOT_EXIST(avdName));
             }
+
+            // Ok, so we want to create a new AVD
+            AndroidEmulator.log(logger, Messages.CREATING_AVD(avdDirectory));
 
             // We can't continue if we don't know where to find emulator images
             if (androidHome == null) {
-                throw new FileNotFoundException(Messages.SDK_NOT_SPECIFIED());
+                throw new EmulatorCreationException(Messages.SDK_NOT_SPECIFIED());
             }
             final File sdkRoot = new File(androidHome);
             if (!sdkRoot.exists()) {
-                throw new FileNotFoundException(Messages.SDK_NOT_FOUND(androidHome));
+                throw new EmulatorCreationException(Messages.SDK_NOT_FOUND(androidHome));
             }
 
             // Build up basic arguments to `android` command
@@ -256,47 +269,60 @@ class EmulatorConfig implements Serializable {
 
             // Tack on quoted platform name at the end, since it can be anything
             builder.add("-t");
-            builder.addQuoted(osVersion.getTargetName());
+            builder.add(osVersion.getTargetName());
 
             // Run!
-            ProcessBuilder procBuilder = new ProcessBuilder(builder.toList());
-            final Process process = procBuilder.start();
-            // TODO: Probably want to fire this directly to the build logger
-            new StreamCopyThread("", process.getErrorStream(), System.err).start();
             boolean avdCreated = false;
+            final Process process;
+            try {
+                ProcessBuilder procBuilder = new ProcessBuilder(builder.toList());
+                process = procBuilder.start();
+            } catch (IOException ex) {
+                throw new EmulatorCreationException(Messages.AVD_CREATION_FAILED());
+            }
+
+            // Redirect process's stderr to a stream, for logging purposes
+            ByteArrayOutputStream stderr = new ByteArrayOutputStream();
+            new StreamCopyThread("", process.getErrorStream(), stderr).start();
 
             // Command may prompt us whether we want to further customise the AVD.
             // Just "press" Enter to continue with the selected target's defaults.
             try {
+                boolean processAlive = true;
+
                 // Block until the command outputs something (or process ends)
                 final InputStream in = process.getInputStream();
                 int len = in.read();
                 if (len == -1) {
                     // Check whether the process has exited badly, as sometimes no output is valid.
                     // e.g. When creating an AVD with Google APIs, no user input is requested.
-                    if (process.exitValue() != 0) {
-                        throw new IOException(Messages.AVD_CREATION_FAILED());
+                    if (process.waitFor() != 0) {
+                        AndroidEmulator.log(logger, Messages.AVD_CREATION_FAILED());
+                        AndroidEmulator.log(logger, stderr.toString(), true);
+                        throw new EmulatorCreationException(Messages.AVD_CREATION_FAILED());
                     }
+                    processAlive = false;
                 }
                 in.close();
 
-                // Write CRLF
-                final OutputStream stream = process.getOutputStream();
-                stream.write('\r');
-                stream.write('\n');
-                stream.flush();
+                // Write CRLF, if required
+                if (processAlive) {
+                    final OutputStream stream = process.getOutputStream();
+                    stream.write('\r');
+                    stream.write('\n');
+                    stream.flush();
+                    stream.close();
+                }
 
-                int result = process.waitFor();
-                if (result == 0) {
+                // Wait for happy ending
+                if (process.waitFor() == 0) {
                     avdCreated = true;
                 }
 
-                stream.close();
-
             } catch (IOException e) {
-                throw new IOException(Messages.AVD_CREATION_ABORTED(), e);
+                throw new EmulatorCreationException(Messages.AVD_CREATION_ABORTED(), e);
             } catch (InterruptedException e) {
-                throw new IOException(Messages.AVD_CREATION_INTERRUPTED(), e);
+                throw new EmulatorCreationException(Messages.AVD_CREATION_INTERRUPTED(), e);
             } finally {
                 process.destroy();
             }
@@ -304,19 +330,32 @@ class EmulatorConfig implements Serializable {
             // Check whether everything went ok
             if (!avdCreated) {
                 // TODO: Clear up
-                // TODO: Parse `android create` error output for a more specific error message
-                throw new IOException();
+                // TODO: Could potentially parse the "not valid target" message and show a nicer one
+                final String errOutput = stderr.toString();
+                if (errOutput.length() != 0) {
+                    AndroidEmulator.log(logger, stderr.toString(), true);
+                }
+                throw new EmulatorCreationException(Messages.AVD_CREATION_FAILED());
             }
 
             // Parse newly-created AVD's config
-            Map<String, String> configValues = parseAvdConfigFile(homeDir);
+            Map<String, String> configValues;
+            try {
+                configValues = parseAvdConfigFile(homeDir);
+            } catch (IOException e) {
+                throw new EmulatorCreationException(Messages.AVD_CONFIG_NOT_READABLE(), e);
+            }
 
             // TODO: Insert/replace any hardware properties we want to override
 //            configValues.put("vm.heapSize", "4");
 //            configValues.put("hw.ramSize", "64");
 
             // Update config file
-            writeAvdConfigFile(homeDir, configValues);
+            try {
+                writeAvdConfigFile(homeDir, configValues);
+            } catch (IOException e) {
+                throw new EmulatorCreationException(Messages.AVD_CONFIG_NOT_WRITEABLE(), e);
+            }
 
             // Done!
             return false;

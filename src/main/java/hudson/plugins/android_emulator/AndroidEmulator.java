@@ -22,7 +22,6 @@ import hudson.util.ArgumentListBuilder;
 import hudson.util.FormValidation;
 
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.PrintStream;
@@ -138,20 +137,26 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
         EmulatorConfig emuConfig = EmulatorConfig.create(avdName, osVersion, screenDensity,
                 screenResolution, deviceLocale);
 
-        return doSetUp(build, launcher, logger, androidHome, emuConfig);
+        return doSetUp(build, launcher, listener, androidHome, emuConfig);
     }
 
     private Environment doSetUp(final AbstractBuild<?, ?> build, final Launcher launcher,
-            final PrintStream logger, final String androidHome, final EmulatorConfig emuConfig)
+            final BuildListener listener, final String androidHome, final EmulatorConfig emuConfig)
                 throws IOException, InterruptedException {
+        final PrintStream logger = listener.getLogger();
+
         // First ensure that emulator exists
         final Computer computer = Computer.currentComputer();
         final boolean emulatorAlreadyExists;
         try {
-            Callable<Boolean, IOException> task = emuConfig.getEmulatorCreationTask(androidHome, launcher.isUnix());
+            Callable<Boolean, AndroidEmulatorException> task = emuConfig.getEmulatorCreationTask(androidHome, launcher.isUnix(), listener);
             emulatorAlreadyExists = launcher.getChannel().call(task);
-        } catch (FileNotFoundException ex) {
+        } catch (EmulatorDiscoveryException ex) {
             log(logger, Messages.CANNOT_START_EMULATOR(ex.getMessage()));
+            build.setResult(Result.FAILURE);
+            return null;
+        } catch (AndroidEmulatorException ex) {
+            log(logger, Messages.COULD_NOT_CREATE_EMULATOR(ex.getMessage()));
             build.setResult(Result.NOT_BUILT);
             return null;
         }
@@ -248,8 +253,17 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
     }
 
     /** Helper method for writing to the build log in a consistent manner. */
-    private synchronized void log(final PrintStream logger, final String message) {
-        logger.print("[android] ");
+    synchronized static void log(final PrintStream logger, final String message) {
+        log(logger, message, false);
+    }
+
+    /** Helper method for writing to the build log in a consistent manner. */
+    synchronized static void log(final PrintStream logger, String message, boolean indent) {
+        if (indent) {
+            message = '\t' + message.replace("\n", "\n\t");
+        } else {
+            logger.print("[android] ");
+        }
         logger.println(message);
     }
 
@@ -499,7 +513,6 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
             }
         } catch (InterruptedException ex) {
             log(logger, Messages.INTERRUPTED_DURING_BOOT_COMPLETION());
-            ex.printStackTrace(logger);
         } catch (IOException ex) {
             log(logger, Messages.COULD_NOT_CHECK_BOOT_COMPLETION());
             ex.printStackTrace(logger);
