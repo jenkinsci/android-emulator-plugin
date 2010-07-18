@@ -42,9 +42,34 @@
                   items="${descriptor.emulatorLocales}"
                   checkUrl="'descriptorByName/AndroidEmulator/checkDeviceLocale?value='+escape(this.value)" />
             </f:entry>
+            <f:entry title="${%SD card size}" help="/plugin/android-emulator/help-sdCard.html">
+              <f:textbox name="android-emulator.sdCardSize" value="${instance.sdCardSize}" style="width:6em"
+                  checkUrl="'descriptorByName/AndroidEmulator/checkSdCardSize?value='+escape(this.value)" />
+            </f:entry>
           </table>
         </f:block>
       </f:radioBlock>
+
+      <f:section title="${%Common emulator options}">
+        <f:entry help="/plugin/android-emulator/help-wipeData.html">
+          <f:checkbox id="android-emulator.wipeData" name="android-emulator.wipeData"
+              checked="${instance.shouldWipeData()}" />
+          <label for="android-emulator.wipeData">${%Reset emulator state at start-up}</label>
+        </f:entry>
+        <f:entry help="/plugin/android-emulator/help-showWindow.html">
+          <f:checkbox id="android-emulator.showWindow" name="android-emulator.showWindow"
+              checked="${h.defaultToTrue(instance.shouldShowWindow())}" />
+          <label for="android-emulator.showWindow">${%Show emulator window}</label>
+        </f:entry>
+      </f:section>
+
+      <f:advanced>
+        <f:entry help="/plugin/android-emulator/help-startupDelay.html">
+          <f:textbox name="android-emulator.startupDelay" value="${instance.startupDelay}" style="width:3em"
+              default="0" />
+          <label for="android-emulator.startupDelay"><st:nbsp/>${%second delay before starting emulator}</label>
+        </f:entry>
+      </f:advanced>
 
     </table>
   </f:block>

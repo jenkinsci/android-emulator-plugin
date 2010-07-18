@@ -30,19 +30,21 @@ class EmulatorConfig implements Serializable {
     private ScreenResolution screenResolution;
     private String deviceLocale;
     private String sdCardSize;
+    private final boolean wipeData;
+    private final boolean showWindow;
 
-    public EmulatorConfig(String avdName) {
+    public EmulatorConfig(String avdName, boolean wipeData, boolean showWindow) {
         this.avdName = avdName;
+        this.wipeData = wipeData;
+        this.showWindow = showWindow;
     }
 
-    public EmulatorConfig(String osVersion,
-            String screenDensity, String screenResolution, String deviceLocale) throws IllegalArgumentException {
+    public EmulatorConfig(String osVersion, String screenDensity, String screenResolution,
+            String deviceLocale, String sdCardSize, boolean wipeData, boolean showWindow)
+                throws IllegalArgumentException {
         if (osVersion == null || screenDensity == null || screenResolution == null) {
             throw new IllegalArgumentException("Valid OS version and screen properties must be supplied.");
         }
-
-        // FIXME: Get this from user input instead of hardcoding
-        sdCardSize = "16M";
 
         // Normalise incoming variables
         int targetLength = osVersion.length();
@@ -55,24 +57,32 @@ class EmulatorConfig implements Serializable {
         } else if (screenResolution.matches("(?i)"+ Constants.REGEX_SCREEN_RESOLUTION)) {
             screenResolution = screenResolution.toLowerCase();
         }
-        if (deviceLocale != null) {
+        if (deviceLocale != null && deviceLocale.length() > 4) {
             deviceLocale = deviceLocale.substring(0, 2).toLowerCase() +"_"
                 + deviceLocale.substring(3).toUpperCase();
+        }
+        if (sdCardSize != null) {
+            sdCardSize = sdCardSize.toUpperCase().replaceAll("[ B]", "");
         }
 
         this.osVersion = AndroidPlatform.valueOf(osVersion);
         this.screenDensity = ScreenDensity.valueOf(screenDensity);
         this.screenResolution = ScreenResolution.valueOf(screenResolution);
         this.deviceLocale = deviceLocale;
+        this.sdCardSize = sdCardSize;
+        this.wipeData = wipeData;
+        this.showWindow = showWindow;
     }
 
-    public static final EmulatorConfig create(String avdName, String osVersion,
-            String screenDensity, String screenResolution, String deviceLocale) {
+    public static final EmulatorConfig create(String avdName, String osVersion, String screenDensity,
+            String screenResolution, String deviceLocale, String sdCardSize, boolean wipeData,
+            boolean showWindow) {
         if (Util.fixEmptyAndTrim(avdName) == null) {
-            return new EmulatorConfig(osVersion, screenDensity, screenResolution, deviceLocale);
+            return new EmulatorConfig(osVersion, screenDensity, screenResolution, deviceLocale,
+                    sdCardSize, wipeData, showWindow);
         }
 
-        return new EmulatorConfig(avdName);
+        return new EmulatorConfig(avdName, wipeData, showWindow);
     }
 
     public boolean isNamedEmulator() {
@@ -124,6 +134,14 @@ class EmulatorConfig implements Serializable {
 
     public String getSdCardSize() {
         return sdCardSize;
+    }
+
+    public boolean shouldWipeData() {
+        return wipeData;
+    }
+
+    public boolean shouldShowWindow() {
+        return showWindow;
     }
 
     /**
@@ -190,6 +208,7 @@ class EmulatorConfig implements Serializable {
     public String getCommandArguments() {
         StringBuilder sb = new StringBuilder("-no-boot-anim");
 
+        // Set basics
         if (!isNamedEmulator()) {
             sb.append(" -prop persist.sys.language=");
             sb.append(getDeviceLanguage());
@@ -198,6 +217,14 @@ class EmulatorConfig implements Serializable {
         }
         sb.append(" -avd ");
         sb.append(getAvdName());
+
+        // Options
+        if (shouldWipeData()) {
+            sb.append(" -wipe-data");
+        }
+        if (!shouldShowWindow()) {
+            sb.append(" -no-window");
+        }
 
         return sb.toString();
     }
@@ -233,23 +260,54 @@ class EmulatorConfig implements Serializable {
             final File homeDir = new File(System.getProperty("user.home"));
             final File avdDirectory = getAvdDirectory(homeDir);
 
-            // There's nothing to do if the directory exists
-            if (avdDirectory.exists()) {
-                return true;
-            } else if (isNamedEmulator()) {
+            // Can't do anything if a named emulator doesn't exist
+            if (isNamedEmulator() && !avdDirectory.exists()) {
                 throw new EmulatorDiscoveryException(Messages.AVD_DOES_NOT_EXIST(avdName));
             }
 
-            // Ok, so we want to create a new AVD
-            AndroidEmulator.log(logger, Messages.CREATING_AVD(avdDirectory));
+            // Check whether AVD needs to be created, or whether an existing AVD needs an SD card
+            boolean createSdCard = false;
+            if (avdDirectory.exists()) {
+                // There's nothing to do if no SD card is required, or one already exists
+                File sdCardFile = new File(getAvdDirectory(homeDir), "sdcard.img");
+                if (getSdCardSize() == null || sdCardFile.exists()) {
+                    return true;
+                }
 
-            // We can't continue if we don't know where to find emulator images
+                createSdCard = true;
+                AndroidEmulator.log(logger, Messages.ADDING_SD_CARD(sdCardSize, getAvdName()));
+            } else {
+                AndroidEmulator.log(logger, Messages.CREATING_AVD(avdDirectory));
+            }
+
+            // We can't continue if we don't know where to find emulator images or tools
             if (androidHome == null) {
                 throw new EmulatorCreationException(Messages.SDK_NOT_SPECIFIED());
             }
             final File sdkRoot = new File(androidHome);
             if (!sdkRoot.exists()) {
                 throw new EmulatorCreationException(Messages.SDK_NOT_FOUND(androidHome));
+            }
+
+            // If we're only here to create an SD card, do so and return
+            if (createSdCard) {
+                try {
+                    createSdCard(homeDir);
+                } catch (Exception e) {
+                    throw new EmulatorCreationException(Messages.SD_CARD_CREATION_FAILED(), e);
+                }
+
+                // Update the AVD config file
+                Map<String, String> configValues;
+                try {
+                    configValues = parseAvdConfigFile(homeDir);
+                    configValues.put("sdcard.size", sdCardSize);
+                    writeAvdConfigFile(homeDir, configValues);
+                } catch (IOException e) {
+                    throw new EmulatorCreationException(Messages.AVD_CONFIG_NOT_READABLE(), e);
+                }
+
+                return true;
             }
 
             // Build up basic arguments to `android` command
@@ -359,6 +417,26 @@ class EmulatorConfig implements Serializable {
 
             // Done!
             return false;
+        }
+
+        private boolean createSdCard(File homeDir) {
+            // Build command: mksdcard 32M /home/foo/.android/avd/whatever.avd/sdcard.img
+            final String androidCmd = isUnix ? "mksdcard" : "mksdcard.exe";
+            ArgumentListBuilder builder = Utils.getToolCommand(androidHome, androidCmd, null);
+            builder.add(sdCardSize);
+            builder.add(new File(getAvdDirectory(homeDir), "sdcard.img"));
+
+            // Run!
+            try {
+                ProcessBuilder procBuilder = new ProcessBuilder(builder.toList());
+                procBuilder.start().waitFor();
+            } catch (InterruptedException ex) {
+                return false;
+            } catch (IOException ex) {
+                return false;
+            }
+
+            return true;
         }
     }
 

@@ -31,6 +31,8 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import net.sf.json.JSONObject;
 
@@ -57,15 +59,24 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
     private final String screenDensity;
     private final String screenResolution;
     private final String deviceLocale;
+    private final String sdCardSize;
+    private final boolean wipeData;
+    private final boolean showWindow;
+    private final int startupDelay;
 
     @DataBoundConstructor
     public AndroidEmulator(String avdName, String osVersion, String screenDensity,
-                           String screenResolution, String deviceLocale) {
+            String screenResolution, String deviceLocale, String sdCardSize, boolean wipeData,
+            boolean showWindow, int startupDelay) {
         this.avdName = avdName;
         this.osVersion = osVersion;
         this.screenDensity = screenDensity;
         this.screenResolution = screenResolution;
         this.deviceLocale = deviceLocale;
+        this.sdCardSize = sdCardSize;
+        this.wipeData = wipeData;
+        this.showWindow = showWindow;
+        this.startupDelay = Math.abs(startupDelay);
     }
 
     public boolean getUseNamedEmulator() {
@@ -92,6 +103,22 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
         return deviceLocale;
     }
 
+    public String getSdCardSize() {
+        return sdCardSize;
+    }
+
+    public boolean shouldWipeData() {
+        return wipeData;
+    }
+
+    public boolean shouldShowWindow() {
+        return showWindow;
+    }
+
+    public int getStartupDelay() {
+        return startupDelay;
+    }
+
     @Override
     @SuppressWarnings("unchecked")
     public Environment setUp(AbstractBuild build, final Launcher launcher, BuildListener listener)
@@ -106,18 +133,24 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
         final EnvVars envVars = new EnvVars(localVars);
         envVars.putAll(build.getEnvironment(listener));
         final Map<String, String> buildVars = build.getBuildVariables();
+
+        // Device properties
         String avdName = expandVariables(envVars, buildVars, this.avdName);
         String osVersion = expandVariables(envVars, buildVars, this.osVersion);
         String screenDensity = expandVariables(envVars, buildVars, this.screenDensity);
         String screenResolution = expandVariables(envVars, buildVars, this.screenResolution);
         String deviceLocale = expandVariables(envVars, buildVars, this.deviceLocale);
+        String sdCardSize = expandVariables(envVars, buildVars, this.sdCardSize);
+
+        // SDK location
         String androidHome = expandVariables(envVars, buildVars, descriptor.androidHome);
         androidHome = validateAndroidHome(launcher, localVars, androidHome);
 
         // Despite the nice inline checks and warnings when the user is editing the config,
         // these are not binding, so the user may have saved invalid configuration.
         // Here we check whether or not it's worth proceeding based on the saved values.
-        String configError = isConfigValid(avdName, osVersion, screenDensity, screenResolution, deviceLocale);
+        String configError = isConfigValid(avdName, osVersion, screenDensity, screenResolution,
+                deviceLocale, sdCardSize);
         if (configError != null) {
             log(logger, Messages.ERROR_MISCONFIGURED(configError));
             build.setResult(Result.NOT_BUILT);
@@ -135,7 +168,7 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
         String displayHome = androidHome == null ? Messages.USING_PATH() : androidHome;
         log(logger, Messages.USING_SDK(displayHome));
         EmulatorConfig emuConfig = EmulatorConfig.create(avdName, osVersion, screenDensity,
-                screenResolution, deviceLocale);
+                screenResolution, deviceLocale, sdCardSize, wipeData, showWindow);
 
         return doSetUp(build, launcher, listener, androidHome, emuConfig);
     }
@@ -161,6 +194,13 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
             return null;
         }
 
+        // Delay start up by the configured amount of time
+        final int delaySecs = getStartupDelay();
+        if (delaySecs > 0) {
+            log(logger, Messages.DELAYING_START_UP(delaySecs));
+            Thread.sleep(delaySecs * 1000);
+        }
+
         // Use the Port Allocator plugin to reserve the two ports we need
         final PortAllocationManager portAllocator = PortAllocationManager.getManager(computer);
         final int userPort = portAllocator.allocateRandom(build, 0);
@@ -173,6 +213,9 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
 
         // Start emulator process
         log(logger, Messages.STARTING_EMULATOR());
+        if (emulatorAlreadyExists && emuConfig.shouldWipeData()) {
+            log(logger, Messages.ERASING_EXISTING_EMULATOR_DATA());
+        }
         final long bootTime = System.currentTimeMillis();
         final EnvVars buildEnvironment = build.getEnvironment(TaskListener.NULL);
         final ProcStarter procStarter = launcher.launch().stdout(logger).stderr(logger);
@@ -209,15 +252,15 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
         // Monitor device for boot completion signal
         log(logger, Messages.WAITING_FOR_BOOT_COMPLETION());
         int bootTimeout = BOOT_COMPLETE_TIMEOUT_MS;
-        if (!emulatorAlreadyExists) {
+        if (!emulatorAlreadyExists || emuConfig.shouldWipeData()) {
             bootTimeout *= 4;
         }
         boolean bootSucceeded = waitForBootCompletion(logger, launcher, androidHome, adbPort, bootTimeout);
         if (!bootSucceeded) {
             log(logger, Messages.BOOT_COMPLETION_TIMED_OUT(bootTimeout / 1000));
             build.setResult(Result.NOT_BUILT);
-            cleanUp(logger, portAllocator, emulatorProcess, adbPort, userPort,
-                    logWriter, logcatFile, logcatStream, artifactsDir);
+            cleanUp(logger, launcher, androidHome, portAllocator, emulatorProcess,
+                    adbPort, userPort, logWriter, logcatFile, logcatStream, artifactsDir);
             return null;
         }
         final long bootCompleteTime = System.currentTimeMillis();
@@ -244,8 +287,8 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
             @SuppressWarnings("unchecked")
             public boolean tearDown(AbstractBuild build, BuildListener listener)
                     throws IOException, InterruptedException {
-                cleanUp(logger, portAllocator, emulatorProcess, adbPort, userPort,
-                        logWriter, logcatFile, logcatStream, artifactsDir);
+                cleanUp(logger, launcher, androidHome, portAllocator, emulatorProcess,
+                        adbPort, userPort, logWriter, logcatFile, logcatStream, artifactsDir);
 
                 return true;
             }
@@ -267,15 +310,26 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
         logger.println(message);
     }
 
+    /**
+     * Called when this wrapper needs to exit, so we need to clean up some processes etc.
+     *
+     * @param logger The build logger.
+     * @param portAllocator The port allocator used.
+     * @param emulatorProcess The Android emulator process.
+     * @param adbPort The ADB port used by the emulator.
+     * @param userPort The user port used by the emulator.
+     */
     private void cleanUp(PrintStream logger, PortAllocationManager portAllocator,
             Proc emulatorProcess, int adbPort, int userPort) throws IOException, InterruptedException {
-        cleanUp(logger, portAllocator, emulatorProcess, adbPort, userPort, null, null, null, null);
+        cleanUp(logger, null, null, portAllocator, emulatorProcess, adbPort, userPort, null, null, null, null);
     }
 
     /**
      * Called when this wrapper needs to exit, so we need to clean up some processes etc.
      *
      * @param logger The build logger.
+     * @param launcher The launcher for the remote node.
+     * @param androidHome The Android SDK root.
      * @param portAllocator The port allocator used.
      * @param emulatorProcess The Android emulator process.
      * @param adbPort The ADB port used by the emulator.
@@ -285,13 +339,22 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
      * @param logcatStream The stream the logcat output is being written to.
      * @param artifactsDir The directory where build artifacts should go.
      */
-    private void cleanUp(PrintStream logger, PortAllocationManager portAllocator,
-            Proc emulatorProcess, int adbPort, int userPort, Proc logcatProcess,
-            FilePath logcatFile, OutputStream logcatStream, File artifactsDir)
+    private void cleanUp(PrintStream logger, Launcher launcher, String androidHome,
+            PortAllocationManager portAllocator, Proc emulatorProcess, int adbPort,
+            int userPort, Proc logcatProcess, FilePath logcatFile,
+            OutputStream logcatStream, File artifactsDir)
                 throws IOException, InterruptedException {
         // FIXME: Sometimes on Windows neither the emulator.exe nor the adb.exe processes die.
         //        Launcher.kill(EnvVars) does not appear to help either.
         //        This is (a) inconsistent; (b) very annoying.
+
+        // Disconnect emulator from adb, if it's running
+        if (launcher != null) {
+            final String args = "disconnect localhost:"+ adbPort;
+            ArgumentListBuilder adbDisconnectCmd = Utils.getToolCommand(launcher, androidHome, "adb", "adb.exe", args);
+            final ProcStarter procStarter = launcher.launch().stdout(logger).stderr(logger);
+            procStarter.cmds(adbDisconnectCmd).stdout(new NullOutputStream()).start().join();
+        }
 
         // Stop emulator process and free up TCP ports
         log(logger, Messages.STOPPING_EMULATOR());
@@ -335,7 +398,7 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
      * @return A human-readable error message, or <code>null</code> if the config is valid.
      */
     private String isConfigValid(String avdName, String osVersion, String screenDensity,
-            String screenResolution, String deviceLocale) {
+            String screenResolution, String deviceLocale, String sdCardSize) {
         if (getUseNamedEmulator()) {
             ValidationResult result = descriptor.doCheckAvdName(avdName, false);
             if (result.isFatal()) {
@@ -358,6 +421,10 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
             if (result.isFatal()) {
                 return result.getMessage();
             }
+            result = descriptor.doCheckSdCardSize(sdCardSize, false);
+            if (result.isFatal()) {
+                return result.getMessage();
+            }
         }
 
         return null;
@@ -375,7 +442,6 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
     private String validateAndroidHome(final Launcher launcher, final EnvVars envVars,
             final String androidHome) {
         Callable<String, InterruptedException> task = new Callable<String, InterruptedException>() {
-            @Override
             public String call() throws InterruptedException {
                 // Verify existence of provided value
                 if (validateHomeDir(androidHome)) {
@@ -428,7 +494,6 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
         final String executable = "tools/" + (launcher.isUnix() ? "adb" : "adb.exe");
 
         Callable<Boolean, IOException> task = new Callable<Boolean, IOException>() {
-            @Override
             public Boolean call() throws IOException {
                 String sep = System.getProperty("path.separator");
                 List<String> list = Arrays.asList(System.getenv("PATH").split(sep));
@@ -559,21 +624,33 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
             String screenDensity = null;
             String screenResolution = null;
             String deviceLocale = null;
+            String sdCardSize = null;
+            boolean wipeData = false;
+            boolean showWindow = true;
+            int startupDelay = 0;
 
-            JSONObject config = formData.getJSONObject("useNamed");
-            String useNamedValue = config.getString("value");
+            JSONObject emulatorData = formData.getJSONObject("useNamed");
+            String useNamedValue = emulatorData.getString("value");
             if (Boolean.parseBoolean(useNamedValue)) {
-                avdName = Util.fixEmptyAndTrim(config.getString("avdName"));
+                avdName = Util.fixEmptyAndTrim(emulatorData.getString("avdName"));
             } else {
-                osVersion = Util.fixEmptyAndTrim(config.getString("osVersion"));
-                screenDensity = Util.fixEmptyAndTrim(config.getString("screenDensity"));
-                // TODO: Normalise "hvga" -> "HVGA" etc.
-                screenResolution = Util.fixEmptyAndTrim(config.getString("screenResolution"));
-                // TODO: Normalise "en-gb" -> "en_GB" etc.
-                deviceLocale = Util.fixEmptyAndTrim(config.getString("deviceLocale"));
+                osVersion = Util.fixEmptyAndTrim(emulatorData.getString("osVersion"));
+                screenDensity = Util.fixEmptyAndTrim(emulatorData.getString("screenDensity"));
+                screenResolution = Util.fixEmptyAndTrim(emulatorData.getString("screenResolution"));
+                deviceLocale = Util.fixEmptyAndTrim(emulatorData.getString("deviceLocale"));
+                sdCardSize = Util.fixEmptyAndTrim(emulatorData.getString("sdCardSize"));
+                if (sdCardSize != null) {
+                    sdCardSize = sdCardSize.toUpperCase().replaceAll("[ B]", "");
+                }
             }
+            wipeData = formData.getBoolean("wipeData");
+            showWindow = formData.getBoolean("showWindow");
+            try {
+                startupDelay = Integer.parseInt(formData.getString("startupDelay"));
+            } catch (NumberFormatException e) {}
 
-            return new AndroidEmulator(avdName, osVersion, screenDensity, screenResolution, deviceLocale);
+            return new AndroidEmulator(avdName, osVersion, screenDensity, screenResolution,
+                    deviceLocale, sdCardSize, wipeData, showWindow, startupDelay);
         }
 
         @Override
@@ -712,6 +789,40 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
             }
             if (!locale.matches(regex)) {
                 return ValidationResult.error(Messages.LOCALE_FORMAT_WARNING());
+            }
+
+            return ValidationResult.ok();
+        }
+
+        public FormValidation doCheckSdCardSize(@QueryParameter String value) {
+            return doCheckSdCardSize(value, true).getFormValidation();
+        }
+
+        private ValidationResult doCheckSdCardSize(String sdCardSize, boolean allowVariables) {
+            if (sdCardSize == null || sdCardSize.equals("")) {
+                // No value, no SD card is created
+                return ValidationResult.ok();
+            }
+            String regex = Constants.REGEX_SD_CARD_SIZE;
+            if (allowVariables) {
+                regex += "|"+ VARIABLE_REGEX;
+            }
+            if (!sdCardSize.matches(regex)) {
+                return ValidationResult.error(Messages.INVALID_SD_CARD_SIZE());
+            }
+
+            // Validate size of SD card: New AVD requires at least 9MB
+            Matcher matcher = Pattern.compile(Constants.REGEX_SD_CARD_SIZE).matcher(sdCardSize);
+            if (matcher.matches()) {
+                long bytes = Long.parseLong(matcher.group(1));
+                if (matcher.group(2).toUpperCase().equals("M")) {
+                    // Convert to KB
+                    bytes *= 1024;
+                }
+                bytes *= 1024L;
+                if (bytes < (9 * 1024 * 1024)) {
+                    return ValidationResult.error(Messages.SD_CARD_SIZE_TOO_SMALL());
+                }
             }
 
             return ValidationResult.ok();

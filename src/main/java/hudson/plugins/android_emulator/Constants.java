@@ -17,10 +17,11 @@ interface Constants {
 
     static final String REGEX_AVD_NAME = "[a-zA-Z0-9._-]+";
     static final String REGEX_LOCALE = "[a-z]{2}_[A-Z]{2}";
-    static final String REGEX_SCREEN_DENSITY = "[0-9]{2,4}|[hlm]dpi";
+    static final String REGEX_SCREEN_DENSITY = "[0-9]{2,4}|(?i)[hlm]dpi";
     static final String REGEX_SCREEN_RESOLUTION = "[0-9]{3,4}x[0-9]{3,4}";
     static final String REGEX_SCREEN_RESOLUTION_ALIAS = "([HQ]|F?WQ?)VGA";
     static final String REGEX_SCREEN_RESOLUTION_FULL = REGEX_SCREEN_RESOLUTION_ALIAS +"|"+ REGEX_SCREEN_RESOLUTION;
+    static final String REGEX_SD_CARD_SIZE = "(?i)([0-9]{1,12}) ?([KM])[B]?";
 
 }
 
@@ -116,6 +117,8 @@ class ScreenDensity implements Serializable {
     public static ScreenDensity valueOf(String density) {
         if (Util.fixEmptyAndTrim(density) == null) {
             return null;
+        } else {
+            density = density.toLowerCase();
         }
 
         for (ScreenDensity preset : PRESETS) {
@@ -189,6 +192,8 @@ class ScreenResolution implements Serializable {
     public static ScreenResolution valueOf(String resolution) {
         if (Util.fixEmptyAndTrim(resolution) == null) {
             return null;
+        } else {
+            resolution = resolution.toUpperCase();
         }
 
         // Try matching against alias
