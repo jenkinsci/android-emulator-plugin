@@ -259,23 +259,24 @@ class EmulatorConfig implements Serializable {
 
             // Locate the base directory where Android SDK data (such as AVDs) should be kept
             // From git://android.git.kernel.org/platform/external/qemu.git/android/utils/bufprint.c
-            String homeDir = System.getenv("ANDROID_SDK_HOME");
-            if (homeDir == null) {
+            String homeDirPath = System.getenv("ANDROID_SDK_HOME");
+            if (homeDirPath == null) {
                 if (isUnix) {
-                    homeDir = System.getenv("HOME");
-                    if (homeDir == null) {
-                        homeDir = "/tmp";
+                    homeDirPath = System.getenv("HOME");
+                    if (homeDirPath == null) {
+                        homeDirPath = "/tmp";
                     }
                 } else {
                     // The emulator checks Win32 "CSIDL_PROFILE", which should equal USERPROFILE
-                    homeDir = System.getenv("USERPROFILE");
-                    if (homeDir == null) {
+                    homeDirPath = System.getenv("USERPROFILE");
+                    if (homeDirPath == null) {
                         // Otherwise fall back to user.home (which should equal USERPROFILE anyway)
-                        homeDir = System.getProperty("user.home");
+                        homeDirPath = System.getProperty("user.home");
                     }
                 }
             }
-            final File avdDirectory = getAvdDirectory(new File(homeDir));
+            final File homeDir = new File(homeDirPath);
+            final File avdDirectory = getAvdDirectory(homeDir);
 
             // Can't do anything if a named emulator doesn't exist
             if (isNamedEmulator() && !avdDirectory.exists()) {
@@ -309,7 +310,7 @@ class EmulatorConfig implements Serializable {
             // If we're only here to create an SD card, do so and return
             if (createSdCard) {
                 if (!createSdCard(homeDir)) {
-                    throw new EmulatorCreationException(Messages.SD_CARD_CREATION_FAILED(), e);
+                    throw new EmulatorCreationException(Messages.SD_CARD_CREATION_FAILED());
                 }
 
                 // Update the AVD config file
