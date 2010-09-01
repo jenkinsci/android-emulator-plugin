@@ -839,7 +839,7 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
             }
 
             // Check the utter basics
-            if (sdkRoot == null || sdkRoot.getPath().equals("")) {
+            if (fromWebConfig && (sdkRoot == null || sdkRoot.getPath().equals(""))) {
                 return ValidationResult.ok();
             }
             if (!sdkRoot.isDirectory()) {

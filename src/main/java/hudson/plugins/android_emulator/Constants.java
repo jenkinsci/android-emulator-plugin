@@ -192,18 +192,17 @@ class ScreenResolution implements Serializable {
     public static ScreenResolution valueOf(String resolution) {
         if (Util.fixEmptyAndTrim(resolution) == null) {
             return null;
-        } else {
-            resolution = resolution.toUpperCase();
         }
 
-        // Try matching against alias
+        // Try matching against aliases
         for (ScreenResolution preset : PRESETS) {
-            if (resolution.equals(preset.alias)) {
+            if (resolution.equalsIgnoreCase(preset.alias)) {
                 return preset;
             }
         }
 
         // Check for pixel values
+        resolution = resolution.toLowerCase();
         if (!resolution.matches(Constants.REGEX_SCREEN_RESOLUTION)) {
             return null;
         }
