@@ -9,7 +9,7 @@
 
   <artifactId>android-emulator</artifactId>
   <packaging>hpi</packaging>
-  <version>1.4-SNAPSHOT</version>
+  <version>1.4</version>
   <name>Android Emulator Plugin</name>
   <url>http://wiki.hudson-ci.org/display/HUDSON/Android+Emulator+Plugin</url>
   <developers>
@@ -48,4 +48,10 @@
       <url>http://maven.glassfish.org/content/groups/public/</url>
     </pluginRepository>
   </pluginRepositories>
+
+  <scm>
+    <connection>scm:svn:https://guest@svn.dev.java.net/svn/hudson/tags/android-emulator-1.4</connection>
+    <developerConnection>scm:svn:https://svn.dev.java.net/svn/hudson/tags/android-emulator-1.4</developerConnection>
+    <url>https://hudson.dev.java.net/source/browse/hudson/tags/android-emulator-1.4</url>
+  </scm>
 </project>
