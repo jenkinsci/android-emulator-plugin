@@ -21,10 +21,13 @@ import hudson.tasks.BuildWrapperDescriptor;
 import hudson.util.ArgumentListBuilder;
 import hudson.util.FormValidation;
 
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.PrintStream;
+import java.io.PrintWriter;
 import java.io.Serializable;
 import java.net.Socket;
 import java.util.ArrayList;
@@ -209,7 +212,7 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
         // Compile complete command for starting emulator
         final String avdArgs = emuConfig.getCommandArguments();
         String emulatorArgs = String.format("-ports %s,%s %s", userPort, adbPort, avdArgs);
-        ArgumentListBuilder emulatorCmd = Utils.getToolCommand(launcher, androidHome, "emulator", "emulator.exe", emulatorArgs);
+        ArgumentListBuilder emulatorCmd = Utils.getToolCommand(launcher, androidHome, Tool.EMULATOR, emulatorArgs);
 
         // Start emulator process
         log(logger, Messages.STARTING_EMULATOR());
@@ -232,7 +235,7 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
 
         // Notify adb of our existence
         final String adbConnectArgs = "connect localhost:"+ adbPort;
-        ArgumentListBuilder adbConnectCmd = Utils.getToolCommand(launcher, androidHome, "adb", "adb.exe", adbConnectArgs);
+        ArgumentListBuilder adbConnectCmd = Utils.getToolCommand(launcher, androidHome, Tool.ADB, adbConnectArgs);
         int result = procStarter.cmds(adbConnectCmd).stdout(new NullOutputStream()).start().join();
         if (result != 0) { // adb currently only ever returns 0!
             log(logger, Messages.CANNOT_CONNECT_TO_EMULATOR());
@@ -246,7 +249,7 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
         final FilePath logcatFile = build.getWorkspace().createTempFile("logcat_", ".log");
         final OutputStream logcatStream = logcatFile.write();
         final String logcatArgs = "-s localhost:"+ adbPort +" logcat -v time";
-        ArgumentListBuilder logcatCmd = Utils.getToolCommand(launcher, androidHome, "adb", "adb.exe", logcatArgs);
+        ArgumentListBuilder logcatCmd = Utils.getToolCommand(launcher, androidHome, Tool.ADB, logcatArgs);
         final Proc logWriter = procStarter.cmds(logcatCmd).stdout(logcatStream).stderr(new NullOutputStream()).start();
 
         // Monitor device for boot completion signal
@@ -263,6 +266,24 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
                     adbPort, userPort, logWriter, logcatFile, logcatStream, artifactsDir);
             return null;
         }
+
+        // Unlock emulator by pressing/depressing the Menu key once, if required.
+        // Upon first boot (and when the data is wiped) the emulator is already unlocked
+        if (emulatorAlreadyExists && !wipeData) {
+            log(logger, Messages.UNLOCKING_SCREEN());
+            Thread.sleep(5 * 1000); // wait just a bit longer, to be safe(ish)
+            sendEmulatorCommand(launcher, logger, userPort, "event send EV_KEY:KEY_MENU:1");
+            sendEmulatorCommand(launcher, logger, userPort, "event send EV_KEY:KEY_MENU:0");
+
+            // If a named emulator already existed, it may not have been booted yet, so the screen
+            // wouldn't be locked.  In this case, after pressing Menu, we press Back to compensate
+            if (emuConfig.isNamedEmulator()) {
+                sendEmulatorCommand(launcher, logger, userPort, "event send EV_KEY:KEY_BACK:1");
+                sendEmulatorCommand(launcher, logger, userPort, "event send EV_KEY:KEY_BACK:0");
+            }
+        }
+
+        // Done!
         final long bootCompleteTime = System.currentTimeMillis();
         log(logger, Messages.EMULATOR_IS_READY((bootCompleteTime - bootTime) / 1000));
 
@@ -351,27 +372,32 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
         // Disconnect emulator from adb, if it's running
         if (launcher != null) {
             final String args = "disconnect localhost:"+ adbPort;
-            ArgumentListBuilder adbDisconnectCmd = Utils.getToolCommand(launcher, androidHome, "adb", "adb.exe", args);
-            final ProcStarter procStarter = launcher.launch().stdout(logger).stderr(logger);
+            ArgumentListBuilder adbDisconnectCmd = Utils.getToolCommand(launcher, androidHome, Tool.ADB, args);
+            final ProcStarter procStarter = launcher.launch().stderr(logger);
             procStarter.cmds(adbDisconnectCmd).stdout(new NullOutputStream()).start().join();
         }
 
-        // Stop emulator process and free up TCP ports
+        // Stop emulator process
         log(logger, Messages.STOPPING_EMULATOR());
-        emulatorProcess.kill();
-        portAllocator.free(adbPort);
-        portAllocator.free(userPort);
-
-        // Archive the logs
         if (logcatProcess != null) {
+            sendEmulatorCommand(launcher, logger, userPort, "kill");
             logcatProcess.kill();
             logcatStream.close();
+
+            // Archive the logs
             if (logcatFile.length() != 0) {
                 log(logger, Messages.ARCHIVING_LOG());
                 logcatFile.copyTo(new FilePath(artifactsDir).child("logcat.txt"));
             }
             logcatFile.delete();
         }
+
+        // Ensure the process is dead and free up the TCP ports
+        if (emulatorProcess.isAlive()) {
+            emulatorProcess.kill();
+        }
+        portAllocator.free(adbPort);
+        portAllocator.free(userPort);
     }
 
     /**
@@ -558,7 +584,7 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
 
         final String serialNo = "localhost:"+ port;
         final String args = "-s "+ serialNo +" shell getprop dev.bootcomplete";
-        ArgumentListBuilder cmd = Utils.getToolCommand(launcher, androidHome, "adb", "adb.exe", args);
+        ArgumentListBuilder cmd = Utils.getToolCommand(launcher, androidHome, Tool.ADB, args);
 
         try {
             while (System.currentTimeMillis() < start + timeout) {
@@ -584,6 +610,59 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
         }
 
         return false;
+    }
+
+    /**
+     * Sends a user command to the running emulator via its telnet interface.
+     *
+     * @param logger The build logger.
+     * @param launcher The launcher for the remote node.
+     * @param port The emulator's telnet port.
+     * @param command The command to execute on the emulator's telnet interface.
+     * @return Whether sending the command succeeded.
+     */
+    private boolean sendEmulatorCommand(final Launcher launcher, final PrintStream logger,
+            final int port, final String command) {
+        Callable<Boolean, IOException> task = new Callable<Boolean, IOException>() {
+            @Override
+            public Boolean call() throws IOException {
+                Socket socket = null;
+                BufferedReader in = null;
+                PrintWriter out = null;
+                try {
+                    socket = new Socket("127.0.0.1", port);
+                    out = new PrintWriter(socket.getOutputStream(), true);
+                    in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+                    if (in.readLine() == null) {
+                        return false;
+                    }
+
+                    out.write(command);
+                    out.write("\r\n");
+                } finally {
+                    try {
+                        out.close();
+                        in.close();
+                        socket.close();
+                    } catch (Exception e) {
+                        // Buh
+                    }
+                }
+
+                return true;
+            }
+
+            private static final long serialVersionUID = 1L;
+        };
+
+        boolean result = false;
+        try {
+            result = launcher.getChannel().call(task);
+        } catch (Exception e) {
+            log(logger, String.format("Failed to execute emulator command '%s': %s", command, e));
+        }
+
+        return result;
     }
 
     @Extension(ordinal=-100) // Negative ordinal makes us execute after other wrappers (i.e. Xvnc)

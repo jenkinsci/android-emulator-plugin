@@ -25,6 +25,28 @@ interface Constants {
 
 }
 
+enum Tool {
+    ADB("adb", ".exe"),
+    ANDROID("android", ".bat"),
+    EMULATOR("emulator", ".exe"),
+    MKSDCARD("mksdcard", ".exe");
+
+    final String executable;
+    final String windowsExtension;
+
+    Tool(String executable, String windowsExtension) {
+        this.executable = executable;
+        this.windowsExtension = windowsExtension;
+    }
+
+    String getExecutable(boolean isUnix) {
+        if (isUnix) {
+            return executable;
+        }
+        return executable + windowsExtension;
+    }
+}
+
 class AndroidPlatform implements Serializable {
 
     private static final long serialVersionUID = 1L;

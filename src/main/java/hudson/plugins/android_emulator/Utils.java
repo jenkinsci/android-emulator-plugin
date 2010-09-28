@@ -31,15 +31,13 @@ public class Utils {
      *
      * @param launcher The launcher for the remote node.
      * @param androidHome The Android SDK root.
-     * @param unixCmd The executable to run on normal systems.
-     * @param windowsCmd The executable for elsewhere.
+     * @param tool The Android tool to run.
      * @param args Any extra arguments for the command.
      * @return Arguments including the full path to the SDK and any extra Windows stuff required.
      */
     public static ArgumentListBuilder getToolCommand(Launcher launcher, String androidHome,
-            String unixCmd, String windowsCmd, String args) {
-        // Build tool command
-        final String executable = launcher.isUnix() ? unixCmd : windowsCmd;
+            Tool tool, String args) {
+        final String executable = tool.getExecutable(launcher.isUnix());
         return getToolCommand(androidHome, executable, args);
     }
 
