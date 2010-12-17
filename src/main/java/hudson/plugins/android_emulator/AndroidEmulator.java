@@ -381,7 +381,9 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
         log(logger, Messages.STOPPING_EMULATOR());
         if (logcatProcess != null) {
             sendEmulatorCommand(launcher, logger, userPort, "kill");
-            logcatProcess.kill();
+            if (logcatProcess.isAlive()) {
+                logcatProcess.kill();
+            }
             logcatStream.close();
 
             // Archive the logs
