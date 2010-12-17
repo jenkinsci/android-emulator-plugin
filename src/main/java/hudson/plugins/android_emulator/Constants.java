@@ -26,17 +26,23 @@ interface Constants {
 }
 
 enum Tool {
-    ADB("adb", ".exe"),
+    ADB("adb", ".exe", true),
     ANDROID("android", ".bat"),
     EMULATOR("emulator", ".exe"),
     MKSDCARD("mksdcard", ".exe");
 
     final String executable;
     final String windowsExtension;
+    final boolean isPlatformTool;
 
     Tool(String executable, String windowsExtension) {
+        this(executable, windowsExtension, false);
+    }
+
+    Tool(String executable, String windowsExtension, boolean isPlatformTool) {
         this.executable = executable;
         this.windowsExtension = windowsExtension;
+        this.isPlatformTool = isPlatformTool;
     }
 
     String getExecutable(boolean isUnix) {
@@ -45,6 +51,47 @@ enum Tool {
         }
         return executable + windowsExtension;
     }
+
+    static String[] getAllExecutableVariants() {
+        final Tool[] tools = values();
+        String[] executables = new String[tools.length * 2];
+        for (int i = 0, n = tools.length; i < n; i++) {
+            executables[i*2] = tools[i].getExecutable(true);
+            executables[i*2+1] = tools[i].getExecutable(false);
+        }
+
+        return executables;
+    }
+
+}
+
+class AndroidSdk implements Serializable {
+
+    private static final long serialVersionUID = 1L;
+
+    private final String sdkHome;
+    private boolean usesPlatformTools;
+
+    AndroidSdk(String home) {
+        this.sdkHome = home;
+    }
+
+    boolean hasKnownRoot() {
+        return this.sdkHome != null;
+    }
+
+    String getSdkRoot() {
+        return this.sdkHome;
+    }
+
+    boolean usesPlatformTools() {
+        return this.usesPlatformTools;
+    }
+
+    void setUsesPlatformTools(boolean usesPlatformTools) {
+        this.usesPlatformTools = usesPlatformTools;
+    }
+
 }
 
 class AndroidPlatform implements Serializable {

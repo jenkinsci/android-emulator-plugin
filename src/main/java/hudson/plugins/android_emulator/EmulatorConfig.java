@@ -147,12 +147,13 @@ class EmulatorConfig implements Serializable {
     /**
      * Gets a task that ensures that an Android AVD exists for this instance's configuration.
      *
-     * @param homeDir  The path to the current user's home directory where ".android" should live.
+     * @param androidSdk  The Android SDK to use.
      * @param isUnix  Whether the target system is sane.
+     * @param listener The listener to use for logging.
      * @return A Callable that will handle the detection/creation of an appropriate AVD.
      */
-    public Callable<Boolean, AndroidEmulatorException> getEmulatorCreationTask(String androidHome, boolean isUnix, BuildListener listener) {
-        return new EmulatorCreationTask(androidHome, isUnix, listener);
+    public Callable<Boolean, AndroidEmulatorException> getEmulatorCreationTask(AndroidSdk androidSdk, boolean isUnix, BuildListener listener) {
+        return new EmulatorCreationTask(androidSdk, isUnix, listener);
     }
 
     private File getAvdHome(final File homeDir) {
@@ -239,14 +240,14 @@ class EmulatorConfig implements Serializable {
     private final class EmulatorCreationTask implements Callable<Boolean, AndroidEmulatorException> {
 
         private static final long serialVersionUID = 1L;
-        private final String androidHome;
+        private final AndroidSdk androidSdk;
         private final boolean isUnix;
 
         private final BuildListener listener;
         private transient PrintStream logger;
 
-        public EmulatorCreationTask(String androidHome, boolean isUnix, BuildListener listener) {
-            this.androidHome = androidHome;
+        public EmulatorCreationTask(AndroidSdk androidSdk, boolean isUnix, BuildListener listener) {
+            this.androidSdk = androidSdk;
             this.isUnix = isUnix;
             this.listener = listener;
         }
@@ -299,12 +300,12 @@ class EmulatorConfig implements Serializable {
             }
 
             // We can't continue if we don't know where to find emulator images or tools
-            if (androidHome == null) {
+            if (!androidSdk.hasKnownRoot()) {
                 throw new EmulatorCreationException(Messages.SDK_NOT_SPECIFIED());
             }
-            final File sdkRoot = new File(androidHome);
+            final File sdkRoot = new File(androidSdk.getSdkRoot());
             if (!sdkRoot.exists()) {
-                throw new EmulatorCreationException(Messages.SDK_NOT_FOUND(androidHome));
+                throw new EmulatorCreationException(Messages.SDK_NOT_FOUND(androidSdk.getSdkRoot()));
             }
 
             // If we're only here to create an SD card, do so and return
@@ -327,7 +328,6 @@ class EmulatorConfig implements Serializable {
             }
 
             // Build up basic arguments to `android` command
-            final String androidCmd = Tool.ANDROID.getExecutable(isUnix);
             final StringBuilder args = new StringBuilder(100);
             args.append("create avd ");
             if (sdCardSize != null) {
@@ -339,7 +339,7 @@ class EmulatorConfig implements Serializable {
             args.append(screenResolution.getSkinName());
             args.append(" -n ");
             args.append(getAvdName());
-            ArgumentListBuilder builder = Utils.getToolCommand(androidHome, androidCmd, args.toString());
+            ArgumentListBuilder builder = Utils.getToolCommand(androidSdk, isUnix, Tool.ANDROID, args.toString());
 
             // Tack on quoted platform name at the end, since it can be anything
             builder.add("-t");
@@ -444,7 +444,7 @@ class EmulatorConfig implements Serializable {
         private boolean createSdCard(File homeDir) {
             // Build command: mksdcard 32M /home/foo/.android/avd/whatever.avd/sdcard.img
             final String androidCmd = Tool.MKSDCARD.getExecutable(isUnix);
-            ArgumentListBuilder builder = Utils.getToolCommand(androidHome, androidCmd, null);
+            ArgumentListBuilder builder = Utils.getToolCommand(androidSdk, isUnix, Tool.ANDROID, null);
             builder.add(sdCardSize);
             builder.add(new File(getAvdDirectory(homeDir), "sdcard.img"));
 

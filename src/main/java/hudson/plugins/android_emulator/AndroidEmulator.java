@@ -30,9 +30,6 @@ import java.io.PrintStream;
 import java.io.PrintWriter;
 import java.io.Serializable;
 import java.net.Socket;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -147,7 +144,7 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
 
         // SDK location
         String androidHome = expandVariables(envVars, buildVars, descriptor.androidHome);
-        androidHome = validateAndroidHome(launcher, localVars, androidHome);
+        androidHome = discoverAndroidHome(launcher, localVars, androidHome);
 
         // Despite the nice inline checks and warnings when the user is editing the config,
         // these are not binding, so the user may have saved invalid configuration.
@@ -161,31 +158,39 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
         }
 
         // Confirm that tools are available on PATH
-        if (!validateAndroidToolsInPath(launcher, androidHome)) {
-            log(logger, Messages.SDK_TOOLS_NOT_FOUND());
-            build.setResult(Result.NOT_BUILT);
-            return null;
+        AndroidSdk androidSdk = new AndroidSdk(androidHome);
+        if (androidHome == null) {
+            if (!validateAndroidToolsInPath(launcher)) {
+                log(logger, Messages.SDK_TOOLS_NOT_FOUND());
+                build.setResult(Result.NOT_BUILT);
+                return null;
+            }
+        } else {
+            // Determine SDK type, if tools aren't on the PATH
+            boolean usesPlatformTools = sdkUsesPlatformTools(launcher, androidSdk);
+            androidSdk.setUsesPlatformTools(usesPlatformTools);
         }
 
         // Ok, everything looks good.. let's go
-        String displayHome = androidHome == null ? Messages.USING_PATH() : androidHome;
+        String displayHome = androidSdk.hasKnownRoot() ? androidSdk.getSdkRoot() : Messages.USING_PATH();
         log(logger, Messages.USING_SDK(displayHome));
         EmulatorConfig emuConfig = EmulatorConfig.create(avdName, osVersion, screenDensity,
                 screenResolution, deviceLocale, sdCardSize, wipeData, showWindow);
 
-        return doSetUp(build, launcher, listener, androidHome, emuConfig);
+        return doSetUp(build, launcher, listener, androidSdk, emuConfig);
     }
 
     private Environment doSetUp(final AbstractBuild<?, ?> build, final Launcher launcher,
-            final BuildListener listener, final String androidHome, final EmulatorConfig emuConfig)
+            final BuildListener listener, final AndroidSdk androidSdk, final EmulatorConfig emuConfig)
                 throws IOException, InterruptedException {
         final PrintStream logger = listener.getLogger();
+        final boolean isUnix = launcher.isUnix();
 
         // First ensure that emulator exists
         final Computer computer = Computer.currentComputer();
         final boolean emulatorAlreadyExists;
         try {
-            Callable<Boolean, AndroidEmulatorException> task = emuConfig.getEmulatorCreationTask(androidHome, launcher.isUnix(), listener);
+            Callable<Boolean, AndroidEmulatorException> task = emuConfig.getEmulatorCreationTask(androidSdk, isUnix, listener);
             emulatorAlreadyExists = launcher.getChannel().call(task);
         } catch (EmulatorDiscoveryException ex) {
             log(logger, Messages.CANNOT_START_EMULATOR(ex.getMessage()));
@@ -212,7 +217,7 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
         // Compile complete command for starting emulator
         final String avdArgs = emuConfig.getCommandArguments();
         String emulatorArgs = String.format("-ports %s,%s %s", userPort, adbPort, avdArgs);
-        ArgumentListBuilder emulatorCmd = Utils.getToolCommand(launcher, androidHome, Tool.EMULATOR, emulatorArgs);
+        ArgumentListBuilder emulatorCmd = Utils.getToolCommand(androidSdk, isUnix, Tool.EMULATOR, emulatorArgs);
 
         // Start emulator process
         log(logger, Messages.STARTING_EMULATOR());
@@ -235,7 +240,7 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
 
         // Notify adb of our existence
         final String adbConnectArgs = "connect localhost:"+ adbPort;
-        ArgumentListBuilder adbConnectCmd = Utils.getToolCommand(launcher, androidHome, Tool.ADB, adbConnectArgs);
+        ArgumentListBuilder adbConnectCmd = Utils.getToolCommand(androidSdk, isUnix, Tool.ADB, adbConnectArgs);
         int result = procStarter.cmds(adbConnectCmd).stdout(new NullOutputStream()).start().join();
         if (result != 0) { // adb currently only ever returns 0!
             log(logger, Messages.CANNOT_CONNECT_TO_EMULATOR());
@@ -249,7 +254,7 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
         final FilePath logcatFile = build.getWorkspace().createTempFile("logcat_", ".log");
         final OutputStream logcatStream = logcatFile.write();
         final String logcatArgs = "-s localhost:"+ adbPort +" logcat -v time";
-        ArgumentListBuilder logcatCmd = Utils.getToolCommand(launcher, androidHome, Tool.ADB, logcatArgs);
+        ArgumentListBuilder logcatCmd = Utils.getToolCommand(androidSdk, isUnix, Tool.ADB, logcatArgs);
         final Proc logWriter = procStarter.cmds(logcatCmd).stdout(logcatStream).stderr(new NullOutputStream()).start();
 
         // Monitor device for boot completion signal
@@ -258,11 +263,11 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
         if (!emulatorAlreadyExists || emuConfig.shouldWipeData()) {
             bootTimeout *= 4;
         }
-        boolean bootSucceeded = waitForBootCompletion(logger, launcher, androidHome, adbPort, bootTimeout);
+        boolean bootSucceeded = waitForBootCompletion(logger, launcher, androidSdk, adbPort, bootTimeout);
         if (!bootSucceeded) {
             log(logger, Messages.BOOT_COMPLETION_TIMED_OUT(bootTimeout / 1000));
             build.setResult(Result.NOT_BUILT);
-            cleanUp(logger, launcher, androidHome, portAllocator, emulatorProcess,
+            cleanUp(logger, launcher, androidSdk, portAllocator, emulatorProcess,
                     adbPort, userPort, logWriter, logcatFile, logcatStream, artifactsDir);
             return null;
         }
@@ -308,7 +313,7 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
             @SuppressWarnings("unchecked")
             public boolean tearDown(AbstractBuild build, BuildListener listener)
                     throws IOException, InterruptedException {
-                cleanUp(logger, launcher, androidHome, portAllocator, emulatorProcess,
+                cleanUp(logger, launcher, androidSdk, portAllocator, emulatorProcess,
                         adbPort, userPort, logWriter, logcatFile, logcatStream, artifactsDir);
 
                 return true;
@@ -350,7 +355,7 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
      *
      * @param logger The build logger.
      * @param launcher The launcher for the remote node.
-     * @param androidHome The Android SDK root.
+     * @param androidSdk The Android SDK being used.
      * @param portAllocator The port allocator used.
      * @param emulatorProcess The Android emulator process.
      * @param adbPort The ADB port used by the emulator.
@@ -360,7 +365,7 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
      * @param logcatStream The stream the logcat output is being written to.
      * @param artifactsDir The directory where build artifacts should go.
      */
-    private void cleanUp(PrintStream logger, Launcher launcher, String androidHome,
+    private void cleanUp(PrintStream logger, Launcher launcher, AndroidSdk androidSdk,
             PortAllocationManager portAllocator, Proc emulatorProcess, int adbPort,
             int userPort, Proc logcatProcess, FilePath logcatFile,
             OutputStream logcatStream, File artifactsDir)
@@ -372,7 +377,7 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
         // Disconnect emulator from adb, if it's running
         if (launcher != null) {
             final String args = "disconnect localhost:"+ adbPort;
-            ArgumentListBuilder adbDisconnectCmd = Utils.getToolCommand(launcher, androidHome, Tool.ADB, args);
+            ArgumentListBuilder adbDisconnectCmd = Utils.getToolCommand(androidSdk, launcher.isUnix(), Tool.ADB, args);
             final ProcStarter procStarter = launcher.launch().stderr(logger);
             procStarter.cmds(adbDisconnectCmd).stdout(new NullOutputStream()).start().join();
         }
@@ -467,7 +472,7 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
      * @param androidHome The (variable-expanded) SDK root given in global config.
      * @return Either a discovered SDK path or, if all else fails, the given androidHome value.
      */
-    private String validateAndroidHome(final Launcher launcher, final EnvVars envVars,
+    private String discoverAndroidHome(final Launcher launcher, final EnvVars envVars,
             final String androidHome) {
         Callable<String, InterruptedException> task = new Callable<String, InterruptedException>() {
             public String call() throws InterruptedException {
@@ -486,8 +491,8 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
                     }
                 }
 
-                // If all else fails, return what we were given
-                return androidHome;
+                // Give up
+                return null;
             }
 
             private boolean validateHomeDir(String dir) {
@@ -512,23 +517,33 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
     }
 
     /**
-     * Validates whether the required SDK tools can be reached, either from the given root or PATH.
+     * Validates whether the required SDK tools can be found on the PATH.
      *
      * @param launcher The launcher for the remote node.
-     * @param androidHome The (variable-expanded) SDK root given in global config.
-     * @return <code>true</code> if all the required tools are available.
+     * @return {@code true} if all the required tools are available.
      */
-    private boolean validateAndroidToolsInPath(Launcher launcher, final String androidHome) {
-        final String executable = "tools/" + (launcher.isUnix() ? "adb" : "adb.exe");
+    private boolean validateAndroidToolsInPath(Launcher launcher) {
+        final boolean isUnix = launcher.isUnix();
 
         Callable<Boolean, IOException> task = new Callable<Boolean, IOException>() {
             public Boolean call() throws IOException {
-                String sep = System.getProperty("path.separator");
-                List<String> list = Arrays.asList(System.getenv("PATH").split(sep));
-                List<String> paths = new ArrayList<String>(list);
-                paths.add(0, androidHome);
+                // Get list of required tools when working from PATH
+                Tool[] tools = { Tool.ADB, Tool.EMULATOR };
+
+                // Examine each directory specified by the PATH environment variable.
+                int toolCount = 0;
+                String[] paths = System.getenv("PATH").split(File.pathSeparator);
                 for (String path : paths) {
-                    if (new File(path, executable).exists()) {
+                    File toolsDirectory = new File(path);
+                    if (toolsDirectory.isDirectory()) {
+                        for (Tool tool : tools) {
+                            String executable = tool.getExecutable(isUnix);
+                            if (new File(toolsDirectory, executable).exists()) {
+                                toolCount++;
+                            }
+                        }
+                    }
+                    if (toolCount == tools.length) {
                         return true;
                     }
                 }
@@ -545,6 +560,32 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
         } catch (InterruptedException e) {
             // Ignore
         }
+        return false;
+    }
+
+    /**
+     * Determines where platform tools are stored for the given SDK instance.
+     *
+     * @param launcher The launcher for the remote node.
+     * @param androidHome The SDK we are going to use.
+     */
+    private boolean sdkUsesPlatformTools(Launcher launcher, final AndroidSdk androidSdk) {
+        Callable<Boolean, IOException> task = new Callable<Boolean, IOException>() {
+            public Boolean call() throws IOException {
+                File toolsDirectory = new File(androidSdk.getSdkRoot(), "platform-tools");
+                return toolsDirectory.isDirectory();
+            }
+            private static final long serialVersionUID = 1L;
+        };
+
+        try {
+            return launcher.getChannel().call(task);
+        } catch (IOException e) {
+            // Ignore
+        } catch (InterruptedException e) {
+            // Ignore
+        }
+
         return false;
     }
 
@@ -580,13 +621,13 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
      * @return <code>true</code> if the emulator has booted, <code>false</code> if we timed-out.
      */
     private boolean waitForBootCompletion(final PrintStream logger, final Launcher launcher,
-            final String androidHome, final int port, final int timeout) {
+            final AndroidSdk androidSdk, final int port, final int timeout) {
         long start = System.currentTimeMillis();
         int sleep = timeout / (int) Math.sqrt(timeout / 1000);
 
         final String serialNo = "localhost:"+ port;
         final String args = "-s "+ serialNo +" shell getprop dev.bootcomplete";
-        ArgumentListBuilder cmd = Utils.getToolCommand(launcher, androidHome, Tool.ADB, args);
+        ArgumentListBuilder cmd = Utils.getToolCommand(androidSdk, launcher.isUnix(), Tool.ADB, args);
 
         try {
             while (System.currentTimeMillis() < start + timeout) {
@@ -930,27 +971,33 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
                 return ValidationResult.error(Messages.INVALID_DIRECTORY());
             }
 
-            // We'll be using items from the tools and platforms directories
-            for (String dirName : new String[] { "tools", "platforms" }) {
+            // We'll be using items from the tools and platforms directories.
+            // Ignore that "platform-tools" may also be required for newer SDKs,
+            // as we'll check for the presence of the individual tools in a moment
+            final String[] sdkDirectories = { "tools", "platforms" };
+            for (String dirName : sdkDirectories) {
                 File dir = new File(sdkRoot, dirName);
                 if (!dir.exists() || !dir.isDirectory()) {
                     return ValidationResult.error(Messages.INVALID_SDK_DIRECTORY());
                 }
             }
 
-            // So long as the basic executables exist, we're happy
+            // Search the possible tool directories to ensure the tools exist
             int toolsFound = 0;
-            final String[] requiredTools = { "adb", "android", "emulator" };
-            for (String toolName : requiredTools) {
-                for (String extension : new String[] { "", ".bat", ".exe" }) {
-                    File tool = new File(sdkRoot, "tools/"+ toolName + extension);
-                    if (tool.exists() && tool.isFile()) {
+            final String[] toolDirectories = { "tools", "platform-tools" };
+            for (String dir : toolDirectories) {
+                File toolsDir = new File(sdkRoot, dir);
+                if (!toolsDir.isDirectory()) {
+                    continue;
+                }
+                for (String executable : Tool.getAllExecutableVariants()) {
+                    File toolPath = new File(toolsDir, executable);
+                    if (toolPath.exists() && toolPath.isFile()) {
                         toolsFound++;
-                        break;
                     }
                 }
             }
-            if (toolsFound != requiredTools.length) {
+            if (toolsFound < Tool.values().length) {
                 return ValidationResult.errorWithMarkup(Messages.REQUIRED_SDK_TOOLS_NOT_FOUND());
             }
 
