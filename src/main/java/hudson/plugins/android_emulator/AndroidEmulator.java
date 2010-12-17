@@ -272,19 +272,27 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
             return null;
         }
 
-        // Unlock emulator by pressing/depressing the Menu key once, if required.
+        // Unlock emulator by pressing the Menu key once, if required.
         // Upon first boot (and when the data is wiped) the emulator is already unlocked
         if (emulatorAlreadyExists && !wipeData) {
+            // Even if the emulator has started, we generally need to wait longer before the lock
+            // screen is up and ready to accept key presses.
+            // The delay here is a function of boot time, i.e. relative to the slowness of the host
+            final long bootDuration = System.currentTimeMillis() - bootTime;
+            Thread.sleep(bootDuration / 4);
+
             log(logger, Messages.UNLOCKING_SCREEN());
-            Thread.sleep(5 * 1000); // wait just a bit longer, to be safe(ish)
-            sendEmulatorCommand(launcher, logger, userPort, "event send EV_KEY:KEY_MENU:1");
-            sendEmulatorCommand(launcher, logger, userPort, "event send EV_KEY:KEY_MENU:0");
+            final String keyEventArgs = String.format("-s localhost:%d shell input keyevent %%d", adbPort);
+            final String menuArgs = String.format(keyEventArgs, 82);
+            ArgumentListBuilder menuCmd = Utils.getToolCommand(androidSdk, isUnix, Tool.ADB, menuArgs);
+            procStarter.cmds(menuCmd).start().join();
 
             // If a named emulator already existed, it may not have been booted yet, so the screen
             // wouldn't be locked.  In this case, after pressing Menu, we press Back to compensate
             if (emuConfig.isNamedEmulator()) {
-                sendEmulatorCommand(launcher, logger, userPort, "event send EV_KEY:KEY_BACK:1");
-                sendEmulatorCommand(launcher, logger, userPort, "event send EV_KEY:KEY_BACK:0");
+                final String backArgs = String.format(keyEventArgs, 4);
+                ArgumentListBuilder backCmd = Utils.getToolCommand(androidSdk, isUnix, Tool.ADB, backArgs);
+                procStarter.cmds(backCmd).start().join();
             }
         }
 
