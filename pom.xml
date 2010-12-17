@@ -49,9 +49,20 @@
     </pluginRepository>
   </pluginRepositories>
 
+  <build>
+    <plugins>
+      <plugin>
+        <artifactId>maven-release-plugin</artifactId>
+        <configuration>
+          <goals>deploy</goals>
+        </configuration>
+      </plugin>
+    </plugins>
+  </build>
+
   <scm>
-    <connection>scm:svn:https://guest@svn.dev.java.net/svn/hudson/tags/android-emulator-1.5</connection>
-    <developerConnection>scm:svn:https://svn.dev.java.net/svn/hudson/tags/android-emulator-1.5</developerConnection>
-    <url>https://hudson.dev.java.net/source/browse/hudson/tags/android-emulator-1.5</url>
+    <connection>scm:svn:https://guest@svn.java.net/svn/hudson~svn/trunk/hudson/plugins/android-emulator</connection>
+    <developerConnection>scm:svn:https://svn.java.net/svn/hudson~svn/trunk/hudson/plugins/android-emulator</developerConnection>
   </scm>
+
 </project>
