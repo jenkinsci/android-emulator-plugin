@@ -65,4 +65,11 @@
     <developerConnection>scm:svn:https://svn.java.net/svn/hudson~svn/trunk/hudson/plugins/android-emulator</developerConnection>
   </scm>
 
+  <distributionManagement>
+    <repository>
+      <id>java.net-m2-repository</id>
+      <url>http://maven.hudson-labs.org/content/repositories/releases/</url>
+    </repository>
+  </distributionManagement>
+
 </project>
