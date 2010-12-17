@@ -17,7 +17,7 @@ interface Constants {
 
     static final String REGEX_AVD_NAME = "[a-zA-Z0-9._-]+";
     static final String REGEX_LOCALE = "[a-z]{2}_[A-Z]{2}";
-    static final String REGEX_SCREEN_DENSITY = "[0-9]{2,4}|(?i)[hlm]dpi";
+    static final String REGEX_SCREEN_DENSITY = "[0-9]{2,4}|(?i)(x?h|[lm])dpi";
     static final String REGEX_SCREEN_RESOLUTION = "[0-9]{3,4}x[0-9]{3,4}";
     static final String REGEX_SCREEN_RESOLUTION_ALIAS = "([HQ]|F?WQ?)VGA";
     static final String REGEX_SCREEN_RESOLUTION_FULL = REGEX_SCREEN_RESOLUTION_ALIAS +"|"+ REGEX_SCREEN_RESOLUTION;
@@ -105,9 +105,9 @@ class AndroidPlatform implements Serializable {
     static final AndroidPlatform SDK_2_0_1 = new AndroidPlatform("2.0.1", 6);
     static final AndroidPlatform SDK_2_1 = new AndroidPlatform("2.1", 7);
     static final AndroidPlatform SDK_2_2 = new AndroidPlatform("2.2", 8);
-    static final AndroidPlatform[] PRESETS = new AndroidPlatform[] { SDK_1_1, SDK_1_5, SDK_1_6,
-                                                                     SDK_2_0, SDK_2_0_1, SDK_2_1,
-                                                                     SDK_2_2 };
+    static final AndroidPlatform SDK_2_3 = new AndroidPlatform("2.3", 9);
+    static final AndroidPlatform[] PRESETS = new AndroidPlatform[] { SDK_1_5, SDK_1_6, SDK_2_1,
+                                                                     SDK_2_2, SDK_2_3 };
 
     private final String name;
     private final int level;
@@ -169,7 +169,8 @@ class ScreenDensity implements Serializable {
     static final ScreenDensity LOW = new ScreenDensity(120, "ldpi");
     static final ScreenDensity MEDIUM = new ScreenDensity(160, "mdpi");
     static final ScreenDensity HIGH = new ScreenDensity(240, "hdpi");
-    static final ScreenDensity[] PRESETS = new ScreenDensity[] { LOW, MEDIUM, HIGH };
+    static final ScreenDensity EXTRA_HIGH = new ScreenDensity(320, "xhdpi");
+    static final ScreenDensity[] PRESETS = new ScreenDensity[] { LOW, MEDIUM, HIGH, EXTRA_HIGH };
 
     private final int dpi;
     private final String alias;
