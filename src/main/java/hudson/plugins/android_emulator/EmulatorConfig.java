@@ -327,7 +327,7 @@ class EmulatorConfig implements Serializable {
             }
 
             // Build up basic arguments to `android` command
-            final String androidCmd = isUnix ? "android" : "android.bat";
+            final String androidCmd = Tool.ANDROID.getExecutable(isUnix);
             final StringBuilder args = new StringBuilder(100);
             args.append("create avd ");
             if (sdCardSize != null) {
@@ -401,12 +401,18 @@ class EmulatorConfig implements Serializable {
                 process.destroy();
             }
 
-            // Check whether everything went ok
+            // For reasons unknown, the return code may not be correctly reported on Windows.
+            // So check whether stderr contains failure info (useful for other platforms too).
+            String errOutput = stderr.toString();
+            if (errOutput.toString().contains("list targets")) {
+                AndroidEmulator.log(logger, Messages.INVALID_AVD_TARGET(osVersion.getTargetName()));
+                avdCreated = false;
+                errOutput = null;
+            }
+
+            // Check everything went ok
             if (!avdCreated) {
-                // TODO: Clear up
-                // TODO: Could potentially parse the "not valid target" message and show a nicer one
-                final String errOutput = stderr.toString();
-                if (errOutput.length() != 0) {
+                if (errOutput != null && errOutput.length() != 0) {
                     AndroidEmulator.log(logger, stderr.toString(), true);
                 }
                 throw new EmulatorCreationException(Messages.AVD_CREATION_FAILED());
