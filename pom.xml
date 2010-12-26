@@ -9,7 +9,7 @@
 
   <artifactId>android-emulator</artifactId>
   <packaging>hpi</packaging>
-  <version>1.6-SNAPSHOT</version>
+  <version>1.6</version>
   <name>Android Emulator Plugin</name>
   <url>http://wiki.hudson-ci.org/display/HUDSON/Android+Emulator+Plugin</url>
   <developers>
@@ -61,9 +61,9 @@
   </build>
 
   <scm>
-    <connection>scm:svn:https://guest@svn.java.net/svn/hudson~svn/trunk/hudson/plugins/android-emulator</connection>
-    <developerConnection>scm:svn:https://svn.java.net/svn/hudson~svn/trunk/hudson/plugins/android-emulator</developerConnection>
-    <url>https://hudson.dev.java.net/source/browse/hudson/trunk/hudson/plugins/android-emulator</url>
+    <connection>scm:svn:https://guest@svn.java.net/svn/hudson~svn/tags/android-emulator-1.6</connection>
+    <developerConnection>scm:svn:https://svn.java.net/svn/hudson~svn/tags/android-emulator-1.6</developerConnection>
+    <url>https://hudson.dev.java.net/source/browse/hudson/tags/android-emulator-1.6</url>
   </scm>
 
 </project>
