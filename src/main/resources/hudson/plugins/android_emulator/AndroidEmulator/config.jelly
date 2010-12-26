@@ -63,14 +63,22 @@
         </f:entry>
       </f:section>
 
+    </table>
+  </f:block>
+
+  <f:block>
+    <table style="margin-left:2em">
       <f:advanced>
-        <f:entry help="/plugin/android-emulator/help-startupDelay.html">
+        <f:entry title="${%Startup delay}" help="/plugin/android-emulator/help-startupDelay.html">
           <f:textbox name="android-emulator.startupDelay" value="${instance.startupDelay}" style="width:3em"
               default="0" />
-          <label for="android-emulator.startupDelay"><st:nbsp/>${%second delay before starting emulator}</label>
+          <f:description>${%Wait this many seconds before attempting to start the emulator}</f:description>
+        </f:entry>
+        <f:entry title="${%Emulator options}" help="/plugin/android-emulator/help-commandLineOptions.html">
+          <f:textbox name="android-emulator.commandLineOptions" value="${instance.commandLineOptions}" />
+          <f:description>${%Will be given when starting the Android &lt;tt>emulator&lt;/tt> executable}</f:description>
         </f:entry>
       </f:advanced>
-
     </table>
   </f:block>
 

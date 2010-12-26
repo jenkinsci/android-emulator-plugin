@@ -62,12 +62,13 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
     private final String sdCardSize;
     private final boolean wipeData;
     private final boolean showWindow;
+    private final String commandLineOptions;
     private final int startupDelay;
 
     @DataBoundConstructor
     public AndroidEmulator(String avdName, String osVersion, String screenDensity,
             String screenResolution, String deviceLocale, String sdCardSize, boolean wipeData,
-            boolean showWindow, int startupDelay) {
+            boolean showWindow, String commandLineOptions, int startupDelay) {
         this.avdName = avdName;
         this.osVersion = osVersion;
         this.screenDensity = screenDensity;
@@ -76,6 +77,7 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
         this.sdCardSize = sdCardSize;
         this.wipeData = wipeData;
         this.showWindow = showWindow;
+        this.commandLineOptions = commandLineOptions;
         this.startupDelay = Math.abs(startupDelay);
     }
 
@@ -115,6 +117,10 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
         return showWindow;
     }
 
+    public String getCommandLineOptions() {
+        return commandLineOptions;
+    }
+
     public int getStartupDelay() {
         return startupDelay;
     }
@@ -141,6 +147,9 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
         String screenResolution = expandVariables(envVars, buildVars, this.screenResolution);
         String deviceLocale = expandVariables(envVars, buildVars, this.deviceLocale);
         String sdCardSize = expandVariables(envVars, buildVars, this.sdCardSize);
+
+        // Emulator properties
+        String commandLineOptions = expandVariables(envVars, buildVars, this.commandLineOptions);
 
         // SDK location
         String androidHome = expandVariables(envVars, buildVars, descriptor.androidHome);
@@ -175,7 +184,7 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
         String displayHome = androidSdk.hasKnownRoot() ? androidSdk.getSdkRoot() : Messages.USING_PATH();
         log(logger, Messages.USING_SDK(displayHome));
         EmulatorConfig emuConfig = EmulatorConfig.create(avdName, osVersion, screenDensity,
-                screenResolution, deviceLocale, sdCardSize, wipeData, showWindow);
+                screenResolution, deviceLocale, sdCardSize, wipeData, showWindow, commandLineOptions);
 
         return doSetUp(build, launcher, listener, androidSdk, emuConfig);
     }
@@ -757,6 +766,7 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
             String sdCardSize = null;
             boolean wipeData = false;
             boolean showWindow = true;
+            String commandLineOptions = null;
             int startupDelay = 0;
 
             JSONObject emulatorData = formData.getJSONObject("useNamed");
@@ -775,12 +785,13 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
             }
             wipeData = formData.getBoolean("wipeData");
             showWindow = formData.getBoolean("showWindow");
+            commandLineOptions = formData.getString("commandLineOptions");
             try {
                 startupDelay = Integer.parseInt(formData.getString("startupDelay"));
             } catch (NumberFormatException e) {}
 
             return new AndroidEmulator(avdName, osVersion, screenDensity, screenResolution,
-                    deviceLocale, sdCardSize, wipeData, showWindow, startupDelay);
+                    deviceLocale, sdCardSize, wipeData, showWindow, commandLineOptions, startupDelay);
         }
 
         @Override

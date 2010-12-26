@@ -32,15 +32,18 @@ class EmulatorConfig implements Serializable {
     private String sdCardSize;
     private final boolean wipeData;
     private final boolean showWindow;
+    private final String commandLineOptions;
 
-    public EmulatorConfig(String avdName, boolean wipeData, boolean showWindow) {
+    public EmulatorConfig(String avdName, boolean wipeData, boolean showWindow, String commandLineOptions) {
         this.avdName = avdName;
         this.wipeData = wipeData;
         this.showWindow = showWindow;
+        this.commandLineOptions = commandLineOptions;
     }
 
     public EmulatorConfig(String osVersion, String screenDensity, String screenResolution,
-            String deviceLocale, String sdCardSize, boolean wipeData, boolean showWindow)
+            String deviceLocale, String sdCardSize, boolean wipeData, boolean showWindow,
+            String commandLineOptions)
                 throws IllegalArgumentException {
         if (osVersion == null || screenDensity == null || screenResolution == null) {
             throw new IllegalArgumentException("Valid OS version and screen properties must be supplied.");
@@ -72,17 +75,18 @@ class EmulatorConfig implements Serializable {
         this.sdCardSize = sdCardSize;
         this.wipeData = wipeData;
         this.showWindow = showWindow;
+        this.commandLineOptions = commandLineOptions;
     }
 
     public static final EmulatorConfig create(String avdName, String osVersion, String screenDensity,
             String screenResolution, String deviceLocale, String sdCardSize, boolean wipeData,
-            boolean showWindow) {
+            boolean showWindow, String commandLineOptions) {
         if (Util.fixEmptyAndTrim(avdName) == null) {
             return new EmulatorConfig(osVersion, screenDensity, screenResolution, deviceLocale,
-                    sdCardSize, wipeData, showWindow);
+                    sdCardSize, wipeData, showWindow, commandLineOptions);
         }
 
-        return new EmulatorConfig(avdName, wipeData, showWindow);
+        return new EmulatorConfig(avdName, wipeData, showWindow, commandLineOptions);
     }
 
     public boolean isNamedEmulator() {
@@ -225,6 +229,10 @@ class EmulatorConfig implements Serializable {
         }
         if (!shouldShowWindow()) {
             sb.append(" -no-window");
+        }
+        if (commandLineOptions != null) {
+            sb.append(" ");
+            sb.append(commandLineOptions);
         }
 
         return sb.toString();

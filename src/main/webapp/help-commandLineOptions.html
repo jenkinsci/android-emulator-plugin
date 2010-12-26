@@ -1,0 +1,19 @@
+<div>
+  The text entered here will be passed to the Android emulator executable at runtime.<br>
+  For a full list of available options, please run <tt>emulator -help</tt>, or consult the
+  <a href="http://developer.android.com/guide/developing/tools/emulator.html">Android Emulator</a>
+  page on the Android Developers' site.
+<p>
+  Environment variable substitution can be used for these command line options, in the format: 
+  <tt>${VARIABLE_NAME}</tt> or <tt>$VARIABLE_NAME</tt>.
+</p>
+  For example, if you want your emulator to have a larger-than-default <tt>/data</tt> partition,
+  allowing you to install large APKs, then you could enter:<br><tt>-partition-size 128</tt>
+<p>
+  Options which cause the emulator to create files, for example the <tt>-tcpdump</tt> option,
+  should be given an absolute filename, e.g.<br><tt>-tcpdump ${WORKSPACE}/network.cap</tt>
+</p>
+  Similarly, because arbitrary options can be combined here, you must make sure to add
+  double quotes around any parameters which may contain spaces, e.g.:<br>
+  <tt>-netdelay gprs -tcpdump "/tmp/emulator captures/${JOB_NAME}_${BUILD_ID}.cap"</tt>
+</div>
