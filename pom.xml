@@ -66,11 +66,4 @@
     <url>https://hudson.dev.java.net/source/browse/hudson/trunk/hudson/plugins/android-emulator</url>
   </scm>
 
-  <distributionManagement>
-    <repository>
-      <id>java.net-m2-repository</id>
-      <url>http://maven.hudson-labs.org/content/repositories/releases/</url>
-    </repository>
-  </distributionManagement>
-
 </project>
