@@ -289,7 +289,7 @@ class EmulatorConfig implements Serializable {
 
             // Can't do anything if a named emulator doesn't exist
             if (isNamedEmulator() && !avdDirectory.exists()) {
-                throw new EmulatorDiscoveryException(Messages.AVD_DOES_NOT_EXIST(avdName));
+                throw new EmulatorDiscoveryException(Messages.AVD_DOES_NOT_EXIST(avdName, avdDirectory));
             }
 
             // Check whether AVD needs to be created, or whether an existing AVD needs an SD card
