@@ -451,8 +451,7 @@ class EmulatorConfig implements Serializable {
 
         private boolean createSdCard(File homeDir) {
             // Build command: mksdcard 32M /home/foo/.android/avd/whatever.avd/sdcard.img
-            final String androidCmd = Tool.MKSDCARD.getExecutable(isUnix);
-            ArgumentListBuilder builder = Utils.getToolCommand(androidSdk, isUnix, Tool.ANDROID, null);
+            ArgumentListBuilder builder = Utils.getToolCommand(androidSdk, isUnix, Tool.MKSDCARD, null);
             builder.add(sdCardSize);
             builder.add(new File(getAvdDirectory(homeDir), "sdcard.img"));
 
