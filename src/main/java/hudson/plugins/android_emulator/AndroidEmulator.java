@@ -243,7 +243,7 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
         if (!socket || !emulatorProcess.isAlive()) {
             log(logger, Messages.EMULATOR_DID_NOT_START());
             build.setResult(Result.NOT_BUILT);
-            cleanUp(logger, portAllocator, emulatorProcess, adbPort, userPort);
+            cleanUp(logger, launcher, androidSdk, portAllocator, emulatorProcess, adbPort, userPort);
             return null;
         }
 
@@ -254,7 +254,7 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
         if (result != 0) { // adb currently only ever returns 0!
             log(logger, Messages.CANNOT_CONNECT_TO_EMULATOR());
             build.setResult(Result.NOT_BUILT);
-            cleanUp(logger, portAllocator, emulatorProcess, adbPort, userPort);
+            cleanUp(logger, launcher, androidSdk, portAllocator, emulatorProcess, adbPort, userPort);
             return null;
         }
 
@@ -357,14 +357,17 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
      * Called when this wrapper needs to exit, so we need to clean up some processes etc.
      *
      * @param logger The build logger.
+     * @param launcher The launcher for the remote node.
+     * @param androidSdk The Android SDK being used.
      * @param portAllocator The port allocator used.
      * @param emulatorProcess The Android emulator process.
      * @param adbPort The ADB port used by the emulator.
      * @param userPort The user port used by the emulator.
      */
-    private void cleanUp(PrintStream logger, PortAllocationManager portAllocator,
-            Proc emulatorProcess, int adbPort, int userPort) throws IOException, InterruptedException {
-        cleanUp(logger, null, null, portAllocator, emulatorProcess, adbPort, userPort, null, null, null, null);
+    private void cleanUp(PrintStream logger, Launcher launcher, AndroidSdk androidSdk,
+            PortAllocationManager portAllocator, Proc emulatorProcess, int adbPort, int userPort)
+                throws IOException, InterruptedException {
+        cleanUp(logger, launcher, androidSdk, portAllocator, emulatorProcess, adbPort, userPort, null, null, null, null);
     }
 
     /**
@@ -391,22 +394,29 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
         //        Launcher.kill(EnvVars) does not appear to help either.
         //        This is (a) inconsistent; (b) very annoying.
 
-        // Disconnect emulator from adb, if it's running
-        if (launcher != null) {
-            final String args = "disconnect localhost:"+ adbPort;
-            ArgumentListBuilder adbDisconnectCmd = Utils.getToolCommand(androidSdk, launcher.isUnix(), Tool.ADB, args);
-            final ProcStarter procStarter = launcher.launch().stderr(logger);
-            procStarter.cmds(adbDisconnectCmd).stdout(new NullOutputStream()).start().join();
-        }
+        // Disconnect emulator from adb
+        final String args = "disconnect localhost:"+ adbPort;
+        ArgumentListBuilder adbDisconnectCmd = Utils.getToolCommand(androidSdk, launcher.isUnix(), Tool.ADB, args);
+        final ProcStarter procStarter = launcher.launch().stderr(logger);
+        procStarter.cmds(adbDisconnectCmd).stdout(new NullOutputStream()).start().join();
 
         // Stop emulator process
         log(logger, Messages.STOPPING_EMULATOR());
+        boolean killed = sendEmulatorCommand(launcher, logger, userPort, "kill");
+
+        // Ensure the process is dead
+        if (!killed && emulatorProcess.isAlive()) {
+            emulatorProcess.kill();
+        }
+
+        // Clean up logging process
         if (logcatProcess != null) {
-            sendEmulatorCommand(launcher, logger, userPort, "kill");
-            if (logcatProcess.isAlive()) {
+            logcatStream.close();
+            if (killed && logcatProcess.isAlive()) {
+                // This should have stopped when the emulator was,
+                // but if not attempt to kill the process manually
                 logcatProcess.kill();
             }
-            logcatStream.close();
 
             // Archive the logs
             if (logcatFile.length() != 0) {
@@ -416,10 +426,7 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
             logcatFile.delete();
         }
 
-        // Ensure the process is dead and free up the TCP ports
-        if (emulatorProcess.isAlive()) {
-            emulatorProcess.kill();
-        }
+        // Free up the TCP ports
         portAllocator.free(adbPort);
         portAllocator.free(userPort);
     }
