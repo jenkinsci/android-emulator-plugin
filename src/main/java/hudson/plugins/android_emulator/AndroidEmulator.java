@@ -20,6 +20,7 @@ import hudson.tasks.BuildWrapper;
 import hudson.tasks.BuildWrapperDescriptor;
 import hudson.util.ArgumentListBuilder;
 import hudson.util.FormValidation;
+import hudson.util.NullStream;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -250,7 +251,7 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
         // Notify adb of our existence
         final String adbConnectArgs = "connect localhost:"+ adbPort;
         ArgumentListBuilder adbConnectCmd = Utils.getToolCommand(androidSdk, isUnix, Tool.ADB, adbConnectArgs);
-        int result = procStarter.cmds(adbConnectCmd).stdout(new NullOutputStream()).start().join();
+        int result = procStarter.cmds(adbConnectCmd).stdout(new NullStream()).start().join();
         if (result != 0) { // adb currently only ever returns 0!
             log(logger, Messages.CANNOT_CONNECT_TO_EMULATOR());
             build.setResult(Result.NOT_BUILT);
@@ -264,7 +265,7 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
         final OutputStream logcatStream = logcatFile.write();
         final String logcatArgs = "-s localhost:"+ adbPort +" logcat -v time";
         ArgumentListBuilder logcatCmd = Utils.getToolCommand(androidSdk, isUnix, Tool.ADB, logcatArgs);
-        final Proc logWriter = procStarter.cmds(logcatCmd).stdout(logcatStream).stderr(new NullOutputStream()).start();
+        final Proc logWriter = procStarter.cmds(logcatCmd).stdout(logcatStream).stderr(new NullStream()).start();
 
         // Monitor device for boot completion signal
         log(logger, Messages.WAITING_FOR_BOOT_COMPLETION());
@@ -398,7 +399,7 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
         final String args = "disconnect localhost:"+ adbPort;
         ArgumentListBuilder adbDisconnectCmd = Utils.getToolCommand(androidSdk, launcher.isUnix(), Tool.ADB, args);
         final ProcStarter procStarter = launcher.launch().stderr(logger);
-        procStarter.cmds(adbDisconnectCmd).stdout(new NullOutputStream()).start().join();
+        procStarter.cmds(adbDisconnectCmd).stdout(new NullStream()).start().join();
 
         // Stop emulator process
         log(logger, Messages.STOPPING_EMULATOR());
@@ -1071,24 +1072,6 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
             }
 
             return false;
-        }
-    }
-
-    /** The Java equivalent of <tt>/dev/null</tt>. */
-    private static final class NullOutputStream extends OutputStream {
-        @Override
-        public void write(int b) throws IOException {
-            // La la la
-        }
-
-        @Override
-        public void write(byte[] b) throws IOException {
-            // I can't hear you
-        }
-
-        @Override
-        public void write(byte[] b, int off, int len) throws IOException {
-            // Nope, still can't hear you
         }
     }
 }
