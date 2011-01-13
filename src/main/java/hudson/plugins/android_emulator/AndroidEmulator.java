@@ -287,9 +287,13 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
         if (!emulatorAlreadyExists || emuConfig.shouldWipeData()) {
             bootTimeout *= 4;
         }
-        boolean bootSucceeded = waitForBootCompletion(logger, launcher, androidSdk, adbPort, bootTimeout);
+        boolean bootSucceeded = waitForBootCompletion(logger, launcher, androidSdk, emulatorProcess, adbPort, bootTimeout);
         if (!bootSucceeded) {
-            log(logger, Messages.BOOT_COMPLETION_TIMED_OUT(bootTimeout / 1000));
+            if ((System.currentTimeMillis() - bootTime) < bootTimeout) {
+                log(logger, Messages.EMULATOR_STOPPED_DURING_BOOT());
+            } else {
+                log(logger, Messages.BOOT_COMPLETION_TIMED_OUT(bootTimeout / 1000));
+            }
             build.setResult(Result.NOT_BUILT);
             cleanUp(logger, launcher, androidSdk, portAllocator, emulatorProcess,
                     adbPort, userPort, logWriter, logcatFile, logcatStream, artifactsDir);
@@ -654,13 +658,14 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
      *
      * @param logger The build logger.
      * @param launcher The launcher for the remote node.
-     * @param androidHome The Android SDK root.
+     * @param androidSdk The Android SDK being used.
+     * @param emulatorProcess The Android emulator process.
      * @param port The emulator's ADB port.
      * @param timeout How long to keep trying (in milliseconds) before giving up.
      * @return <code>true</code> if the emulator has booted, <code>false</code> if we timed-out.
      */
     private boolean waitForBootCompletion(final PrintStream logger, final Launcher launcher,
-            final AndroidSdk androidSdk, final int port, final int timeout) {
+            final AndroidSdk androidSdk, final Proc emulatorProcess, final int port, final int timeout) {
         long start = System.currentTimeMillis();
         int sleep = timeout / (int) Math.sqrt(timeout / 1000);
 
@@ -669,7 +674,7 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
         ArgumentListBuilder cmd = Utils.getToolCommand(androidSdk, launcher.isUnix(), Tool.ADB, args);
 
         try {
-            while (System.currentTimeMillis() < start + timeout) {
+            while (System.currentTimeMillis() < start + timeout && emulatorProcess.isAlive()) {
                 ByteArrayOutputStream stream = new ByteArrayOutputStream(4);
 
                 // Run "getprop"
