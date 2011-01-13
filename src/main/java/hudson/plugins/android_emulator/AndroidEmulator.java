@@ -19,6 +19,7 @@ import hudson.remoting.Callable;
 import hudson.tasks.BuildWrapper;
 import hudson.tasks.BuildWrapperDescriptor;
 import hudson.util.ArgumentListBuilder;
+import hudson.util.ForkOutputStream;
 import hudson.util.FormValidation;
 import hudson.util.NullStream;
 
@@ -229,6 +230,10 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
         String emulatorArgs = String.format("-ports %s,%s %s", userPort, adbPort, avdArgs);
         ArgumentListBuilder emulatorCmd = Utils.getToolCommand(androidSdk, isUnix, Tool.EMULATOR, emulatorArgs);
 
+        // Prepare to capture and log emulator standard output
+        ByteArrayOutputStream emulatorOutput = new ByteArrayOutputStream();
+        ForkOutputStream emulatorLogger = new ForkOutputStream(logger, emulatorOutput);
+
         // Start emulator process
         log(logger, Messages.STARTING_EMULATOR());
         if (emulatorAlreadyExists && emuConfig.shouldWipeData()) {
@@ -236,8 +241,17 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
         }
         final long bootTime = System.currentTimeMillis();
         final EnvVars buildEnvironment = build.getEnvironment(TaskListener.NULL);
-        final ProcStarter procStarter = launcher.launch().stdout(logger).stderr(logger);
+        final ProcStarter procStarter = launcher.launch().stdout(emulatorLogger).stderr(logger);
         final Proc emulatorProcess = procStarter.envs(buildEnvironment).cmds(emulatorCmd).start();
+
+        // Give the emulator process a chance to initialise
+        Thread.sleep(5 * 1000);
+
+        // Check whether a failure was reported on stdout
+        if (emulatorOutput.toString().contains("image is used by another emulator")) {
+            log(logger, Messages.EMULATOR_ALREADY_IN_USE(emuConfig.getAvdName()));
+            return null;
+        }
 
         // Wait for TCP socket to become available
         boolean socket = waitForSocket(launcher, adbPort, ADB_CONNECT_TIMEOUT_MS);
