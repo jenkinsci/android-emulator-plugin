@@ -11,43 +11,24 @@
   <packaging>hpi</packaging>
   <version>1.7-SNAPSHOT</version>
   <name>Android Emulator Plugin</name>
-  <url>http://wiki.hudson-ci.org/display/HUDSON/Android+Emulator+Plugin</url>
+  <url>http://wiki.jenkins-ci.org/display/JENKINS/Android+Emulator+Plugin</url>
   <developers>
     <developer>
       <id>orrc</id>
       <name>Christopher Orr</name>
-      <email>orrc@dev.java.net</email>
+      <email>chris@orr.me.uk</email>
       <timezone>1</timezone>
     </developer>
   </developers>
-
-  <properties>
-    <version.port-allocator.plugin>1.5</version.port-allocator.plugin>
-  </properties>
 
   <dependencies>
     <dependency>
       <groupId>org.jvnet.hudson.plugins</groupId>
       <artifactId>port-allocator</artifactId>
-      <version>${version.port-allocator.plugin}</version>
+      <version>1.5</version>
       <scope>compile</scope>
     </dependency>
   </dependencies>
-
-  <!-- get every artifact through maven.glassfish.org, which proxies all the artifacts that we need -->
-  <repositories>
-    <repository>
-      <id>m.g.o-public</id>
-      <url>http://maven.glassfish.org/content/groups/public/</url>
-    </repository>
-  </repositories>
-
-  <pluginRepositories>
-    <pluginRepository>
-      <id>m.g.o-public</id>
-      <url>http://maven.glassfish.org/content/groups/public/</url>
-    </pluginRepository>
-  </pluginRepositories>
 
   <build>
     <plugins>
@@ -61,15 +42,14 @@
   </build>
 
   <scm>
-    <connection>scm:svn:https://guest@svn.java.net/svn/hudson~svn/trunk/hudson/plugins/android-emulator</connection>
-    <developerConnection>scm:svn:https://svn.java.net/svn/hudson~svn/trunk/hudson/plugins/android-emulator</developerConnection>
-    <url>https://hudson.dev.java.net/source/browse/hudson/trunk/hudson/plugins/android-emulator</url>
+    <connection>scm:git:git://github.com/jenkinsci/android-emulator-plugin.git</connection>
+    <developerConnection>scm:git:git@github.com:jenkinsci/android-emulator-plugin.git</developerConnection>
   </scm>
 
   <distributionManagement>
     <repository>
-      <id>java.net-m2-repository</id>
-      <url>http://maven.hudson-labs.org/content/repositories/releases/</url>
+      <id>maven.jenkins-ci.org</id>
+      <url>http://maven.jenkins-ci.org:8081/content/repositories/releases/</url>
     </repository>
   </distributionManagement>
 
