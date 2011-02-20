@@ -46,6 +46,30 @@
               <f:textbox name="android-emulator.sdCardSize" value="${instance.sdCardSize}" style="width:6em"
                   checkUrl="'descriptorByName/AndroidEmulator/checkSdCardSize?value='+escape(this.value)" />
             </f:entry>
+
+            <f:entry title="${%Hardware}" help="/plugin/android-emulator/help-hardware.html">
+              <f:repeatable var="hw" name="hardwareProperties" items="${instance.hardwareProperties}"
+                  add="${%Add custom hardware property...}" minimum="0">
+                <table width="100%">
+                  <tr>
+                    <td>${%Property}</td>
+                    <td><f:editableComboBox name="key" value="${hw.key}" items="${descriptor.hardwareProperties}" />
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>${%Value}</td>
+                    <td><f:textbox name="value" value="${hw.value}" style="width:13em" /></td>
+                  </tr>
+
+                  <f:entry title="">
+                    <div align="right">
+                      <f:repeatableDeleteButton value="${%Remove}" />
+                    </div>
+                  </f:entry>
+                </table>
+              </f:repeatable>
+            </f:entry>
+
           </table>
         </f:block>
       </f:radioBlock>

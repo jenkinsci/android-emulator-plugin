@@ -15,6 +15,12 @@ interface Constants {
         "it_IT", "ja_JP", "ko_KR", "nl_BE", "nl_NL", "pl_PL", "ru_RU", "zh_TW"
     };
 
+    static final String[] HARDWARE_PROPERTIES = {
+        "hw.accelerometer", "hw.battery", "hw.camera", "hw.dPad", "hw.gps",
+        "hw.gsmModem", "hw.keyboard", "hw.ramSize", "hw.sdCard",
+        "hw.touchScreen", "hw.trackBall", "vm.heapSize"
+    };
+
     static final String REGEX_AVD_NAME = "[a-zA-Z0-9._-]+";
     static final String REGEX_LOCALE = "[a-z]{2}_[A-Z]{2}";
     static final String REGEX_SCREEN_DENSITY = "[0-9]{2,4}|(?i)(x?h|[lm])dpi";
