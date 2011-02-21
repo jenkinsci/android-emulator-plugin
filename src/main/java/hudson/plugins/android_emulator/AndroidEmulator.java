@@ -161,6 +161,8 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
         String deviceLocale = expandVariables(envVars, buildVars, this.deviceLocale);
         String sdCardSize = expandVariables(envVars, buildVars, this.sdCardSize);
 
+        // TODO: Expand macros within hardware properties values
+
         // Emulator properties
         String commandLineOptions = expandVariables(envVars, buildVars, this.commandLineOptions);
 
@@ -222,6 +224,12 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
             log(logger, Messages.COULD_NOT_CREATE_EMULATOR(ex.getMessage()));
             build.setResult(Result.NOT_BUILT);
             return null;
+        }
+
+        // Update emulator configuration
+        if (!emuConfig.isNamedEmulator() && hardwareProperties.length != 0) {
+            Callable<Void, IOException> task = emuConfig.getEmulatorConfigTask(hardwareProperties, isUnix, listener);
+            launcher.getChannel().call(task);
         }
 
         // Delay start up by the configured amount of time
@@ -722,7 +730,6 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
     private boolean sendEmulatorCommand(final Launcher launcher, final PrintStream logger,
             final int port, final String command) {
         Callable<Boolean, IOException> task = new Callable<Boolean, IOException>() {
-            @Override
             public Boolean call() throws IOException {
                 Socket socket = null;
                 BufferedReader in = null;
@@ -847,7 +854,7 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
 
         /** Used in config.jelly: Lists the OS versions available. */
         public AndroidPlatform[] getAndroidVersions() {
-           return AndroidPlatform.PRESETS;
+            return AndroidPlatform.PRESETS;
         }
 
         /** Used in config.jelly: Lists the screen densities available. */

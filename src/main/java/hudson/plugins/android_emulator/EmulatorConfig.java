@@ -2,6 +2,7 @@ package hudson.plugins.android_emulator;
 
 import hudson.Util;
 import hudson.model.BuildListener;
+import hudson.plugins.android_emulator.AndroidEmulator.HardwareProperty;
 import hudson.remoting.Callable;
 import hudson.util.ArgumentListBuilder;
 import hudson.util.StreamCopyThread;
@@ -156,8 +157,45 @@ class EmulatorConfig implements Serializable {
      * @param listener The listener to use for logging.
      * @return A Callable that will handle the detection/creation of an appropriate AVD.
      */
-    public Callable<Boolean, AndroidEmulatorException> getEmulatorCreationTask(AndroidSdk androidSdk, boolean isUnix, BuildListener listener) {
+    public Callable<Boolean, AndroidEmulatorException> getEmulatorCreationTask(AndroidSdk androidSdk,
+            boolean isUnix, BuildListener listener) {
         return new EmulatorCreationTask(androidSdk, isUnix, listener);
+    }
+
+    /**
+     * Gets a task that updates the hardware properties of the AVD for this instance.
+     *
+     * @param hardwareProperties  The hardware properties to update the AVD with.
+     * @param isUnix  Whether the target system is sane.
+     * @param listener The listener to use for logging.
+     * @return A Callable that will update the config of the current AVD.
+     */
+    public Callable<Void, IOException> getEmulatorConfigTask(HardwareProperty[] hardwareProperties,
+            boolean isUnix, BuildListener listener) {
+        return new EmulatorConfigTask(hardwareProperties, isUnix, listener);
+    }
+
+    private File getHomeDirectory(boolean isUnix) {
+        // Locate the base directory where Android SDK data (such as AVDs) should be kept
+        // From git://android.git.kernel.org/platform/external/qemu.git/android/utils/bufprint.c
+        String homeDirPath = System.getenv("ANDROID_SDK_HOME");
+        if (homeDirPath == null) {
+            if (isUnix) {
+                homeDirPath = System.getenv("HOME");
+                if (homeDirPath == null) {
+                    homeDirPath = "/tmp";
+                }
+            } else {
+                // The emulator checks Win32 "CSIDL_PROFILE", which should equal USERPROFILE
+                homeDirPath = System.getenv("USERPROFILE");
+                if (homeDirPath == null) {
+                    // Otherwise fall back to user.home (which should equal USERPROFILE anyway)
+                    homeDirPath = System.getProperty("user.home");
+                }
+            }
+        }
+
+        return new File(homeDirPath);
     }
 
     private File getAvdHome(final File homeDir) {
@@ -241,9 +279,9 @@ class EmulatorConfig implements Serializable {
     /**
      * A task that locates or creates an AVD based on our local state.
      *
-     * Returns <code>TRUE</code> if an AVD already existed with these properties, otherwise returns
-     * <code>FALSE</code> if an AVD was newly created, and throws an IOException if the given AVD
-     * or parts required to generate a new AVD were not found.
+     * Returns {@code TRUE} if an AVD already existed with these properties, otherwise returns
+     * {@code FALSE} if an AVD was newly created, and throws an AndroidEmulatorException if the
+     * given AVD or parts required to generate a new AVD were not found.
      */
     private final class EmulatorCreationTask implements Callable<Boolean, AndroidEmulatorException> {
 
@@ -260,31 +298,12 @@ class EmulatorConfig implements Serializable {
             this.listener = listener;
         }
 
-        @Override
         public Boolean call() throws AndroidEmulatorException {
             if (logger == null) {
                 logger = listener.getLogger();
             }
 
-            // Locate the base directory where Android SDK data (such as AVDs) should be kept
-            // From git://android.git.kernel.org/platform/external/qemu.git/android/utils/bufprint.c
-            String homeDirPath = System.getenv("ANDROID_SDK_HOME");
-            if (homeDirPath == null) {
-                if (isUnix) {
-                    homeDirPath = System.getenv("HOME");
-                    if (homeDirPath == null) {
-                        homeDirPath = "/tmp";
-                    }
-                } else {
-                    // The emulator checks Win32 "CSIDL_PROFILE", which should equal USERPROFILE
-                    homeDirPath = System.getenv("USERPROFILE");
-                    if (homeDirPath == null) {
-                        // Otherwise fall back to user.home (which should equal USERPROFILE anyway)
-                        homeDirPath = System.getProperty("user.home");
-                    }
-                }
-            }
-            final File homeDir = new File(homeDirPath);
+            final File homeDir = getHomeDirectory(isUnix);
             final File avdDirectory = getAvdDirectory(homeDir);
 
             // Can't do anything if a named emulator doesn't exist
@@ -426,25 +445,6 @@ class EmulatorConfig implements Serializable {
                 throw new EmulatorCreationException(Messages.AVD_CREATION_FAILED());
             }
 
-            // Parse newly-created AVD's config
-            Map<String, String> configValues;
-            try {
-                configValues = parseAvdConfigFile(homeDir);
-            } catch (IOException e) {
-                throw new EmulatorCreationException(Messages.AVD_CONFIG_NOT_READABLE(), e);
-            }
-
-            // TODO: Insert/replace any hardware properties we want to override
-//            configValues.put("vm.heapSize", "4");
-//            configValues.put("hw.ramSize", "64");
-
-            // Update config file
-            try {
-                writeAvdConfigFile(homeDir, configValues);
-            } catch (IOException e) {
-                throw new EmulatorCreationException(Messages.AVD_CONFIG_NOT_WRITEABLE(), e);
-            }
-
             // Done!
             return false;
         }
@@ -466,6 +466,49 @@ class EmulatorConfig implements Serializable {
             }
 
             return true;
+        }
+    }
+
+    /**
+     * A task that updates the hardware properties of this AVD config.
+     *
+     * Throws an IOException if the AVD's config could not be read or written.
+     */
+    private final class EmulatorConfigTask implements Callable<Void, IOException> {
+
+        private static final long serialVersionUID = 1L;
+        private final boolean isUnix;
+
+        private final HardwareProperty[] hardwareProperties;
+        private final BuildListener listener;
+        private transient PrintStream logger;
+
+        public EmulatorConfigTask(HardwareProperty[] hardwareProperties, boolean isUnix, BuildListener listener) {
+            this.hardwareProperties = hardwareProperties;
+            this.isUnix = isUnix;
+            this.listener = listener;
+        }
+
+        public Void call() throws IOException {
+            if (logger == null) {
+                logger = listener.getLogger();
+            }
+
+            final File homeDir = getHomeDirectory(isUnix);
+
+            // Parse the AVD's config
+            Map<String, String> configValues;
+            configValues = parseAvdConfigFile(homeDir);
+
+            // Insert any hardware properties we want to override
+            for (HardwareProperty prop : hardwareProperties) {
+                configValues.put(prop.key, prop.value);
+            }
+
+            // Update config file
+            writeAvdConfigFile(homeDir, configValues);
+
+            return null;
         }
     }
 
