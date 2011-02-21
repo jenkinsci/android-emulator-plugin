@@ -501,7 +501,9 @@ class EmulatorConfig implements Serializable {
             configValues = parseAvdConfigFile(homeDir);
 
             // Insert any hardware properties we want to override
+            AndroidEmulator.log(logger, Messages.SETTING_HARDWARE_PROPERTIES());
             for (HardwareProperty prop : hardwareProperties) {
+                AndroidEmulator.log(logger, String.format("%s: %s", prop.key, prop.value), true);
                 configValues.put(prop.key, prop.value);
             }
 

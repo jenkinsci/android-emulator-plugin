@@ -70,7 +70,7 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
     private final boolean showWindow;
     private final String commandLineOptions;
     private final int startupDelay;
-    private HardwareProperty[] hardwareProperties = new HardwareProperty[0];
+    private final HardwareProperty[] hardwareProperties;
 
     @DataBoundConstructor
     public AndroidEmulator(String avdName, String osVersion, String screenDensity,
@@ -161,7 +161,14 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
         String deviceLocale = expandVariables(envVars, buildVars, this.deviceLocale);
         String sdCardSize = expandVariables(envVars, buildVars, this.sdCardSize);
 
-        // TODO: Expand macros within hardware properties values
+        // Expand macros within hardware property values
+        final int propCount = hardwareProperties == null ? 0 : hardwareProperties.length;
+        HardwareProperty[] expandedProperties = new HardwareProperty[propCount];
+        for (int i = 0; i < propCount; i++) {
+            HardwareProperty prop = hardwareProperties[i];
+            String expandedValue = expandVariables(envVars, buildVars, prop.value);
+            expandedProperties[i] = new HardwareProperty(prop.key, expandedValue);
+        }
 
         // Emulator properties
         String commandLineOptions = expandVariables(envVars, buildVars, this.commandLineOptions);
@@ -201,11 +208,12 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
         EmulatorConfig emuConfig = EmulatorConfig.create(avdName, osVersion, screenDensity,
                 screenResolution, deviceLocale, sdCardSize, wipeData, showWindow, commandLineOptions);
 
-        return doSetUp(build, launcher, listener, androidSdk, emuConfig);
+        return doSetUp(build, launcher, listener, androidSdk, emuConfig, expandedProperties);
     }
 
     private Environment doSetUp(final AbstractBuild<?, ?> build, final Launcher launcher,
-            final BuildListener listener, final AndroidSdk androidSdk, final EmulatorConfig emuConfig)
+            final BuildListener listener, final AndroidSdk androidSdk,
+            final EmulatorConfig emuConfig, final HardwareProperty[] hardwareProperties)
                 throws IOException, InterruptedException {
         final PrintStream logger = listener.getLogger();
         final boolean isUnix = launcher.isUnix();
