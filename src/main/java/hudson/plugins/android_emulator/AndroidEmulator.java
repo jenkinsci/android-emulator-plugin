@@ -32,6 +32,8 @@ import java.io.PrintStream;
 import java.io.PrintWriter;
 import java.io.Serializable;
 import java.net.Socket;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -43,6 +45,8 @@ import org.jvnet.hudson.plugins.port_allocator.PortAllocationManager;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.QueryParameter;
 import org.kohsuke.stapler.StaplerRequest;
+import org.kohsuke.stapler.export.Exported;
+import org.kohsuke.stapler.export.ExportedBean;
 
 public class AndroidEmulator extends BuildWrapper implements Serializable {
 
@@ -66,10 +70,12 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
     private final boolean showWindow;
     private final String commandLineOptions;
     private final int startupDelay;
+    private final HardwareProperty[] hardwareProperties;
 
     @DataBoundConstructor
     public AndroidEmulator(String avdName, String osVersion, String screenDensity,
-            String screenResolution, String deviceLocale, String sdCardSize, boolean wipeData,
+            String screenResolution, String deviceLocale, String sdCardSize,
+            HardwareProperty[] hardwareProperties, boolean wipeData,
             boolean showWindow, String commandLineOptions, int startupDelay) {
         this.avdName = avdName;
         this.osVersion = osVersion;
@@ -77,6 +83,7 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
         this.screenResolution = screenResolution;
         this.deviceLocale = deviceLocale;
         this.sdCardSize = sdCardSize;
+        this.hardwareProperties = hardwareProperties;
         this.wipeData = wipeData;
         this.showWindow = showWindow;
         this.commandLineOptions = commandLineOptions;
@@ -127,6 +134,10 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
         return startupDelay;
     }
 
+    public HardwareProperty[] getHardwareProperties() {
+        return hardwareProperties;
+    }
+
     @Override
     @SuppressWarnings("unchecked")
     public Environment setUp(AbstractBuild build, final Launcher launcher, BuildListener listener)
@@ -149,6 +160,15 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
         String screenResolution = expandVariables(envVars, buildVars, this.screenResolution);
         String deviceLocale = expandVariables(envVars, buildVars, this.deviceLocale);
         String sdCardSize = expandVariables(envVars, buildVars, this.sdCardSize);
+
+        // Expand macros within hardware property values
+        final int propCount = hardwareProperties == null ? 0 : hardwareProperties.length;
+        HardwareProperty[] expandedProperties = new HardwareProperty[propCount];
+        for (int i = 0; i < propCount; i++) {
+            HardwareProperty prop = hardwareProperties[i];
+            String expandedValue = expandVariables(envVars, buildVars, prop.value);
+            expandedProperties[i] = new HardwareProperty(prop.key, expandedValue);
+        }
 
         // Emulator properties
         String commandLineOptions = expandVariables(envVars, buildVars, this.commandLineOptions);
@@ -188,11 +208,12 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
         EmulatorConfig emuConfig = EmulatorConfig.create(avdName, osVersion, screenDensity,
                 screenResolution, deviceLocale, sdCardSize, wipeData, showWindow, commandLineOptions);
 
-        return doSetUp(build, launcher, listener, androidSdk, emuConfig);
+        return doSetUp(build, launcher, listener, androidSdk, emuConfig, expandedProperties);
     }
 
     private Environment doSetUp(final AbstractBuild<?, ?> build, final Launcher launcher,
-            final BuildListener listener, final AndroidSdk androidSdk, final EmulatorConfig emuConfig)
+            final BuildListener listener, final AndroidSdk androidSdk,
+            final EmulatorConfig emuConfig, final HardwareProperty[] hardwareProperties)
                 throws IOException, InterruptedException {
         final PrintStream logger = listener.getLogger();
         final boolean isUnix = launcher.isUnix();
@@ -211,6 +232,12 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
             log(logger, Messages.COULD_NOT_CREATE_EMULATOR(ex.getMessage()));
             build.setResult(Result.NOT_BUILT);
             return null;
+        }
+
+        // Update emulator configuration
+        if (!emuConfig.isNamedEmulator() && hardwareProperties.length != 0) {
+            Callable<Void, IOException> task = emuConfig.getEmulatorConfigTask(hardwareProperties, isUnix, listener);
+            launcher.getChannel().call(task);
         }
 
         // Delay start up by the configured amount of time
@@ -711,7 +738,6 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
     private boolean sendEmulatorCommand(final Launcher launcher, final PrintStream logger,
             final int port, final String command) {
         Callable<Boolean, IOException> task = new Callable<Boolean, IOException>() {
-            @Override
             public Boolean call() throws IOException {
                 Socket socket = null;
                 BufferedReader in = null;
@@ -791,6 +817,7 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
             String screenResolution = null;
             String deviceLocale = null;
             String sdCardSize = null;
+            List<HardwareProperty> hardware = new ArrayList<HardwareProperty>();
             boolean wipeData = false;
             boolean showWindow = true;
             String commandLineOptions = null;
@@ -809,6 +836,7 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
                 if (sdCardSize != null) {
                     sdCardSize = sdCardSize.toUpperCase().replaceAll("[ B]", "");
                 }
+                hardware = req.bindJSONToList(HardwareProperty.class, emulatorData.get("hardwareProperties"));
             }
             wipeData = formData.getBoolean("wipeData");
             showWindow = formData.getBoolean("showWindow");
@@ -818,7 +846,8 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
             } catch (NumberFormatException e) {}
 
             return new AndroidEmulator(avdName, osVersion, screenDensity, screenResolution,
-                    deviceLocale, sdCardSize, wipeData, showWindow, commandLineOptions, startupDelay);
+                    deviceLocale, sdCardSize, hardware.toArray(new HardwareProperty[0]),
+                    wipeData, showWindow, commandLineOptions, startupDelay);
         }
 
         @Override
@@ -833,7 +862,7 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
 
         /** Used in config.jelly: Lists the OS versions available. */
         public AndroidPlatform[] getAndroidVersions() {
-           return AndroidPlatform.PRESETS;
+            return AndroidPlatform.PRESETS;
         }
 
         /** Used in config.jelly: Lists the screen densities available. */
@@ -849,6 +878,11 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
         /** Used in config.jelly: Lists the locales available. */
         public String[] getEmulatorLocales() {
             return Constants.EMULATOR_LOCALES;
+        }
+
+        /** Used in config.jelly: Lists common hardware properties that can be set. */
+        public String[] getHardwareProperties() {
+            return Constants.HARDWARE_PROPERTIES;
         }
 
         public FormValidation doCheckAvdName(@QueryParameter String value) {
@@ -1093,4 +1127,24 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
             return false;
         }
     }
+
+    @ExportedBean
+    public static final class HardwareProperty implements Serializable {
+
+        private static final long serialVersionUID = 1L;
+
+        @Exported
+        public final String key;
+
+        @Exported
+        public final String value;
+
+        @DataBoundConstructor
+        public HardwareProperty(String key, String value) {
+            this.key = key;
+            this.value = value;
+        }
+
+    }
+
 }
