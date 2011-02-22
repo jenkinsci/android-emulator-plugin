@@ -9,12 +9,19 @@ interface Constants {
     /** The locale to which Android emulators default if not otherwise specified. */
     static final String DEFAULT_LOCALE = "en_US";
 
+    /** Locales supported: http://developer.android.com/sdk/android-3.0.html#locs */
     static final String[] EMULATOR_LOCALES = {
-        "cs_CZ", "de_AT", "de_CH", "de_DE", "de_LI", "en_AU", "en_CA", "en_GB",
-        "en_NZ", "en_SG", "en_US", "fr_BE", "fr_CA", "fr_CH", "fr_FR", "it_CH",
-        "it_IT", "ja_JP", "ko_KR", "nl_BE", "nl_NL", "pl_PL", "ru_RU", "zh_TW"
+        "ar_EG", "ar_IL", "bg_BG", "ca_ES", "cs_CZ", "da_DK", "de_AT", "de_CH",
+        "de_DE", "de_LI", "el_GR", "en_AU", "en_CA", "en_GB", "en_IE", "en_IN",
+        "en_NZ", "en_SG", "en_US", "en_ZA", "es_ES", "es_US", "fi_FI", "fr_BE",
+        "fr_CA", "fr_CH", "fr_FR", "he_IL", "hi_IN", "hr_HR", "hu_HU", "id_ID",
+        "it_CH", "it_IT", "ja_JP", "ko_KR", "lt_LT", "lv_LV", "nb_NO", "nl_BE",
+        "nl_NL", "pl_PL", "pt_BR", "pt_PT", "ro_RO", "ru_RU", "sk_SK", "sl_SI",
+        "sr_RS", "sv_SE", "th_TH", "tl_PH", "tr_TR", "uk_UA", "vi_VN", "zh_CN",
+        "zh_TW"
     };
 
+    /** Commonly-used hardware properties that can be emulated. */
     static final String[] HARDWARE_PROPERTIES = {
         "hw.accelerometer", "hw.battery", "hw.camera", "hw.dPad", "hw.gps",
         "hw.gsmModem", "hw.keyboard", "hw.ramSize", "hw.sdCard",
@@ -25,7 +32,7 @@ interface Constants {
     static final String REGEX_LOCALE = "[a-z]{2}_[A-Z]{2}";
     static final String REGEX_SCREEN_DENSITY = "[0-9]{2,4}|(?i)(x?h|[lm])dpi";
     static final String REGEX_SCREEN_RESOLUTION = "[0-9]{3,4}x[0-9]{3,4}";
-    static final String REGEX_SCREEN_RESOLUTION_ALIAS = "([HQ]|F?WQ?)VGA";
+    static final String REGEX_SCREEN_RESOLUTION_ALIAS = "(([HQ]|F?WQ?)V|WX)GA";
     static final String REGEX_SCREEN_RESOLUTION_FULL = REGEX_SCREEN_RESOLUTION_ALIAS +"|"+ REGEX_SCREEN_RESOLUTION;
     static final String REGEX_SD_CARD_SIZE = "(?i)([0-9]{1,12}) ?([KM])[B]?";
 
@@ -113,8 +120,10 @@ class AndroidPlatform implements Serializable {
     static final AndroidPlatform SDK_2_2 = new AndroidPlatform("2.2", 8);
     static final AndroidPlatform SDK_2_3 = new AndroidPlatform("2.3", 9);
     static final AndroidPlatform SDK_2_3_3 = new AndroidPlatform("2.3.3", 10);
+    static final AndroidPlatform SDK_3_0 = new AndroidPlatform("3.0", 11);
     static final AndroidPlatform[] PRESETS = new AndroidPlatform[] { SDK_1_5, SDK_1_6, SDK_2_1,
-                                                                     SDK_2_2, SDK_2_3, SDK_2_3_3 };
+                                                                     SDK_2_2, SDK_2_3, SDK_2_3_3,
+                                                                     SDK_3_0 };
 
     private final String name;
     private final int level;
@@ -244,8 +253,10 @@ class ScreenResolution implements Serializable {
             ScreenDensity.MEDIUM, ScreenDensity.HIGH);
     static final ScreenResolution FWVGA = new ScreenResolution(480, 854, "FWVGA", "WVGA854",
             ScreenDensity.MEDIUM, ScreenDensity.HIGH);
+    static final ScreenResolution WXGA = new ScreenResolution(1280, 800, "WXGA", "WXGA",
+            ScreenDensity.MEDIUM);
     static final ScreenResolution[] PRESETS = new ScreenResolution[] { QVGA, WQVGA, FWQVGA,
-                                                                       HVGA, WVGA, FWVGA };
+                                                                       HVGA, WVGA, FWVGA, WXGA };
 
     private final int width;
     private final int height;
