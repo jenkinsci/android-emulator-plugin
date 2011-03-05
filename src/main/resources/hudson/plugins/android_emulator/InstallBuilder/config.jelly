@@ -1,0 +1,14 @@
+<j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define" xmlns:l="/lib/layout" xmlns:t="/lib/hudson" xmlns:f="/lib/form">
+
+    <f:entry title="${%APK file}">
+        <f:textbox name="android-emulator.apkFile" value="${instance.apkFile}" />
+        <f:description>${%Path to an Android package file, within the current workspace, to be installed}</f:description>
+    </f:entry>
+
+    <f:entry help="/plugin/android-emulator/help-uninstallFirst.html">
+        <f:checkbox id="android-emulator.uninstallFirst" name="android-emulator.uninstallFirst"
+          checked="${instance.shouldUninstallFirst()}" />
+        <label for="android-emulator.uninstallFirst">${%Uninstall existing APK first}</label>
+    </f:entry>
+
+</j:jelly>

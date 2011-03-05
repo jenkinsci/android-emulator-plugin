@@ -39,6 +39,7 @@ interface Constants {
 }
 
 enum Tool {
+    AAPT("aapt", ".exe", true),
     ADB("adb", ".exe", true),
     ANDROID("android", ".bat"),
     EMULATOR("emulator", ".exe"),
