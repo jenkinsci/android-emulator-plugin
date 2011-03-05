@@ -73,6 +73,7 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
     private final HardwareProperty[] hardwareProperties;
 
     @DataBoundConstructor
+    @SuppressWarnings("hiding")
     public AndroidEmulator(String avdName, String osVersion, String screenDensity,
             String screenResolution, String deviceLocale, String sdCardSize,
             HardwareProperty[] hardwareProperties, boolean wipeData,
@@ -139,7 +140,7 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
     }
 
     @Override
-    @SuppressWarnings("unchecked")
+    @SuppressWarnings({"hiding", "unchecked"})
     public Environment setUp(AbstractBuild build, final Launcher launcher, BuildListener listener)
             throws IOException, InterruptedException {
         final PrintStream logger = listener.getLogger();
@@ -154,27 +155,27 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
         final Map<String, String> buildVars = build.getBuildVariables();
 
         // Device properties
-        String avdName = expandVariables(envVars, buildVars, this.avdName);
-        String osVersion = expandVariables(envVars, buildVars, this.osVersion);
-        String screenDensity = expandVariables(envVars, buildVars, this.screenDensity);
-        String screenResolution = expandVariables(envVars, buildVars, this.screenResolution);
-        String deviceLocale = expandVariables(envVars, buildVars, this.deviceLocale);
-        String sdCardSize = expandVariables(envVars, buildVars, this.sdCardSize);
+        String avdName = Utils.expandVariables(envVars, buildVars, this.avdName);
+        String osVersion = Utils.expandVariables(envVars, buildVars, this.osVersion);
+        String screenDensity = Utils.expandVariables(envVars, buildVars, this.screenDensity);
+        String screenResolution = Utils.expandVariables(envVars, buildVars, this.screenResolution);
+        String deviceLocale = Utils.expandVariables(envVars, buildVars, this.deviceLocale);
+        String sdCardSize = Utils.expandVariables(envVars, buildVars, this.sdCardSize);
 
         // Expand macros within hardware property values
         final int propCount = hardwareProperties == null ? 0 : hardwareProperties.length;
         HardwareProperty[] expandedProperties = new HardwareProperty[propCount];
         for (int i = 0; i < propCount; i++) {
             HardwareProperty prop = hardwareProperties[i];
-            String expandedValue = expandVariables(envVars, buildVars, prop.value);
+            String expandedValue = Utils.expandVariables(envVars, buildVars, prop.value);
             expandedProperties[i] = new HardwareProperty(prop.key, expandedValue);
         }
 
         // Emulator properties
-        String commandLineOptions = expandVariables(envVars, buildVars, this.commandLineOptions);
+        String commandLineOptions = Utils.expandVariables(envVars, buildVars, this.commandLineOptions);
 
         // SDK location
-        String androidHome = expandVariables(envVars, buildVars, descriptor.androidHome);
+        String androidHome = Utils.expandVariables(envVars, buildVars, descriptor.androidHome);
         androidHome = discoverAndroidHome(launcher, localVars, androidHome);
 
         // Despite the nice inline checks and warnings when the user is editing the config,
@@ -211,6 +212,7 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
         return doSetUp(build, launcher, listener, androidSdk, emuConfig, expandedProperties);
     }
 
+    @SuppressWarnings("hiding")
     private Environment doSetUp(final AbstractBuild<?, ?> build, final Launcher launcher,
             final BuildListener listener, final AndroidSdk androidSdk,
             final EmulatorConfig emuConfig, final HardwareProperty[] hardwareProperties)
@@ -478,28 +480,11 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
     }
 
     /**
-     * Expands the variable in the given string to its value in the environment variables available
-     * to this build.  The Hudson-specific build variables for this build are then substituted.
-     *
-     * @param envVars  Map of the environment variables.
-     * @param buildVars  Map of the build-specific variables.
-     * @param token  The token which may or may not contain variables in the format <tt>${foo}</tt>.
-     * @return  The given token, with applicable variable expansions done.
-     */
-    private String expandVariables(EnvVars envVars, Map<String,String> buildVars,
-            String token) {
-        String result = Util.fixEmptyAndTrim(token);
-        if (result != null) {
-            result = Util.replaceMacro(Util.replaceMacro(result, envVars), buildVars);
-        }
-        return result;
-    }
-
-    /**
      * Validates this instance's configuration.
      *
      * @return A human-readable error message, or <code>null</code> if the config is valid.
      */
+    @SuppressWarnings("hiding")
     private String isConfigValid(String avdName, String osVersion, String screenDensity,
             String screenResolution, String deviceLocale, String sdCardSize) {
         if (getUseNamedEmulator()) {
@@ -738,6 +723,7 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
     private boolean sendEmulatorCommand(final Launcher launcher, final PrintStream logger,
             final int port, final String command) {
         Callable<Boolean, IOException> task = new Callable<Boolean, IOException>() {
+            @SuppressWarnings("null")
             public Boolean call() throws IOException {
                 Socket socket = null;
                 BufferedReader in = null;
@@ -1103,6 +1089,7 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
          * @param port The local TCP port to attempt to connect to.
          * @param timeout How long to keep trying (in milliseconds) before giving up.
          */
+        @SuppressWarnings("hiding")
         public LocalPortOpenTask(int port, int timeout) {
             this.port = port;
             this.timeout = timeout;
@@ -1140,6 +1127,7 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
         public final String value;
 
         @DataBoundConstructor
+        @SuppressWarnings("hiding")
         public HardwareProperty(String key, String value) {
             this.key = key;
             this.value = value;
