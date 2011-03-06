@@ -149,9 +149,7 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
         }
 
         // Substitute environment and build variables into config
-        final EnvVars localVars = Computer.currentComputer().getEnvironment();
-        final EnvVars envVars = new EnvVars(localVars);
-        envVars.putAll(build.getEnvironment(listener));
+        final EnvVars envVars = Utils.getEnvironment(build, listener);
         final Map<String, String> buildVars = build.getBuildVariables();
 
         // Device properties
@@ -176,7 +174,7 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
 
         // SDK location
         String androidHome = Utils.expandVariables(envVars, buildVars, descriptor.androidHome);
-        androidHome = discoverAndroidHome(launcher, localVars, androidHome);
+        androidHome = Utils.discoverAndroidHome(launcher, envVars, androidHome);
 
         // Despite the nice inline checks and warnings when the user is editing the config,
         // these are not binding, so the user may have saved invalid configuration.
@@ -190,7 +188,7 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
         }
 
         // Confirm that tools are available on PATH
-        AndroidSdk androidSdk = getAndroidSdk(launcher, androidHome);
+        AndroidSdk androidSdk = Utils.getAndroidSdk(launcher, androidHome);
         if (androidSdk == null) {
             log(logger, Messages.SDK_TOOLS_NOT_FOUND());
             build.setResult(Result.NOT_BUILT);
@@ -513,139 +511,6 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
     }
 
     /**
-     * Tries to validate the given Android SDK root directory; otherwise tries to
-     * locate a copy of the SDK by checking for common environment variables.
-     *
-     * @param launcher The launcher for the remote node.
-     * @param envVars Environment variables for the build.
-     * @param androidHome The (variable-expanded) SDK root given in global config.
-     * @return Either a discovered SDK path or, if all else fails, the given androidHome value.
-     */
-    private String discoverAndroidHome(final Launcher launcher, final EnvVars envVars,
-            final String androidHome) {
-        Callable<String, InterruptedException> task = new Callable<String, InterruptedException>() {
-            public String call() throws InterruptedException {
-                // Verify existence of provided value
-                if (validateHomeDir(androidHome)) {
-                    return androidHome;
-                }
-
-                // Check for common environment variables
-                String[] keys = { "ANDROID_SDK_ROOT", "ANDROID_SDK_HOME",
-                                  "ANDROID_HOME", "ANDROID_SDK" };
-                for (String key : keys) {
-                    String home = envVars.get(key);
-                    if (validateHomeDir(home)) {
-                        return home;
-                    }
-                }
-
-                // Give up
-                return null;
-            }
-
-            private boolean validateHomeDir(String dir) {
-                if (Util.fixEmptyAndTrim(dir) == null) {
-                    return false;
-                }
-                return !descriptor.doCheckAndroidHome(new File(dir), false).isFatal();
-            }
-
-            private static final long serialVersionUID = 1L;
-        };
-
-        String result = androidHome;
-        try {
-            result = launcher.getChannel().call(task);
-        } catch (InterruptedException e) {
-            // Ignore; will return default value
-        } catch (IOException e) {
-            // Ignore; will return default value
-        }
-        return result;
-    }
-
-    /**
-     * Determines the properties of the SDK installed on the build machine.
-     *
-     * @param launcher The launcher for the remote node.
-     * @param androidHome The SDK root directory specified in the job/system configuration.
-     * @return AndroidSdk object representing the properties of the installed SDK.
-     */
-    private AndroidSdk getAndroidSdk(Launcher launcher, final String androidHome) {
-        final boolean isUnix = launcher.isUnix();
-
-        Callable<AndroidSdk, IOException> task = new Callable<AndroidSdk, IOException>() {
-            public AndroidSdk call() throws IOException {
-                String sdkRoot = androidHome;
-                if (androidHome == null) {
-                    // If no SDK root was specified, attempt to detect it from PATH
-                    sdkRoot = getSdkRootFromPath(isUnix);
-
-                    // If still nothing was found, then we cannot continue
-                    if (sdkRoot == null) {
-                        return null;
-                    }
-                }
-
-                // Create SDK instance with what we know so far
-                AndroidSdk sdk = new AndroidSdk(sdkRoot);
-
-                // Determine whether SDK has platform tools installed
-                File toolsDirectory = new File(sdkRoot, "platform-tools");
-                sdk.setUsesPlatformTools(toolsDirectory.isDirectory());
-
-                return sdk;
-            }
-            private static final long serialVersionUID = 1L;
-        };
-
-        try {
-            return launcher.getChannel().call(task);
-        } catch (IOException e) {
-            // Ignore
-        } catch (InterruptedException e) {
-            // Ignore
-        }
-
-        return null;
-    }
-
-    /**
-     * Detects the root directory of an SDK installation based on the Android tools on the PATH.
-     *
-     * @param isUnix Whether the system where this command should run is sane.
-     * @return The root directory of an Android SDK, or {@code null} if none could be determined.
-     */
-    private String getSdkRootFromPath(boolean isUnix) {
-        // Get list of required tools when working from PATH
-        Tool[] tools = { Tool.ADB, Tool.EMULATOR };
-
-        // Examine each directory specified by the PATH environment variable.
-        int toolCount = 0;
-        String[] paths = System.getenv("PATH").split(File.pathSeparator);
-        for (String path : paths) {
-            File toolsDirectory = new File(path);
-            if (toolsDirectory.isDirectory()) {
-                for (Tool tool : tools) {
-                    String executable = tool.getExecutable(isUnix);
-                    if (new File(toolsDirectory, executable).exists()) {
-                        toolCount++;
-                    }
-                }
-            }
-
-            // If all the tools were found in this directory, we have a winner
-            if (toolCount == tools.length) {
-                // Return the parent path (i.e. the SDK root)
-                return toolsDirectory.getParent();
-            }
-        }
-
-        return null;
-    }
-
-    /**
      * Waits for a socket on the remote machine's localhost to become available, or times out.
      *
      * @param launcher The launcher for the remote node.
@@ -770,9 +635,6 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
 
         private static final long serialVersionUID = 1L;
 
-        // From hudson.Util.VARIABLE
-        private static final String VARIABLE_REGEX = "\\$([A-Za-z0-9_]+|\\{[A-Za-z0-9_]+\\}|\\$)";
-
         /**
          * The Android SDK home directory.  Can include variables, e.g. <tt>${ANDROID_HOME}</tt>.
          * <p>If <code>null</code>, we will just assume the required commands are on the PATH.</p>
@@ -882,7 +744,7 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
             }
             String regex = Constants.REGEX_AVD_NAME;
             if (allowVariables) {
-                regex = "(("+ Constants.REGEX_AVD_NAME +")*("+ VARIABLE_REGEX +")*)+";
+                regex = "(("+ Constants.REGEX_AVD_NAME +")*("+ Constants.REGEX_VARIABLE +")*)+";
             }
             if (!avdName.matches(regex)) {
                 return ValidationResult.error(Messages.INVALID_AVD_NAME());
@@ -900,7 +762,7 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
             if (osVersion == null || osVersion.equals("")) {
                 return ValidationResult.error(Messages.OS_VERSION_REQUIRED());
             }
-            if (!allowVariables && osVersion.matches(VARIABLE_REGEX)) {
+            if (!allowVariables && osVersion.matches(Constants.REGEX_VARIABLE)) {
                 return ValidationResult.error(Messages.INVALID_OS_VERSION());
             }
 
@@ -917,7 +779,7 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
             }
             String regex = Constants.REGEX_SCREEN_DENSITY;
             if (allowVariables) {
-                regex += "|"+ VARIABLE_REGEX;
+                regex += "|"+ Constants.REGEX_VARIABLE;
             }
             if (!density.matches(regex)) {
                 return ValidationResult.error(Messages.SCREEN_DENSITY_NOT_NUMERIC());
@@ -938,7 +800,7 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
             }
             String regex = Constants.REGEX_SCREEN_RESOLUTION_FULL;
             if (allowVariables) {
-                regex += "|"+ VARIABLE_REGEX;
+                regex += "|"+ Constants.REGEX_VARIABLE;
             }
             if (!resolution.matches(regex)) {
                 return ValidationResult.error(Messages.INVALID_RESOLUTION_FORMAT());
@@ -974,7 +836,7 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
             }
             String regex = Constants.REGEX_LOCALE;
             if (allowVariables) {
-                regex += "|"+ VARIABLE_REGEX;
+                regex += "|"+ Constants.REGEX_VARIABLE;
             }
             if (!locale.matches(regex)) {
                 return ValidationResult.error(Messages.LOCALE_FORMAT_WARNING());
@@ -994,7 +856,7 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
             }
             String regex = Constants.REGEX_SD_CARD_SIZE;
             if (allowVariables) {
-                regex += "|"+ VARIABLE_REGEX;
+                regex += "|"+ Constants.REGEX_VARIABLE;
             }
             if (!sdCardSize.matches(regex)) {
                 return ValidationResult.error(Messages.INVALID_SD_CARD_SIZE());
@@ -1018,64 +880,9 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
         }
 
         public FormValidation doCheckAndroidHome(@QueryParameter File value) {
-            return doCheckAndroidHome(value, true).getFormValidation();
+            return Utils.validateAndroidHome(value, true).getFormValidation();
         }
 
-        private ValidationResult doCheckAndroidHome(File sdkRoot, boolean fromWebConfig) {
-            // This can be used to check the existence of a file on the server, so needs to be protected
-            if (fromWebConfig && !Hudson.getInstance().hasPermission(Hudson.ADMINISTER)) {
-                return ValidationResult.ok();
-            }
-
-            // Check the utter basics
-            if (fromWebConfig && (sdkRoot == null || sdkRoot.getPath().equals(""))) {
-                return ValidationResult.ok();
-            }
-            if (!sdkRoot.isDirectory()) {
-                if (fromWebConfig && sdkRoot.getPath().matches(".*("+ VARIABLE_REGEX +").*")) {
-                    return ValidationResult.ok();
-                }
-                return ValidationResult.error(Messages.INVALID_DIRECTORY());
-            }
-
-            // We'll be using items from the tools and platforms directories.
-            // Ignore that "platform-tools" may also be required for newer SDKs,
-            // as we'll check for the presence of the individual tools in a moment
-            final String[] sdkDirectories = { "tools", "platforms" };
-            for (String dirName : sdkDirectories) {
-                File dir = new File(sdkRoot, dirName);
-                if (!dir.exists() || !dir.isDirectory()) {
-                    return ValidationResult.error(Messages.INVALID_SDK_DIRECTORY());
-                }
-            }
-
-            // Search the possible tool directories to ensure the tools exist
-            int toolsFound = 0;
-            final String[] toolDirectories = { "tools", "platform-tools" };
-            for (String dir : toolDirectories) {
-                File toolsDir = new File(sdkRoot, dir);
-                if (!toolsDir.isDirectory()) {
-                    continue;
-                }
-                for (String executable : Tool.getAllExecutableVariants()) {
-                    File toolPath = new File(toolsDir, executable);
-                    if (toolPath.exists() && toolPath.isFile()) {
-                        toolsFound++;
-                    }
-                }
-            }
-            if (toolsFound < Tool.values().length) {
-                return ValidationResult.errorWithMarkup(Messages.REQUIRED_SDK_TOOLS_NOT_FOUND());
-            }
-
-            // Give the user a nice warning (not error) if they've not downloaded any platforms yet
-            File platformsDir = new File(sdkRoot, "platforms");
-            if (platformsDir.list().length == 0) {
-                return ValidationResult.warning(Messages.SDK_PLATFORMS_EMPTY());
-            }
-
-            return ValidationResult.ok();
-        }
     }
 
     /** Task that will block until it can either connect to a port on localhost, or it times-out. */

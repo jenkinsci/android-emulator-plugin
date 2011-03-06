@@ -28,6 +28,8 @@ interface Constants {
         "hw.touchScreen", "hw.trackBall", "vm.heapSize"
     };
 
+    // From hudson.Util.VARIABLE
+    static final String REGEX_VARIABLE = "\\$([A-Za-z0-9_]+|\\{[A-Za-z0-9_]+\\}|\\$)";
     static final String REGEX_AVD_NAME = "[a-zA-Z0-9._-]+";
     static final String REGEX_LOCALE = "[a-z]{2}_[A-Z]{2}";
     static final String REGEX_SCREEN_DENSITY = "[0-9]{2,4}|(?i)(x?h|[lm])dpi";
