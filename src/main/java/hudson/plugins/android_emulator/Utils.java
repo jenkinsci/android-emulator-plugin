@@ -182,8 +182,6 @@ public class Utils {
             return ValidationResult.error(Messages.INVALID_DIRECTORY());
         }
 
-        System.out.println("Validating root: "+ sdkRoot.getAbsolutePath());
-
         // We'll be using items from the tools and platforms directories.
         // Ignore that "platform-tools" may also be required for newer SDKs,
         // as we'll check for the presence of the individual tools in a moment

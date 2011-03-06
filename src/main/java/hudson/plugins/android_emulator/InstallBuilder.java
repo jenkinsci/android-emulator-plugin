@@ -1,5 +1,6 @@
 package hudson.plugins.android_emulator;
 
+import hudson.EnvVars;
 import hudson.Extension;
 import hudson.FilePath;
 import hudson.Launcher;
@@ -52,10 +53,15 @@ public class InstallBuilder extends Builder {
             throws InterruptedException, IOException {
         final PrintStream logger = listener.getLogger();
 
-        // TODO: Get Android SDK, using the global config and discovery methods
-        //       Currently this assumes that the required SDK tools are on PATH
-        // TODO: Check that the required SDK tools are available in the given SDK
-        AndroidSdk androidSdk = new AndroidSdk(null);
+        // Discover Android SDK
+        String androidHome = Utils.expandVariables(build, listener, Utils.getConfiguredAndroidHome());
+        EnvVars envVars = Utils.getEnvironment(build, listener);
+        String discoveredAndroidHome = Utils.discoverAndroidHome(launcher, envVars, androidHome);
+        AndroidSdk androidSdk = Utils.getAndroidSdk(launcher, discoveredAndroidHome);
+        if (androidSdk == null) {
+            AndroidEmulator.log(logger, Messages.SDK_TOOLS_NOT_FOUND());
+            return false;
+        }
 
         // Check whether a value was provided
         final String apkFile = getApkFile();
