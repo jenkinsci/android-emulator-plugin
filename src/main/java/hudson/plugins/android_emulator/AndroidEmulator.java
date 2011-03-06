@@ -190,17 +190,11 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
         }
 
         // Confirm that tools are available on PATH
-        AndroidSdk androidSdk = new AndroidSdk(androidHome);
-        if (androidHome == null) {
-            if (!validateAndroidToolsInPath(launcher)) {
-                log(logger, Messages.SDK_TOOLS_NOT_FOUND());
-                build.setResult(Result.NOT_BUILT);
-                return null;
-            }
-        } else {
-            // Determine SDK type, if tools aren't on the PATH
-            boolean usesPlatformTools = sdkUsesPlatformTools(launcher, androidSdk);
-            androidSdk.setUsesPlatformTools(usesPlatformTools);
+        AndroidSdk androidSdk = getAndroidSdk(launcher, androidHome);
+        if (androidSdk == null) {
+            log(logger, Messages.SDK_TOOLS_NOT_FOUND());
+            build.setResult(Result.NOT_BUILT);
+            return null;
         }
 
         // Ok, everything looks good.. let's go
@@ -572,38 +566,36 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
     }
 
     /**
-     * Validates whether the required SDK tools can be found on the PATH.
+     * Determines the properties of the SDK installed on the build machine.
      *
      * @param launcher The launcher for the remote node.
-     * @return {@code true} if all the required tools are available.
+     * @param androidHome The SDK root directory specified in the job/system configuration.
+     * @return AndroidSdk object representing the properties of the installed SDK.
      */
-    private boolean validateAndroidToolsInPath(Launcher launcher) {
+    private AndroidSdk getAndroidSdk(Launcher launcher, final String androidHome) {
         final boolean isUnix = launcher.isUnix();
 
-        Callable<Boolean, IOException> task = new Callable<Boolean, IOException>() {
-            public Boolean call() throws IOException {
-                // Get list of required tools when working from PATH
-                Tool[] tools = { Tool.ADB, Tool.EMULATOR };
+        Callable<AndroidSdk, IOException> task = new Callable<AndroidSdk, IOException>() {
+            public AndroidSdk call() throws IOException {
+                String sdkRoot = androidHome;
+                if (androidHome == null) {
+                    // If no SDK root was specified, attempt to detect it from PATH
+                    sdkRoot = getSdkRootFromPath(isUnix);
 
-                // Examine each directory specified by the PATH environment variable.
-                int toolCount = 0;
-                String[] paths = System.getenv("PATH").split(File.pathSeparator);
-                for (String path : paths) {
-                    File toolsDirectory = new File(path);
-                    if (toolsDirectory.isDirectory()) {
-                        for (Tool tool : tools) {
-                            String executable = tool.getExecutable(isUnix);
-                            if (new File(toolsDirectory, executable).exists()) {
-                                toolCount++;
-                            }
-                        }
-                    }
-                    if (toolCount == tools.length) {
-                        return true;
+                    // If still nothing was found, then we cannot continue
+                    if (sdkRoot == null) {
+                        return null;
                     }
                 }
 
-                return false;
+                // Create SDK instance with what we know so far
+                AndroidSdk sdk = new AndroidSdk(sdkRoot);
+
+                // Determine whether SDK has platform tools installed
+                File toolsDirectory = new File(sdkRoot, "platform-tools");
+                sdk.setUsesPlatformTools(toolsDirectory.isDirectory());
+
+                return sdk;
             }
             private static final long serialVersionUID = 1L;
         };
@@ -615,33 +607,42 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
         } catch (InterruptedException e) {
             // Ignore
         }
-        return false;
+
+        return null;
     }
 
     /**
-     * Determines where platform tools are stored for the given SDK instance.
+     * Detects the root directory of an SDK installation based on the Android tools on the PATH.
      *
-     * @param launcher The launcher for the remote node.
-     * @param androidHome The SDK we are going to use.
+     * @param isUnix Whether the system where this command should run is sane.
+     * @return The root directory of an Android SDK, or {@code null} if none could be determined.
      */
-    private boolean sdkUsesPlatformTools(Launcher launcher, final AndroidSdk androidSdk) {
-        Callable<Boolean, IOException> task = new Callable<Boolean, IOException>() {
-            public Boolean call() throws IOException {
-                File toolsDirectory = new File(androidSdk.getSdkRoot(), "platform-tools");
-                return toolsDirectory.isDirectory();
-            }
-            private static final long serialVersionUID = 1L;
-        };
+    private String getSdkRootFromPath(boolean isUnix) {
+        // Get list of required tools when working from PATH
+        Tool[] tools = { Tool.ADB, Tool.EMULATOR };
 
-        try {
-            return launcher.getChannel().call(task);
-        } catch (IOException e) {
-            // Ignore
-        } catch (InterruptedException e) {
-            // Ignore
+        // Examine each directory specified by the PATH environment variable.
+        int toolCount = 0;
+        String[] paths = System.getenv("PATH").split(File.pathSeparator);
+        for (String path : paths) {
+            File toolsDirectory = new File(path);
+            if (toolsDirectory.isDirectory()) {
+                for (Tool tool : tools) {
+                    String executable = tool.getExecutable(isUnix);
+                    if (new File(toolsDirectory, executable).exists()) {
+                        toolCount++;
+                    }
+                }
+            }
+
+            // If all the tools were found in this directory, we have a winner
+            if (toolCount == tools.length) {
+                // Return the parent path (i.e. the SDK root)
+                return toolsDirectory.getParent();
+            }
         }
 
-        return false;
+        return null;
     }
 
     /**
