@@ -347,6 +347,12 @@ class EmulatorConfig implements Serializable {
             // Build up basic arguments to `android` command
             final StringBuilder args = new StringBuilder(100);
             args.append("create avd ");
+
+            // Initialise snapshot support, regardless of whether we will actually use it
+            if (androidSdk.supportsSnapshots()) {
+                args.append("-a ");
+            }
+
             if (sdCardSize != null) {
                 args.append("-c ");
                 args.append(sdCardSize);
