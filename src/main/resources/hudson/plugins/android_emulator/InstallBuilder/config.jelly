@@ -8,7 +8,7 @@
     <f:entry help="/plugin/android-emulator/help-uninstallFirst.html">
         <f:checkbox id="android-emulator.uninstallFirst" name="android-emulator.uninstallFirst"
           checked="${instance.shouldUninstallFirst()}" />
-        <label for="android-emulator.uninstallFirst">${%Uninstall existing APK first}</label>
+        <label class="attach-previous">${%Uninstall existing APK first}</label>
     </f:entry>
 
 </j:jelly>
