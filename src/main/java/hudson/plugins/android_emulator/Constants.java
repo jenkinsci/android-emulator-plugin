@@ -85,8 +85,12 @@ class AndroidSdk implements Serializable {
 
     private static final long serialVersionUID = 1L;
 
+    /** First version in which snapshots were supported. */
+    private static final int SDK_TOOLS_SNAPSHOTS = 9;
+
     private final String sdkHome;
     private boolean usesPlatformTools;
+    private int sdkToolsVersion;
 
     AndroidSdk(String home) {
         this.sdkHome = home;
@@ -106,6 +110,14 @@ class AndroidSdk implements Serializable {
 
     void setUsesPlatformTools(boolean usesPlatformTools) {
         this.usesPlatformTools = usesPlatformTools;
+    }
+
+    void setSdkToolsVersion(int version) {
+        this.sdkToolsVersion = version;
+    }
+
+    boolean supportsSnapshots() {
+        return sdkToolsVersion >= SDK_TOOLS_SNAPSHOTS;
     }
 
 }

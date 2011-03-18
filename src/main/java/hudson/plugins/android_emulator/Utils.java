@@ -12,9 +12,12 @@ import hudson.model.Hudson;
 import hudson.remoting.Callable;
 import hudson.util.ArgumentListBuilder;
 
+import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileReader;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.util.HashMap;
 import java.util.Map;
 
 public class Utils {
@@ -141,6 +144,15 @@ public class Utils {
                 // Determine whether SDK has platform tools installed
                 File toolsDirectory = new File(sdkRoot, "platform-tools");
                 sdk.setUsesPlatformTools(toolsDirectory.isDirectory());
+
+                // Determine SDK tools version
+                File toolsPropFile = new File(sdkRoot, "tools/source.properties");
+                Map<String, String> toolsProperties = Utils.parseConfigFile(toolsPropFile);
+                String revisionStr = Util.fixEmptyAndTrim(toolsProperties.get("Pkg.Revision"));
+                if (revisionStr != null) {
+                    int version = Integer.parseInt(revisionStr);
+                    sdk.setSdkToolsVersion(version);
+                }
 
                 return sdk;
             }
@@ -311,6 +323,32 @@ public class Utils {
         }
         procStarter.join();
     }
+
+    /**
+     * Parses the contents of a properties file into a map.
+     *
+     * @param configFile The file to read.
+     * @return The key-value pairs contained in the file, ignoring any comments or blank lines.
+     * @throws IOException If the file could not be read.
+     */
+    public static Map<String,String> parseConfigFile(File configFile) throws IOException {
+        FileReader fileReader = new FileReader(configFile);
+        BufferedReader reader = new BufferedReader(fileReader);
+
+        String line;
+        Map<String,String> values = new HashMap<String,String>();
+        while ((line = reader.readLine()) != null) {
+            line = line.trim();
+            if (line.length() == 0 || line.charAt(0) == '#') {
+                continue;
+            }
+            String[] parts = line.split("=", 2);
+            values.put(parts[0], parts[1]);
+        }
+
+        return values;
+    }
+
 
     /**
      * Expands the variable in the given string to its value in the environment variables available
