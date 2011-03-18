@@ -85,6 +85,11 @@
               checked="${h.defaultToTrue(instance.shouldShowWindow())}" />
           <label for="android-emulator.showWindow">${%Show emulator window}</label>
         </f:entry>
+        <f:entry help="/plugin/android-emulator/help-useSnapshots.html">
+          <f:checkbox id="android-emulator.useSnapshots" name="android-emulator.useSnapshots"
+              checked="${h.defaultToTrue(instance.shouldUseSnapshots())}" />
+          <label for="android-emulator.useSnapshots">${%Use emulator snapshots}</label>
+        </f:entry>
       </f:section>
 
     </table>

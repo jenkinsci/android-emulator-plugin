@@ -68,6 +68,7 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
     private final String sdCardSize;
     private final boolean wipeData;
     private final boolean showWindow;
+    private final boolean useSnapshots;
     private final String commandLineOptions;
     private final int startupDelay;
     private final HardwareProperty[] hardwareProperties;
@@ -75,9 +76,9 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
     @DataBoundConstructor
     @SuppressWarnings("hiding")
     public AndroidEmulator(String avdName, String osVersion, String screenDensity,
-            String screenResolution, String deviceLocale, String sdCardSize,
-            HardwareProperty[] hardwareProperties, boolean wipeData,
-            boolean showWindow, String commandLineOptions, int startupDelay) {
+            String screenResolution, String deviceLocale, String sdCardSize, boolean wipeData,
+            HardwareProperty[] hardwareProperties, boolean showWindow, boolean useSnapshots,
+            String commandLineOptions, int startupDelay) {
         this.avdName = avdName;
         this.osVersion = osVersion;
         this.screenDensity = screenDensity;
@@ -87,6 +88,7 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
         this.hardwareProperties = hardwareProperties;
         this.wipeData = wipeData;
         this.showWindow = showWindow;
+        this.useSnapshots = useSnapshots;
         this.commandLineOptions = commandLineOptions;
         this.startupDelay = Math.abs(startupDelay);
     }
@@ -125,6 +127,10 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
 
     public boolean shouldShowWindow() {
         return showWindow;
+    }
+
+    public boolean shouldUseSnapshots() {
+        return useSnapshots;
     }
 
     public String getCommandLineOptions() {
@@ -199,7 +205,8 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
         String displayHome = androidSdk.hasKnownRoot() ? androidSdk.getSdkRoot() : Messages.USING_PATH();
         log(logger, Messages.USING_SDK(displayHome));
         EmulatorConfig emuConfig = EmulatorConfig.create(avdName, osVersion, screenDensity,
-                screenResolution, deviceLocale, sdCardSize, wipeData, showWindow, commandLineOptions);
+                screenResolution, deviceLocale, sdCardSize, wipeData, showWindow, useSnapshots,
+                commandLineOptions);
 
         return doSetUp(build, launcher, listener, androidSdk, emuConfig, expandedProperties);
     }
@@ -669,6 +676,7 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
             List<HardwareProperty> hardware = new ArrayList<HardwareProperty>();
             boolean wipeData = false;
             boolean showWindow = true;
+            boolean useSnapshots = false;
             String commandLineOptions = null;
             int startupDelay = 0;
 
@@ -689,14 +697,15 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
             }
             wipeData = formData.getBoolean("wipeData");
             showWindow = formData.getBoolean("showWindow");
+            useSnapshots = formData.getBoolean("useSnapshots");
             commandLineOptions = formData.getString("commandLineOptions");
             try {
                 startupDelay = Integer.parseInt(formData.getString("startupDelay"));
             } catch (NumberFormatException e) {}
 
             return new AndroidEmulator(avdName, osVersion, screenDensity, screenResolution,
-                    deviceLocale, sdCardSize, hardware.toArray(new HardwareProperty[0]),
-                    wipeData, showWindow, commandLineOptions, startupDelay);
+                    deviceLocale, sdCardSize, wipeData, hardware.toArray(new HardwareProperty[0]),
+                    showWindow, useSnapshots, commandLineOptions, startupDelay);
         }
 
         @Override

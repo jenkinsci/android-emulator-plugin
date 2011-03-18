@@ -33,18 +33,21 @@ class EmulatorConfig implements Serializable {
     private String sdCardSize;
     private final boolean wipeData;
     private final boolean showWindow;
+    private final boolean useSnapshots;
     private final String commandLineOptions;
 
-    public EmulatorConfig(String avdName, boolean wipeData, boolean showWindow, String commandLineOptions) {
+    public EmulatorConfig(String avdName, boolean wipeData, boolean showWindow,
+            boolean useSnapshots, String commandLineOptions) {
         this.avdName = avdName;
         this.wipeData = wipeData;
         this.showWindow = showWindow;
+        this.useSnapshots = useSnapshots;
         this.commandLineOptions = commandLineOptions;
     }
 
     public EmulatorConfig(String osVersion, String screenDensity, String screenResolution,
             String deviceLocale, String sdCardSize, boolean wipeData, boolean showWindow,
-            String commandLineOptions)
+            boolean useSnapshots, String commandLineOptions)
                 throws IllegalArgumentException {
         if (osVersion == null || screenDensity == null || screenResolution == null) {
             throw new IllegalArgumentException("Valid OS version and screen properties must be supplied.");
@@ -76,18 +79,19 @@ class EmulatorConfig implements Serializable {
         this.sdCardSize = sdCardSize;
         this.wipeData = wipeData;
         this.showWindow = showWindow;
+        this.useSnapshots = useSnapshots;
         this.commandLineOptions = commandLineOptions;
     }
 
     public static final EmulatorConfig create(String avdName, String osVersion, String screenDensity,
             String screenResolution, String deviceLocale, String sdCardSize, boolean wipeData,
-            boolean showWindow, String commandLineOptions) {
+            boolean showWindow, boolean useSnapshots, String commandLineOptions) {
         if (Util.fixEmptyAndTrim(avdName) == null) {
             return new EmulatorConfig(osVersion, screenDensity, screenResolution, deviceLocale,
-                    sdCardSize, wipeData, showWindow, commandLineOptions);
+                    sdCardSize, wipeData, showWindow, useSnapshots, commandLineOptions);
         }
 
-        return new EmulatorConfig(avdName, wipeData, showWindow, commandLineOptions);
+        return new EmulatorConfig(avdName, wipeData, showWindow, useSnapshots, commandLineOptions);
     }
 
     public boolean isNamedEmulator() {
@@ -147,6 +151,10 @@ class EmulatorConfig implements Serializable {
 
     public boolean shouldShowWindow() {
         return showWindow;
+    }
+
+    public boolean shouldUseSnapshots() {
+        return useSnapshots;
     }
 
     /**
