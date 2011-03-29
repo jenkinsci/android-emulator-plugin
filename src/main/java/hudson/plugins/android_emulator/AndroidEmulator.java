@@ -235,7 +235,7 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
             return null;
         }
 
-        // Update emulator configuration
+        // Update emulator configuration with desired hardware properties
         if (!emuConfig.isNamedEmulator() && hardwareProperties.length != 0) {
             Callable<Void, IOException> task = emuConfig.getEmulatorConfigTask(hardwareProperties, isUnix, listener);
             launcher.getChannel().call(task);
@@ -252,6 +252,16 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
         final PortAllocationManager portAllocator = PortAllocationManager.getManager(computer);
         final int userPort = portAllocator.allocateRandom(build, 0);
         final int adbPort = portAllocator.allocateRandom(build, 0);
+
+        // Determine whether we need to create the first snapshot
+        final boolean initSnapshot;
+        if (shouldUseSnapshots() && androidSdk.supportsSnapshots()) {
+            // If there is no existing snapshot, we should initialise one
+            initSnapshot = !emuConfig.hasExistingSnapshot(launcher, androidSdk);
+        } else {
+            // If snapshots are disabled or not supported, there's nothing to do
+            initSnapshot = false;
+        }
 
         // Compile complete command for starting emulator
         final String avdArgs = emuConfig.getCommandArguments();

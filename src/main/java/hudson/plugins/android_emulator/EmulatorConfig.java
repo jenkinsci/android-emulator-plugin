@@ -1,5 +1,6 @@
 package hudson.plugins.android_emulator;
 
+import hudson.Launcher;
 import hudson.Util;
 import hudson.model.BuildListener;
 import hudson.plugins.android_emulator.AndroidEmulator.HardwareProperty;
@@ -17,6 +18,7 @@ import java.io.PrintStream;
 import java.io.PrintWriter;
 import java.io.Serializable;
 import java.util.Map;
+import java.util.regex.Pattern;
 
 class EmulatorConfig implements Serializable {
 
@@ -267,6 +269,25 @@ class EmulatorConfig implements Serializable {
     }
 
     /**
+     * Determines whether a snapshot image has already been created for this emulator.
+     *
+     * @throws IOException If execution of the emulator command fails.
+     * @throws InterruptedException If execution of the emulator command is interrupted.
+     */
+    public boolean hasExistingSnapshot(Launcher launcher, AndroidSdk androidSdk)
+            throws IOException, InterruptedException {
+        final PrintStream logger = launcher.getListener().getLogger();
+
+        // List available snapshots for this emulator
+        ByteArrayOutputStream listOutput = new ByteArrayOutputStream();
+        String args = String.format("-snapshot-list -avd %s", getAvdName());
+        Utils.runAndroidTool(launcher, listOutput, logger, androidSdk, Tool.EMULATOR, args, null);
+
+        // Check whether a Jenkins snapshot was listed in the output
+        return Pattern.compile(Constants.REGEX_SNAPSHOT).matcher(listOutput.toString()).find();
+    }
+
+    /**
      * A task that locates or creates an AVD based on our local state.
      *
      * Returns {@code TRUE} if an AVD already existed with these properties, otherwise returns
@@ -323,6 +344,13 @@ class EmulatorConfig implements Serializable {
             final File sdkRoot = new File(androidSdk.getSdkRoot());
             if (!sdkRoot.exists()) {
                 throw new EmulatorCreationException(Messages.SDK_NOT_FOUND(androidSdk.getSdkRoot()));
+            }
+
+            // TODO: If we need to initialise snapshot support, do so
+            if (shouldUseSnapshots()) {
+                // Check for presence of snapshots.img
+                // If it does not exist, copy the snapshots file into place
+                // Update the config file to include "snapshot.present=true"
             }
 
             // If we're only here to create an SD card, do so and return

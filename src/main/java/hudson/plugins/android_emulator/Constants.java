@@ -37,6 +37,7 @@ interface Constants {
     static final String REGEX_SCREEN_RESOLUTION_ALIAS = "(([HQ]|F?WQ?)V|WX)GA";
     static final String REGEX_SCREEN_RESOLUTION_FULL = REGEX_SCREEN_RESOLUTION_ALIAS +"|"+ REGEX_SCREEN_RESOLUTION;
     static final String REGEX_SD_CARD_SIZE = "(?i)([0-9]{1,12}) ?([KM])[B]?";
+    static final String REGEX_SNAPSHOT = "[0-9]+ +jenkins +[0-9]+M ";
 
 }
 
