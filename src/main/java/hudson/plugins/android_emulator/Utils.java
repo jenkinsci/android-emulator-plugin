@@ -195,6 +195,11 @@ public class Utils {
 
         // Search the possible tool directories to ensure the tools exist
         int toolsFound = 0;
+        int expectedToolCount = Tool.values().length;
+        if (!new File(sdkRoot, "platform-tools").exists()) {
+            // aapt doesn't exist in "tools" until SDK Tools r9
+            expectedToolCount--;
+        }
         final String[] toolDirectories = { "tools", "platform-tools" };
         for (String dir : toolDirectories) {
             File toolsDir = new File(sdkRoot, dir);
@@ -208,7 +213,7 @@ public class Utils {
                 }
             }
         }
-        if (toolsFound < Tool.values().length) {
+        if (toolsFound < expectedToolCount) {
             return ValidationResult.errorWithMarkup(Messages.REQUIRED_SDK_TOOLS_NOT_FOUND());
         }
 
