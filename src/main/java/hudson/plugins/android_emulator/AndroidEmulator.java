@@ -254,18 +254,24 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
         final int adbPort = portAllocator.allocateRandom(build, 0);
 
         // Determine whether we need to create the first snapshot
-        final boolean initSnapshot;
+        final SnapshotState snapshotState;
         if (shouldUseSnapshots() && androidSdk.supportsSnapshots()) {
-            // If there is no existing snapshot, we should initialise one
-            initSnapshot = !emuConfig.hasExistingSnapshot(launcher, androidSdk);
+            boolean hasSnapshot = emuConfig.hasExistingSnapshot(launcher, androidSdk);
+            if (hasSnapshot) {
+                // Boot from the existing "jenkins" snapshot
+                snapshotState = SnapshotState.BOOT;
+            } else {
+                // Create an initial "jenkins" snapshot
+                snapshotState = SnapshotState.INITIALISE;
+            }
         } else {
             // If snapshots are disabled or not supported, there's nothing to do
-            initSnapshot = false;
+            snapshotState = SnapshotState.NONE;
         }
 
         // Compile complete command for starting emulator
-        final String avdArgs = emuConfig.getCommandArguments();
-        String emulatorArgs = String.format("-ports %s,%s %s", userPort, adbPort, avdArgs);
+        final String emulatorArgs = emuConfig.getCommandArguments(snapshotState,
+                androidSdk.supportsSnapshots(), userPort, adbPort);
         ArgumentListBuilder emulatorCmd = Utils.getToolCommand(androidSdk, isUnix, Tool.EMULATOR, emulatorArgs);
 
         // Prepare to capture and log emulator standard output
@@ -273,7 +279,11 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
         ForkOutputStream emulatorLogger = new ForkOutputStream(logger, emulatorOutput);
 
         // Start emulator process
-        log(logger, Messages.STARTING_EMULATOR());
+        if (snapshotState == SnapshotState.BOOT) {
+            log(logger, Messages.STARTING_EMULATOR_FROM_SNAPSHOT());
+        } else {
+            log(logger, Messages.STARTING_EMULATOR());
+        }
         if (emulatorAlreadyExists && emuConfig.shouldWipeData()) {
             log(logger, Messages.ERASING_EXISTING_EMULATOR_DATA());
         }
@@ -322,7 +332,7 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
         // Monitor device for boot completion signal
         log(logger, Messages.WAITING_FOR_BOOT_COMPLETION());
         int bootTimeout = BOOT_COMPLETE_TIMEOUT_MS;
-        if (!emulatorAlreadyExists || emuConfig.shouldWipeData()) {
+        if (!emulatorAlreadyExists || emuConfig.shouldWipeData() || snapshotState == SnapshotState.INITIALISE) {
             bootTimeout *= 4;
         }
         boolean bootSucceeded = waitForBootCompletion(logger, launcher, androidSdk, emulatorProcess, adbPort, bootTimeout);
@@ -340,11 +350,11 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
 
         // Unlock emulator by pressing the Menu key once, if required.
         // Upon first boot (and when the data is wiped) the emulator is already unlocked
-        if (emulatorAlreadyExists && !wipeData) {
+        final long bootDuration = System.currentTimeMillis() - bootTime;
+        if (emulatorAlreadyExists && !wipeData && snapshotState != SnapshotState.BOOT) {
             // Even if the emulator has started, we generally need to wait longer before the lock
             // screen is up and ready to accept key presses.
             // The delay here is a function of boot time, i.e. relative to the slowness of the host
-            final long bootDuration = System.currentTimeMillis() - bootTime;
             Thread.sleep(bootDuration / 4);
 
             log(logger, Messages.UNLOCKING_SCREEN());
@@ -359,6 +369,37 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
                 final String backArgs = String.format(keyEventArgs, 4);
                 ArgumentListBuilder backCmd = Utils.getToolCommand(androidSdk, isUnix, Tool.ADB, backArgs);
                 procStarter.cmds(backCmd).start().join();
+            }
+        }
+
+        // Initialise snapshot image, if required
+        if (snapshotState == SnapshotState.INITIALISE) {
+            // In order to create a clean initial snapshot, give the system some more time to settle
+            log(logger, Messages.WAITING_INITIAL_SNAPSHOT());
+            Thread.sleep(bootDuration / 2);
+
+            // Pause execution of the emulator
+            boolean stopped = sendEmulatorCommand(launcher, logger, userPort, "avd stop");
+            if (stopped) {
+                // Attempt snapshot generation
+                log(logger, Messages.EMULATOR_PAUSED_SNAPSHOT());
+                boolean success = sendEmulatorCommand(launcher, logger, userPort,
+                        "avd snapshot save "+ Constants.SNAPSHOT_NAME);
+                if (success) {
+                    log(logger, Messages.SNAPSHOT_CREATED());
+                } else {
+                    log(logger, Messages.SNAPSHOT_CREATION_FAILED());
+                }
+
+                // Restart emulator execution
+                boolean restarted = sendEmulatorCommand(launcher, logger, userPort, "avd start");
+                if (!restarted) {
+                    log(logger, Messages.EMULATOR_RESUME_FAILED());
+                    cleanUp(logger, launcher, androidSdk, portAllocator, emulatorProcess,
+                            adbPort, userPort, logWriter, logcatFile, logcatStream, artifactsDir);
+                }
+            } else {
+                log(logger, Messages.SNAPSHOT_CREATION_FAILED());
             }
         }
 
@@ -459,6 +500,7 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
 
         // Stop emulator process
         log(logger, Messages.STOPPING_EMULATOR());
+        sendEmulatorCommand(launcher, logger, userPort, "avd stop");
         boolean killed = sendEmulatorCommand(launcher, logger, userPort, "kill");
 
         // Ensure the process is dead

@@ -28,6 +28,9 @@ interface Constants {
         "hw.touchScreen", "hw.trackBall", "vm.heapSize"
     };
 
+    /** Name of the snapshot image we will use. */
+    static final String SNAPSHOT_NAME = "jenkins";
+
     // From hudson.Util.VARIABLE
     static final String REGEX_VARIABLE = "\\$([A-Za-z0-9_]+|\\{[A-Za-z0-9_]+\\}|\\$)";
     static final String REGEX_AVD_NAME = "[a-zA-Z0-9._-]+";
@@ -37,7 +40,7 @@ interface Constants {
     static final String REGEX_SCREEN_RESOLUTION_ALIAS = "(([HQ]|F?WQ?)V|WX)GA";
     static final String REGEX_SCREEN_RESOLUTION_FULL = REGEX_SCREEN_RESOLUTION_ALIAS +"|"+ REGEX_SCREEN_RESOLUTION;
     static final String REGEX_SD_CARD_SIZE = "(?i)([0-9]{1,12}) ?([KM])[B]?";
-    static final String REGEX_SNAPSHOT = "[0-9]+ +jenkins +[0-9]+M ";
+    static final String REGEX_SNAPSHOT = "[0-9]+ +"+ SNAPSHOT_NAME +" +[0-9]+M ";
 
 }
 
@@ -80,6 +83,12 @@ enum Tool {
         return executables;
     }
 
+}
+
+enum SnapshotState {
+    NONE,
+    INITIALISE,
+    BOOT
 }
 
 class AndroidSdk implements Serializable {

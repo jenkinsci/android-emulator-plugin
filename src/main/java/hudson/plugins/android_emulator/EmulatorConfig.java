@@ -240,10 +240,13 @@ class EmulatorConfig implements Serializable {
      *
      * @return A string of command line arguments.
      */
-    public String getCommandArguments() {
-        StringBuilder sb = new StringBuilder("-no-boot-anim");
+    public String getCommandArguments(SnapshotState snapshotState, boolean sdkSupportsSnapshots,
+            int userPort, int adbPort) {
+        StringBuilder sb = new StringBuilder();
 
         // Set basics
+        sb.append("-no-boot-anim");
+        sb.append(String.format(" -ports %s,%s", userPort, adbPort));
         if (!isNamedEmulator()) {
             sb.append(" -prop persist.sys.language=");
             sb.append(getDeviceLanguage());
@@ -252,6 +255,19 @@ class EmulatorConfig implements Serializable {
         }
         sb.append(" -avd ");
         sb.append(getAvdName());
+
+        // Snapshots
+        if (snapshotState == SnapshotState.INITIALISE) {
+            // For the first boot, do not load from any snapshots that may exist
+            sb.append(" -no-snapshot-load");
+            sb.append(" -no-snapshot-save");
+        } else if (snapshotState == SnapshotState.BOOT) {
+            // For subsequent boots, start from the "jenkins" snapshot
+            sb.append(" -snapshot "+ Constants.SNAPSHOT_NAME);
+            sb.append(" -no-snapshot-save");
+        } else if (sdkSupportsSnapshots) {
+            sb.append(" -no-snapstorage");
+        }
 
         // Options
         if (shouldWipeData()) {
