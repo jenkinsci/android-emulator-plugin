@@ -1,0 +1,14 @@
+Enabling snapshots allows the emulator to start up much faster, becoming ready for use in a matter of seconds.
+<p>
+The first time an emulator is started with snapshots enabled, the plugin waits until the emulator has finished
+booting, unlocks the screen, and then saves the emulator state to disk.<br/>
+For subsequent builds, the emulator is started directly from this stored state. This means that Android has
+already finished booting, is sitting on the home screen, with the screen unlocked; i.e. ready for use.
+</p>
+At the end of a build, the emulator state is not persisted to the snapshot file &mdash; subsequent jobs will
+always start from the same, clean state that was stored at the start of the first snapshot-enabled build.
+<p>
+Should the emulator already have snapshots in place, these will be neither read nor overwritten &mdash;
+the plugin always writes its state to a separate snapshot file called "jenkins".
+</p>
+Note: Using snapshots will consume around 150&ndash;200MB of disk space on the build slave, for each emulator.
