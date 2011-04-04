@@ -1,6 +1,7 @@
+<p>
 If this option is selected, the emulator will have its user data reset at start-up, as if the emulator was newly-created.<br/>
 Any modifications made to the system partition will remain untouched, as well as any SD cards and their contents that may exist.<br/>
 This is equivalent to running the Android <code>emulator</code> command with the <code>-wipe-data</code> option.
-<p>
-Note: This option can add anywhere from 30 seconds to five minutes to the build startup time, depending on the build slave's CPU speed.
 </p>
+Note: This option can add anywhere from 30 seconds to five minutes to the build startup time, depending on the build slave's CPU speed.<br/>
+Note: This option will be ignored if "Use emulator snapshots" is enabled.

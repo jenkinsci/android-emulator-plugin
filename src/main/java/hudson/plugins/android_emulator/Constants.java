@@ -28,6 +28,9 @@ interface Constants {
         "hw.touchScreen", "hw.trackBall", "vm.heapSize"
     };
 
+    /** Name of the snapshot image we will use. */
+    static final String SNAPSHOT_NAME = "jenkins";
+
     // From hudson.Util.VARIABLE
     static final String REGEX_VARIABLE = "\\$([A-Za-z0-9_]+|\\{[A-Za-z0-9_]+\\}|\\$)";
     static final String REGEX_AVD_NAME = "[a-zA-Z0-9._-]+";
@@ -37,6 +40,7 @@ interface Constants {
     static final String REGEX_SCREEN_RESOLUTION_ALIAS = "(([HQ]|F?WQ?)V|WX)GA";
     static final String REGEX_SCREEN_RESOLUTION_FULL = REGEX_SCREEN_RESOLUTION_ALIAS +"|"+ REGEX_SCREEN_RESOLUTION;
     static final String REGEX_SD_CARD_SIZE = "(?i)([0-9]{1,12}) ?([KM])[B]?";
+    static final String REGEX_SNAPSHOT = "[0-9]+ +"+ SNAPSHOT_NAME +" +[0-9]+M ";
 
 }
 
@@ -81,12 +85,22 @@ enum Tool {
 
 }
 
+enum SnapshotState {
+    NONE,
+    INITIALISE,
+    BOOT
+}
+
 class AndroidSdk implements Serializable {
 
     private static final long serialVersionUID = 1L;
 
+    /** First version in which snapshots were supported. */
+    private static final int SDK_TOOLS_SNAPSHOTS = 9;
+
     private final String sdkHome;
     private boolean usesPlatformTools;
+    private int sdkToolsVersion;
 
     AndroidSdk(String home) {
         this.sdkHome = home;
@@ -106,6 +120,14 @@ class AndroidSdk implements Serializable {
 
     void setUsesPlatformTools(boolean usesPlatformTools) {
         this.usesPlatformTools = usesPlatformTools;
+    }
+
+    void setSdkToolsVersion(int version) {
+        this.sdkToolsVersion = version;
+    }
+
+    boolean supportsSnapshots() {
+        return sdkToolsVersion >= SDK_TOOLS_SNAPSHOTS;
     }
 
 }
