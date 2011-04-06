@@ -343,7 +343,8 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
         if (!emulatorAlreadyExists || emuConfig.shouldWipeData() || snapshotState == SnapshotState.INITIALISE) {
             bootTimeout *= 4;
         }
-        boolean bootSucceeded = waitForBootCompletion(logger, launcher, androidSdk, emulatorProcess, serial, bootTimeout);
+        boolean bootSucceeded = waitForBootCompletion(logger, launcher, androidSdk, emulatorProcess,
+                serial, adbConnectArgs, bootTimeout);
         if (!bootSucceeded) {
             if ((System.currentTimeMillis() - bootTime) < bootTimeout) {
                 log(logger, Messages.EMULATOR_STOPPED_DURING_BOOT());
@@ -612,19 +613,21 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
      * @return <code>true</code> if the emulator has booted, <code>false</code> if we timed-out.
      */
     private boolean waitForBootCompletion(final PrintStream logger, final Launcher launcher,
-            final AndroidSdk androidSdk, final Proc emulatorProcess, final String serial, final int timeout) {
+            final AndroidSdk androidSdk, final Proc emulatorProcess, final String serial,
+            final String adbConnectArgs, final int timeout) {
         long start = System.currentTimeMillis();
         int sleep = timeout / (int) Math.sqrt(timeout / 1000);
 
         final String args = String.format("-s %s shell getprop dev.bootcomplete", serial);
-        ArgumentListBuilder cmd = Utils.getToolCommand(androidSdk, launcher.isUnix(), Tool.ADB, args);
+        ArgumentListBuilder bootCheckCmd = Utils.getToolCommand(androidSdk, launcher.isUnix(), Tool.ADB, args);
+        ArgumentListBuilder connectCmd = Utils.getToolCommand(androidSdk, launcher.isUnix(), Tool.ADB, adbConnectArgs);
 
         try {
             while (System.currentTimeMillis() < start + timeout && emulatorProcess.isAlive()) {
                 ByteArrayOutputStream stream = new ByteArrayOutputStream(4);
 
                 // Run "getprop"
-                launcher.launch().cmds(cmd).stdout(stream).start().join();
+                launcher.launch().cmds(bootCheckCmd).stdout(stream).start().join();
 
                 // Check output
                 String result = stream.toString().trim();
@@ -634,6 +637,9 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
 
                 // Otherwise continue...
                 Thread.sleep(sleep);
+
+                // Ensure the emulator is connected to adb, in case it had crashed
+                launcher.launch().cmds(connectCmd).start().join();
             }
         } catch (InterruptedException ex) {
             log(logger, Messages.INTERRUPTED_DURING_BOOT_COMPLETION());
