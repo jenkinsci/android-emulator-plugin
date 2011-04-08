@@ -332,9 +332,10 @@ class EmulatorConfig implements Serializable {
 
             final File homeDir = getHomeDirectory(isUnix);
             final File avdDirectory = getAvdDirectory(homeDir);
+            final boolean emulatorExists = avdDirectory.exists();
 
             // Can't do anything if a named emulator doesn't exist
-            if (isNamedEmulator() && !avdDirectory.exists()) {
+            if (isNamedEmulator() && !emulatorExists) {
                 throw new EmulatorDiscoveryException(Messages.AVD_DOES_NOT_EXIST(avdName, avdDirectory));
             }
 
@@ -342,13 +343,13 @@ class EmulatorConfig implements Serializable {
             boolean createSdCard = false;
             boolean createSnapshot = false;
             File snapshotsFile = new File(getAvdDirectory(homeDir), "snapshots.img");
-            if (avdDirectory.exists()) {
+            if (emulatorExists) {
                 // AVD exists: check whether there's anything still to be set up
                 File sdCardFile = new File(getAvdDirectory(homeDir), "sdcard.img");
                 if (getSdCardSize() != null && !sdCardFile.exists()) {
                     createSdCard = true;
                 }
-                if (shouldUseSnapshots() && !snapshotsFile.exists()) {
+                if (shouldUseSnapshots() && androidSdk.supportsSnapshots() && !snapshotsFile.exists()) {
                     createSnapshot = true;
                 }
 
@@ -370,12 +371,10 @@ class EmulatorConfig implements Serializable {
             }
 
             // If we need to initialise snapshot support for an existing emulator, do so
-            if (shouldUseSnapshots()) {
-                if (createSnapshot) {
-                    // Copy the snapshots file into place
-                    File snapshotDir = new File(sdkRoot, "tools/lib/emulator");
-                    Util.copyFile(new File(snapshotDir, "snapshots.img"), snapshotsFile);
-                }
+            if (createSnapshot) {
+                // Copy the snapshots file into place
+                File snapshotDir = new File(sdkRoot, "tools/lib/emulator");
+                Util.copyFile(new File(snapshotDir, "snapshots.img"), snapshotsFile);
 
                 // Update the AVD config file mark snapshots as enabled
                 Map<String, String> configValues;
@@ -386,14 +385,9 @@ class EmulatorConfig implements Serializable {
                 } catch (IOException e) {
                     throw new EmulatorCreationException(Messages.AVD_CONFIG_NOT_READABLE(), e);
                 }
-
-                // If there's no SD to create after this, we can return
-                if (!createSdCard) {
-                    return true;
-                }
             }
 
-            // If we're only here to create an SD card, do so and return
+            // If we need create an SD card for an existing emulator, do so
             if (createSdCard) {
                 AndroidEmulator.log(logger, Messages.ADDING_SD_CARD(sdCardSize, getAvdName()));
                 if (!createSdCard(homeDir)) {
@@ -409,7 +403,10 @@ class EmulatorConfig implements Serializable {
                 } catch (IOException e) {
                     throw new EmulatorCreationException(Messages.AVD_CONFIG_NOT_READABLE(), e);
                 }
+            }
 
+            // Return if everything is now ready for use
+            if (emulatorExists) {
                 return true;
             }
 
