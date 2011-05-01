@@ -31,6 +31,7 @@ import java.io.OutputStream;
 import java.io.PrintStream;
 import java.io.PrintWriter;
 import java.io.Serializable;
+import java.io.StringWriter;
 import java.net.Socket;
 import java.util.ArrayList;
 import java.util.List;
@@ -74,7 +75,6 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
     private final HardwareProperty[] hardwareProperties;
 
     @DataBoundConstructor
-    @SuppressWarnings("hiding")
     public AndroidEmulator(String avdName, String osVersion, String screenDensity,
             String screenResolution, String deviceLocale, String sdCardSize, boolean wipeData,
             HardwareProperty[] hardwareProperties, boolean showWindow, boolean useSnapshots,
@@ -193,12 +193,25 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
             return null;
         }
 
-        // Confirm that tools are available on PATH
+        // Confirm that the required SDK tools are available
         AndroidSdk androidSdk = Utils.getAndroidSdk(launcher, androidHome);
         if (androidSdk == null) {
-            log(logger, Messages.SDK_TOOLS_NOT_FOUND());
-            build.setResult(Result.NOT_BUILT);
-            return null;
+            if (!descriptor.shouldInstallSdk) {
+                // Couldn't find an SDK, don't want to install it, give up
+                log(logger, Messages.SDK_TOOLS_NOT_FOUND());
+                build.setResult(Result.NOT_BUILT);
+                return null;
+            }
+
+            // Ok, let's download and install the SDK
+            log(logger, "No Android SDK found; let's install it automatically...");
+            try {
+                androidSdk = SdkInstaller.install(launcher, listener);
+            } catch (SdkInstallationException e) {
+                log(logger, "Android SDK installation failed", e);
+                build.setResult(Result.NOT_BUILT);
+                return null;
+            }
         }
 
         // Ok, everything looks good.. let's go
@@ -448,6 +461,14 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
     /** Helper method for writing to the build log in a consistent manner. */
     synchronized static void log(final PrintStream logger, final String message) {
         log(logger, message, false);
+    }
+
+    /** Helper method for writing to the build log in a consistent manner. */
+    synchronized static void log(final PrintStream logger, final String message, final Throwable t) {
+        log(logger, message, false);
+        StringWriter s = new StringWriter();
+        t.printStackTrace(new PrintWriter(s));
+        log(logger, s.toString(), false);
     }
 
     /** Helper method for writing to the build log in a consistent manner. */
@@ -714,6 +735,10 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
          * <p>If <code>null</code>, we will just assume the required commands are on the PATH.</p>
          */
         public String androidHome;
+
+        /** Whether the SDK should be automatically installed where it's not found. */
+        @Exported
+        public boolean shouldInstallSdk;
 
         public DescriptorImpl() {
             super(AndroidEmulator.class);

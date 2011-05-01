@@ -137,6 +137,12 @@ class AndroidSdk implements Serializable {
         return sdkToolsVersion >= SDK_TOOLS_SNAPSHOTS;
     }
 
+    @Override
+    public String toString() {
+        return String.format("AndroidSdk[root=%s, tools=%d, platform-tools=%b]",
+                sdkHome, sdkToolsVersion, usesPlatformTools);
+    }
+
 }
 
 class AndroidPlatform implements Serializable {
