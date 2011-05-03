@@ -393,6 +393,9 @@ public class Utils {
      */
     public static String expandVariables(EnvVars envVars, Map<String,String> buildVars,
             String token) {
+        if (buildVars == null) {
+            buildVars = new HashMap<String,String>(0);
+        }
 
         String result = Util.fixEmptyAndTrim(token);
         if (result != null) {

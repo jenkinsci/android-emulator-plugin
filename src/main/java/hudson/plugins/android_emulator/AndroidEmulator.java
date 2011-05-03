@@ -8,11 +8,13 @@ import hudson.Launcher;
 import hudson.Proc;
 import hudson.Util;
 import hudson.Launcher.ProcStarter;
+import hudson.matrix.Combination;
 import hudson.model.AbstractBuild;
 import hudson.model.AbstractProject;
 import hudson.model.BuildListener;
 import hudson.model.Computer;
 import hudson.model.Hudson;
+import hudson.model.Node;
 import hudson.model.Result;
 import hudson.model.TaskListener;
 import hudson.remoting.Callable;
@@ -24,6 +26,7 @@ import hudson.util.FormValidation;
 import hudson.util.NullStream;
 
 import java.io.BufferedReader;
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -40,7 +43,7 @@ import java.util.regex.Pattern;
 
 import net.sf.json.JSONObject;
 
-import org.apache.commons.io.output.ByteArrayOutputStream;
+import org.apache.commons.lang.StringUtils;
 import org.jvnet.hudson.plugins.port_allocator.PortAllocationManager;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.QueryParameter;
@@ -143,6 +146,48 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
 
     public HardwareProperty[] getHardwareProperties() {
         return hardwareProperties;
+    }
+
+    /**
+     * A hash representing the variables that are used to determine which emulator configuration
+     * should be started to fulfil the job configuration.
+     *
+     * @param node The Node on which the emulator would be run.
+     * @return A hash representing the emulator configuration for this instance.
+     */
+    public String getConfigHash(Node node) {
+        return getConfigHash(node, null);
+    }
+
+    /**
+     * A hash representing the variables that are used to determine which emulator configuration
+     * should be started to fulfil the job configuration.
+     *
+     * @param node The Node on which the emulator would be run.
+     * @param combination The matrix combination values used to expand emulator config variables.
+     * @return A hash representing the emulator configuration for this instance.
+     */
+    public String getConfigHash(Node node, Combination combination) {
+        EnvVars envVars;
+        try {
+            envVars = node.toComputer().getEnvironment();
+        } catch (Exception e) {
+            e.printStackTrace();
+            return null;
+        }
+
+        // Expand variables using the node's environment and the matrix properties, if any
+        String avdName = Utils.expandVariables(envVars, combination, this.avdName);
+        String osVersion = Utils.expandVariables(envVars, combination, this.osVersion);
+        String screenDensity = Utils.expandVariables(envVars, combination, this.screenDensity);
+        String screenResolution = Utils.expandVariables(envVars, combination, this.screenResolution);
+        String deviceLocale = Utils.expandVariables(envVars, combination, this.deviceLocale);
+
+        return getHash(avdName, osVersion, screenDensity, screenResolution, deviceLocale);
+    }
+
+    private String getHash(String... components) {
+        return StringUtils.join(components, '/');
     }
 
     @Override
