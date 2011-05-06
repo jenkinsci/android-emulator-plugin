@@ -6,6 +6,9 @@ import hudson.Util;
 import hudson.model.AbstractBuild;
 import hudson.model.BuildListener;
 import hudson.model.Descriptor;
+import hudson.plugins.android_emulator.builder.AbstractBuilder;
+import hudson.plugins.android_emulator.sdk.AndroidSdk;
+import hudson.plugins.android_emulator.util.Utils;
 import hudson.tasks.Builder;
 
 import java.io.IOException;

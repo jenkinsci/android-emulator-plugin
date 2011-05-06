@@ -1,10 +1,15 @@
-package hudson.plugins.android_emulator;
+package hudson.plugins.android_emulator.builder;
 
 import hudson.EnvVars;
 import hudson.FilePath;
 import hudson.Launcher;
 import hudson.model.AbstractBuild;
 import hudson.model.BuildListener;
+import hudson.plugins.android_emulator.AndroidEmulator;
+import hudson.plugins.android_emulator.Messages;
+import hudson.plugins.android_emulator.sdk.AndroidSdk;
+import hudson.plugins.android_emulator.sdk.Tool;
+import hudson.plugins.android_emulator.util.Utils;
 import hudson.tasks.Builder;
 
 import java.io.ByteArrayOutputStream;

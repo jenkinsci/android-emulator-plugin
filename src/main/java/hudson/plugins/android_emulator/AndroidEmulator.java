@@ -17,6 +17,10 @@ import hudson.model.Hudson;
 import hudson.model.Node;
 import hudson.model.Result;
 import hudson.model.TaskListener;
+import hudson.plugins.android_emulator.sdk.AndroidSdk;
+import hudson.plugins.android_emulator.sdk.Tool;
+import hudson.plugins.android_emulator.util.Utils;
+import hudson.plugins.android_emulator.util.ValidationResult;
 import hudson.remoting.Callable;
 import hudson.tasks.BuildWrapper;
 import hudson.tasks.BuildWrapperDescriptor;
@@ -491,12 +495,12 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
     }
 
     /** Helper method for writing to the build log in a consistent manner. */
-    synchronized static void log(final PrintStream logger, final String message) {
+    public synchronized static void log(final PrintStream logger, final String message) {
         log(logger, message, false);
     }
 
     /** Helper method for writing to the build log in a consistent manner. */
-    synchronized static void log(final PrintStream logger, String message, boolean indent) {
+    public synchronized static void log(final PrintStream logger, String message, boolean indent) {
         if (indent) {
             message = '\t' + message.replace("\n", "\n\t");
         } else {
