@@ -1,0 +1,16 @@
+Runs the Android <a href="http://developer.android.com/guide/developing/tools/monkey.html">Application
+Exerciser Monkey</a> tool on an Android emulator or device.
+<p>
+The results will be written to a file "<tt>monkey.txt</tt>" in the root of the workspace.<br>
+Selecting the &quot;Publish Android monkey tester results&quot; option below will examine this file
+at the end of the build and will publish a summary on the build page.
+</p>
+<p>
+If an Android emulator was started automatically via the "Run an Android emulator
+during build" option above, <tt>monkey</tt> will be run on that device.
+</p>
+<p>
+Otherwise, the tool will be run on an emulator or USB-attached Android device.<br/>
+If more than one emulator or device is present, this step will currently hang until
+only one emulator or device is available &mdash; this is the default Android SDK behaviour.
+</p>
