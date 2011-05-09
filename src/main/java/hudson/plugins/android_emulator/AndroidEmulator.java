@@ -260,8 +260,10 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
                 // Boot from the existing "jenkins" snapshot
                 snapshotState = SnapshotState.BOOT;
             } else {
-                // Create an initial "jenkins" snapshot
+                // Create an initial "jenkins" snapshot...
                 snapshotState = SnapshotState.INITIALISE;
+                // ..with a clean start
+                emuConfig.setShouldWipeData();
             }
         } else {
             // If snapshots are disabled or not supported, there's nothing to do
@@ -280,6 +282,8 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
         // Start emulator process
         if (snapshotState == SnapshotState.BOOT) {
             log(logger, Messages.STARTING_EMULATOR_FROM_SNAPSHOT());
+        } else if (snapshotState == SnapshotState.INITIALISE) {
+            log(logger, Messages.STARTING_EMULATOR_SNAPSHOT_INIT());
         } else {
             log(logger, Messages.STARTING_EMULATOR());
         }
@@ -393,9 +397,7 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
                 log(logger, Messages.EMULATOR_PAUSED_SNAPSHOT());
                 boolean success = sendEmulatorCommand(launcher, logger, userPort,
                         "avd snapshot save "+ Constants.SNAPSHOT_NAME);
-                if (success) {
-                    log(logger, Messages.SNAPSHOT_CREATED());
-                } else {
+                if (!success) {
                     log(logger, Messages.SNAPSHOT_CREATION_FAILED());
                 }
 

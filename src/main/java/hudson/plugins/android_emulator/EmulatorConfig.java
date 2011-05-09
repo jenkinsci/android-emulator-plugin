@@ -30,7 +30,7 @@ class EmulatorConfig implements Serializable {
     private ScreenResolution screenResolution;
     private String deviceLocale;
     private String sdCardSize;
-    private final boolean wipeData;
+    private boolean wipeData;
     private final boolean showWindow;
     private final boolean useSnapshots;
     private final String commandLineOptions;
@@ -142,6 +142,10 @@ class EmulatorConfig implements Serializable {
 
     public String getSdCardSize() {
         return sdCardSize;
+    }
+
+    public void setShouldWipeData() {
+        wipeData = true;
     }
 
     public boolean shouldWipeData() {
