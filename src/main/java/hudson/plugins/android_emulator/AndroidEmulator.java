@@ -384,7 +384,7 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
         if (snapshotState == SnapshotState.INITIALISE) {
             // In order to create a clean initial snapshot, give the system some more time to settle
             log(logger, Messages.WAITING_INITIAL_SNAPSHOT());
-            Thread.sleep(bootDuration / 2);
+            Thread.sleep((long) (bootDuration * 0.8));
 
             // Pause execution of the emulator
             boolean stopped = sendEmulatorCommand(launcher, logger, userPort, "avd stop");
