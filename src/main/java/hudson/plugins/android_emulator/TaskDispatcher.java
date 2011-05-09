@@ -9,6 +9,7 @@ import hudson.model.Queue.Executable;
 import hudson.model.Queue.Task;
 import hudson.model.queue.CauseOfBlockage;
 import hudson.model.queue.QueueTaskDispatcher;
+import hudson.model.queue.SubTask;
 
 /**
  * This QueueTaskDispatcher prevents any one Android emulator instance from being executed more than
@@ -60,7 +61,7 @@ public class TaskDispatcher extends QueueTaskDispatcher {
      * @return A hash representing the Android emulator configuration for the task, or {@code null}
      *         if the given task is not configured to start an Android emulator.
      */
-    private static String getEmulatorConfigHashForTask(Node node, Task task) {
+    private static String getEmulatorConfigHashForTask(Node node, SubTask task) {
         // If the job doesn't use any BuildWrappers, we don't care
         if (!(task instanceof BuildableItemWithBuildWrappers)) {
             return null;
