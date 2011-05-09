@@ -63,18 +63,19 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
 
     private DescriptorImpl descriptor;
 
-    private final String avdName;
-    private final String osVersion;
-    private final String screenDensity;
-    private final String screenResolution;
-    private final String deviceLocale;
-    private final String sdCardSize;
-    private final boolean wipeData;
-    private final boolean showWindow;
-    private final boolean useSnapshots;
-    private final String commandLineOptions;
-    private final int startupDelay;
-    private final HardwareProperty[] hardwareProperties;
+    // Config properties
+    @Exported public final String avdName;
+    @Exported public final String osVersion;
+    @Exported public final String screenDensity;
+    @Exported public final String screenResolution;
+    @Exported public final String deviceLocale;
+    @Exported public final String sdCardSize;
+    @Exported public final boolean wipeData;
+    @Exported public final boolean showWindow;
+    @Exported public final boolean useSnapshots;
+    @Exported public final String commandLineOptions;
+    @Exported public final int startupDelay;
+    @Exported public final HardwareProperty[] hardwareProperties;
 
     @DataBoundConstructor
     @SuppressWarnings("hiding")
@@ -100,54 +101,6 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
         return avdName != null;
     }
 
-    public String getOsVersion() {
-        return osVersion;
-    }
-
-    public String getAvdName() {
-        return avdName;
-    }
-
-    public String getScreenDensity() {
-        return screenDensity;
-    }
-
-    public String getScreenResolution() {
-        return screenResolution;
-    }
-
-    public String getDeviceLocale() {
-        return deviceLocale;
-    }
-
-    public String getSdCardSize() {
-        return sdCardSize;
-    }
-
-    public boolean shouldWipeData() {
-        return wipeData;
-    }
-
-    public boolean shouldShowWindow() {
-        return showWindow;
-    }
-
-    public boolean shouldUseSnapshots() {
-        return useSnapshots;
-    }
-
-    public String getCommandLineOptions() {
-        return commandLineOptions;
-    }
-
-    public int getStartupDelay() {
-        return startupDelay;
-    }
-
-    public HardwareProperty[] getHardwareProperties() {
-        return hardwareProperties;
-    }
-
     /**
      * A hash representing the variables that are used to determine which emulator configuration
      * should be started to fulfil the job configuration.
@@ -167,6 +120,7 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
      * @param combination The matrix combination values used to expand emulator config variables.
      * @return A hash representing the emulator configuration for this instance.
      */
+    @SuppressWarnings("hiding")
     public String getConfigHash(Node node, Combination combination) {
         EnvVars envVars;
         try {
@@ -287,7 +241,7 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
         }
 
         // Delay start up by the configured amount of time
-        final int delaySecs = getStartupDelay();
+        final int delaySecs = startupDelay;
         if (delaySecs > 0) {
             log(logger, Messages.DELAYING_START_UP(delaySecs));
             Thread.sleep(delaySecs * 1000);
@@ -300,7 +254,7 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
 
         // Determine whether we need to create the first snapshot
         final SnapshotState snapshotState;
-        if (shouldUseSnapshots() && androidSdk.supportsSnapshots()) {
+        if (useSnapshots && androidSdk.supportsSnapshots()) {
             boolean hasSnapshot = emuConfig.hasExistingSnapshot(launcher, androidSdk);
             if (hasSnapshot) {
                 // Boot from the existing "jenkins" snapshot
