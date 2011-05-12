@@ -48,9 +48,11 @@ public class TaskDispatcher extends QueueTaskDispatcher {
             }
 
             // If build with matching config is about to start (is "pending"), hold off for a moment
-            String queuedTaskHash = getEmulatorConfigHashForTask(node, queuedTask);
-            if (desiredHash.equals(queuedTaskHash) && queue.isPending(queuedTask)) {
-                return CauseOfBlockage.fromMessage(Messages._WAITING_FOR_EMULATOR());
+            if (queue.isPending(queuedTask)) {
+                String queuedTaskHash = getEmulatorConfigHashForTask(node, queuedTask);
+                if (desiredHash.equals(queuedTaskHash)) {
+                    return CauseOfBlockage.fromMessage(Messages._WAITING_FOR_EMULATOR());
+                }
             }
         }
 
