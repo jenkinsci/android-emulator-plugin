@@ -4,7 +4,10 @@ import hudson.Extension;
 import hudson.matrix.MatrixConfiguration;
 import hudson.model.BuildableItemWithBuildWrappers;
 import hudson.model.Executor;
+import hudson.model.Hudson;
 import hudson.model.Node;
+import hudson.model.Queue;
+import hudson.model.Queue.BuildableItem;
 import hudson.model.Queue.Executable;
 import hudson.model.Queue.Task;
 import hudson.model.queue.CauseOfBlockage;
@@ -34,6 +37,21 @@ public class TaskDispatcher extends QueueTaskDispatcher {
         String desiredHash = getEmulatorConfigHashForTask(node, task);
         if (desiredHash == null) {
             return null;
+        }
+
+        // Check for builds in the queue which have the same emulator config as this task
+        Queue queue = Hudson.getInstance().getQueue();
+        for (BuildableItem item : queue.getBuildableItems()) {
+            Task queuedTask = item.task;
+            if (task == queuedTask) {
+                continue;
+            }
+
+            // If build with matching config is about to start (is "pending"), hold off for a moment
+            String queuedTaskHash = getEmulatorConfigHashForTask(node, queuedTask);
+            if (desiredHash.equals(queuedTaskHash) && queue.isPending(queuedTask)) {
+                return CauseOfBlockage.fromMessage(Messages._WAITING_FOR_EMULATOR());
+            }
         }
 
         // Check whether a build with this emulator config is already running on this machine
