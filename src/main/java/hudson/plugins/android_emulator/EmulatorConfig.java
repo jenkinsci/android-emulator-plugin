@@ -93,6 +93,15 @@ class EmulatorConfig implements Serializable {
         return new EmulatorConfig(avdName, wipeData, showWindow, useSnapshots, commandLineOptions);
     }
 
+    public static final String getAvdName(String avdName, String osVersion, String screenDensity,
+            String screenResolution, String deviceLocale) {
+        try {
+            return create(avdName, osVersion, screenDensity, screenResolution, deviceLocale, null,
+                    false, false, false, null).getAvdName();
+        } catch (IllegalArgumentException e) {}
+        return null;
+    }
+
     public boolean isNamedEmulator() {
         return avdName != null && osVersion == null;
     }

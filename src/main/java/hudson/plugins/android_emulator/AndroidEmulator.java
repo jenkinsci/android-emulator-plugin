@@ -43,7 +43,6 @@ import java.util.regex.Pattern;
 
 import net.sf.json.JSONObject;
 
-import org.apache.commons.lang.StringUtils;
 import org.jvnet.hudson.plugins.port_allocator.PortAllocationManager;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.QueryParameter;
@@ -137,11 +136,7 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
         String screenResolution = Utils.expandVariables(envVars, combination, this.screenResolution);
         String deviceLocale = Utils.expandVariables(envVars, combination, this.deviceLocale);
 
-        return getHash(avdName, osVersion, screenDensity, screenResolution, deviceLocale);
-    }
-
-    private String getHash(String... components) {
-        return StringUtils.join(components, '/');
+        return EmulatorConfig.getAvdName(avdName, osVersion, screenDensity, screenResolution, deviceLocale);
     }
 
     @Override
