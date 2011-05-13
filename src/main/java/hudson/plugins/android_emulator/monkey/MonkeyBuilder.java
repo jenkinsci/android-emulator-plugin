@@ -2,6 +2,7 @@ package hudson.plugins.android_emulator.monkey;
 
 import hudson.Extension;
 import hudson.Launcher;
+import hudson.Util;
 import hudson.model.AbstractBuild;
 import hudson.model.BuildListener;
 import hudson.model.Descriptor;
@@ -26,8 +27,15 @@ import org.kohsuke.stapler.export.Exported;
 
 public class MonkeyBuilder extends AbstractBuilder {
 
+    /** File to write monkey results to if none specified. */
+    private static final String DEFAULT_OUTPUT_FILENAME = "monkey.txt";
+
+    /** Number of events to execute if nothing was specified. */
+    private static final int DEFAULT_EVENT_COUNT = 100;
+
     /** File to write monkey results to. */
-    private static final String OUTPUT_FILENAME = "monkey.txt";
+    @Exported
+    public final String filename;
 
     /** Package ID to restrict the monkey to. */
     @Exported
@@ -42,9 +50,10 @@ public class MonkeyBuilder extends AbstractBuilder {
     public final int throttleMs;
 
     @DataBoundConstructor
-    public MonkeyBuilder(String packageId, Integer eventCount, Integer throttleMs) {
+    public MonkeyBuilder(String filename, String packageId, Integer eventCount, Integer throttleMs) {
+        this.filename = Util.fixEmptyAndTrim(filename);
         this.packageId = packageId;
-        this.eventCount = eventCount == null ? 100 : Math.abs(eventCount);
+        this.eventCount = eventCount == null ? DEFAULT_EVENT_COUNT : Math.abs(eventCount);
         this.throttleMs = throttleMs == null ? 0 : Math.abs(throttleMs);
     }
 
@@ -65,8 +74,16 @@ public class MonkeyBuilder extends AbstractBuilder {
         String args = String.format("%s shell monkey -v -v -p %s --throttle %d %d",
                 deviceIdentifier, packageId, throttleMs, eventCount);
 
+        // Determine output filename
+        String outputFile;
+        if (filename == null) {
+            outputFile = DEFAULT_OUTPUT_FILENAME;
+        } else {
+            outputFile = Utils.expandVariables(build, listener, filename);
+        }
+
         // Start monkeying around
-        OutputStream monkeyOutput = build.getWorkspace().child(OUTPUT_FILENAME).write();
+        OutputStream monkeyOutput = build.getWorkspace().child(outputFile).write();
         try {
             AndroidEmulator.log(logger, Messages.STARTING_MONKEY(packageId));
             Utils.runAndroidTool(launcher, monkeyOutput, logger, androidSdk, Tool.ADB, args, null);

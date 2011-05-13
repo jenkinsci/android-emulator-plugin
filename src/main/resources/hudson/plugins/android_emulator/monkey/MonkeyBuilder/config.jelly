@@ -15,4 +15,11 @@
         <f:description>${%In milliseconds. If 0 or unspecified, events are generated as rapidly as possible}</f:description>
     </f:entry>
 
+    <f:advanced>
+        <f:entry title="${%Output filename}">
+            <f:textbox name="android-emulator.filename" value="${instance.filename}" />
+            <f:description>${%Name of a file within the workspace to write monkey output to}</f:description>
+        </f:entry>
+    </f:advanced>
+
 </j:jelly>
