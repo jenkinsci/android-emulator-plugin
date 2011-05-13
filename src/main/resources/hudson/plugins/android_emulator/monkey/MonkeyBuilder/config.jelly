@@ -1,0 +1,25 @@
+<j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define" xmlns:l="/lib/layout" xmlns:t="/lib/hudson" xmlns:f="/lib/form">
+
+    <f:entry title="${%Package ID}">
+        <f:textbox name="android-emulator.packageId" value="${instance.packageId}" />
+        <f:description>${%ID of the Android package to monkey around with}</f:description>
+    </f:entry>
+
+    <f:entry title="${%Event count}">
+        <f:textbox name="android-emulator.eventCount" value="${instance.eventCount}" />
+        <f:description>${%Number of events the monkey should perform}</f:description>
+    </f:entry>
+
+    <f:entry title="${%Delay between events}">
+        <f:textbox name="android-emulator.throttleMs" value="${instance.throttleMs}" />
+        <f:description>${%In milliseconds. If 0 or unspecified, events are generated as rapidly as possible}</f:description>
+    </f:entry>
+
+    <f:advanced>
+        <f:entry title="${%Output filename}">
+            <f:textbox name="android-emulator.filename" value="${instance.filename}" />
+            <f:description>${%Name of a file within the workspace to write monkey output to}</f:description>
+        </f:entry>
+    </f:advanced>
+
+</j:jelly>

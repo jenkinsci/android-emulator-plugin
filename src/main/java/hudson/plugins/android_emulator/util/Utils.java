@@ -1,4 +1,4 @@
-package hudson.plugins.android_emulator;
+package hudson.plugins.android_emulator.util;
 
 import hudson.EnvVars;
 import hudson.FilePath;
@@ -9,6 +9,11 @@ import hudson.model.AbstractBuild;
 import hudson.model.BuildListener;
 import hudson.model.Computer;
 import hudson.model.Hudson;
+import hudson.plugins.android_emulator.Constants;
+import hudson.plugins.android_emulator.Messages;
+import hudson.plugins.android_emulator.AndroidEmulator.DescriptorImpl;
+import hudson.plugins.android_emulator.sdk.AndroidSdk;
+import hudson.plugins.android_emulator.sdk.Tool;
 import hudson.remoting.Callable;
 import hudson.util.ArgumentListBuilder;
 
@@ -28,7 +33,7 @@ public class Utils {
      * @return The configured Android SDK root, if any. May include un-expanded variables.
      */
     public static String getConfiguredAndroidHome() {
-        return Hudson.getInstance().getDescriptorByType(AndroidEmulator.DescriptorImpl.class).androidHome;
+        return Hudson.getInstance().getDescriptorByType(DescriptorImpl.class).androidHome;
     }
 
     /**
@@ -285,7 +290,7 @@ public class Utils {
         // Determine the path to the desired tool
         String androidToolsDir;
         if (androidSdk.hasKnownRoot()) {
-            if (tool.isPlatformTool && androidSdk.usesPlatformTools()) {
+            if (tool.isPlatformTool() && androidSdk.usesPlatformTools()) {
                 androidToolsDir = androidSdk.getSdkRoot() +"/platform-tools/";
             } else {
                 androidToolsDir = androidSdk.getSdkRoot() +"/tools/";

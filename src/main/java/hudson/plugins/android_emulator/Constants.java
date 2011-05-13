@@ -4,7 +4,7 @@ import hudson.Util;
 
 import java.io.Serializable;
 
-interface Constants {
+public interface Constants {
 
     /** The locale to which Android emulators default if not otherwise specified. */
     static final String DEFAULT_LOCALE = "en_US";
@@ -44,99 +44,10 @@ interface Constants {
 
 }
 
-enum Tool {
-    AAPT("aapt", ".exe", true),
-    ADB("adb", ".exe", true),
-    ANDROID("android", ".bat"),
-    EMULATOR("emulator", ".exe"),
-    MKSDCARD("mksdcard", ".exe");
-
-    final String executable;
-    final String windowsExtension;
-    final boolean isPlatformTool;
-
-    Tool(String executable, String windowsExtension) {
-        this(executable, windowsExtension, false);
-    }
-
-    Tool(String executable, String windowsExtension, boolean isPlatformTool) {
-        this.executable = executable;
-        this.windowsExtension = windowsExtension;
-        this.isPlatformTool = isPlatformTool;
-    }
-
-    String getExecutable(boolean isUnix) {
-        if (isUnix) {
-            return executable;
-        }
-        return executable + windowsExtension;
-    }
-
-    static String[] getAllExecutableVariants() {
-        final Tool[] tools = values();
-        String[] executables = new String[tools.length * 2];
-        for (int i = 0, n = tools.length; i < n; i++) {
-            executables[i*2] = tools[i].getExecutable(true);
-            executables[i*2+1] = tools[i].getExecutable(false);
-        }
-
-        return executables;
-    }
-
-}
-
 enum SnapshotState {
     NONE,
     INITIALISE,
     BOOT
-}
-
-class AndroidSdk implements Serializable {
-
-    private static final long serialVersionUID = 1L;
-
-    /** First version in which "adb connect" supported emulators. */
-    private static final int SDK_TOOLS_EMU_CONNECT = 7;
-
-    /** First version in which snapshots were supported. */
-    private static final int SDK_TOOLS_SNAPSHOTS = 9;
-
-    private final String sdkHome;
-    private boolean usesPlatformTools;
-    private int sdkToolsVersion;
-
-    AndroidSdk(String home) {
-        this.sdkHome = home;
-    }
-
-    boolean hasKnownRoot() {
-        return this.sdkHome != null;
-    }
-
-    String getSdkRoot() {
-        return this.sdkHome;
-    }
-
-    boolean usesPlatformTools() {
-        return this.usesPlatformTools;
-    }
-
-    void setUsesPlatformTools(boolean usesPlatformTools) {
-        this.usesPlatformTools = usesPlatformTools;
-    }
-
-    void setSdkToolsVersion(int version) {
-        this.sdkToolsVersion = version;
-    }
-
-    boolean supportsEmuConnect() {
-        return sdkToolsVersion >= SDK_TOOLS_EMU_CONNECT;
-    }
-
-    boolean supportsSnapshots() {
-        return sdkToolsVersion >= SDK_TOOLS_SNAPSHOTS;
-    }
-
 }
 
 class AndroidPlatform implements Serializable {
