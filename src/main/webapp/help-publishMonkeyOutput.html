@@ -2,10 +2,10 @@ Selecting this option will examine the output of the Android
 <a href="http://developer.android.com/guide/developing/tools/monkey.html">Application Exerciser
 Monkey</a> tool and publish a summary to the build page.<br/>
 If it is determined that <tt>monkey</tt> crashed the application or a not-responding situation
-occurred, the build will be marked as unstable.
+occurred, the build will be marked as unstable, unless another "Set build result" option is chosen.
 <p>
-Currently, this expects a file called "<tt>monkey.txt</tt>" to exist in the root of the build workspace.
-<p>
-To run <tt>monkey</tt> automatically on an Android emulator or device and write the results to
-<tt>monkey.txt</tt>, select &quot;Add build step&quot; above and choose
-&quot;Run Android monkey tester&quot;.</p>
+Unless a filename is entered below, the output will be read from a file called "<tt>monkey.txt</tt>"
+in the root of the build workspace.
+</p>
+To run <tt>monkey</tt> automatically on an Android emulator or device and write the results to a
+file, select &quot;Add build step&quot; above and choose &quot;Run Android monkey tester&quot;.

@@ -1,33 +1,46 @@
 package hudson.plugins.android_emulator.monkey;
 
+import static hudson.plugins.android_emulator.AndroidEmulator.log;
 import hudson.Extension;
 import hudson.FilePath;
 import hudson.Launcher;
+import hudson.Util;
 import hudson.model.AbstractBuild;
 import hudson.model.AbstractProject;
 import hudson.model.BuildListener;
 import hudson.model.Result;
-import hudson.plugins.android_emulator.AndroidEmulator;
 import hudson.plugins.android_emulator.Messages;
+import hudson.plugins.android_emulator.util.Utils;
 import hudson.tasks.BuildStepDescriptor;
 import hudson.tasks.BuildStepMonitor;
 import hudson.tasks.Publisher;
 import hudson.tasks.Recorder;
 
 import java.io.IOException;
+import java.io.PrintStream;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.kohsuke.stapler.DataBoundConstructor;
+import org.kohsuke.stapler.export.Exported;
 
 public class MonkeyRecorder extends Recorder {
 
     /** Default file to read monkey results from. */
-    private static final String INPUT_FILENAME = "monkey.txt";
+    private static final String DEFAULT_INPUT_FILENAME = "monkey.txt";
+
+    /** File to write monkey results to. */
+    @Exported
+    public final String filename;
+
+    /** Build outcome in case we detect monkey ended prematurely. */
+    @Exported
+    public final BuildOutcome failureOutcome;
 
     @DataBoundConstructor
-    public MonkeyRecorder() {
-        // Nothing to configure, yet
+    public MonkeyRecorder(String filename, BuildOutcome failureOutcome) {
+        this.filename = Util.fixEmptyAndTrim(filename);
+        this.failureOutcome = failureOutcome;
     }
 
     @Override
@@ -38,23 +51,33 @@ public class MonkeyRecorder extends Recorder {
             return true;
         }
 
+        // Determine input filename
+        String inputFile;
+        if (filename == null) {
+            inputFile = DEFAULT_INPUT_FILENAME;
+        } else {
+            inputFile = Utils.expandVariables(build, listener, filename);
+        }
+
         // Read monkey results from file
-        FilePath monkeyFile = build.getWorkspace().child(INPUT_FILENAME);
+        FilePath monkeyFile = build.getWorkspace().child(inputFile);
         String monkeyOutput = null;
         try {
             monkeyOutput = monkeyFile.readToString();
         } catch (IOException e) {
-            AndroidEmulator.log(listener.getLogger(), Messages.NO_MONKEY_OUTPUT(monkeyFile));
+            log(listener.getLogger(), Messages.NO_MONKEY_OUTPUT(monkeyFile));
         }
 
         // Parse output and apply it to the build
-        MonkeyAction result = parseMonkeyOutput(build, monkeyOutput);
+        PrintStream logger = listener.getLogger();
+        MonkeyAction result = parseMonkeyOutput(build, logger, monkeyOutput);
         build.addAction(result);
 
         return true;
     }
 
-    private MonkeyAction parseMonkeyOutput(AbstractBuild<?, ?> build, String monkeyOutput) {
+    private MonkeyAction parseMonkeyOutput(AbstractBuild<?, ?> build, PrintStream logger,
+            String monkeyOutput) {
         // No input, no output
         if (monkeyOutput == null) {
             return new MonkeyAction(MonkeyResult.NothingToParse);
@@ -93,8 +116,13 @@ public class MonkeyRecorder extends Recorder {
                 }
             }
 
-            // TODO: Make this configurable
-            build.setResult(Result.UNSTABLE);
+            // Set configured build result
+            if (failureOutcome == BuildOutcome.IGNORE) {
+                log(logger, Messages.MONKEY_IGNORING_RESULT());
+            } else {
+                log(logger, Messages.MONKEY_SETTING_RESULT(failureOutcome.name()));
+                build.setResult(Result.fromString(failureOutcome.name()));
+            }
         }
 
         return new MonkeyAction(result, eventsCompleted, totalEventCount);
