@@ -64,9 +64,10 @@ class AndroidPlatform implements Serializable {
     static final AndroidPlatform SDK_2_3 = new AndroidPlatform("2.3", 9);
     static final AndroidPlatform SDK_2_3_3 = new AndroidPlatform("2.3.3", 10);
     static final AndroidPlatform SDK_3_0 = new AndroidPlatform("3.0", 11);
+    static final AndroidPlatform SDK_3_1 = new AndroidPlatform("3.1", 12);
     static final AndroidPlatform[] PRESETS = new AndroidPlatform[] { SDK_1_5, SDK_1_6, SDK_2_1,
                                                                      SDK_2_2, SDK_2_3, SDK_2_3_3,
-                                                                     SDK_3_0 };
+                                                                     SDK_3_0, SDK_3_1 };
 
     private final String name;
     private final int level;
