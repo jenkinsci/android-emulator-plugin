@@ -420,6 +420,7 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
         return new Environment() {
             @Override
             public void buildEnvVars(Map<String, String> env) {
+                env.put("ANDROID_SERIAL", serial);
                 env.put("ANDROID_AVD_DEVICE", serial);
                 env.put("ANDROID_AVD_ADB_PORT", Integer.toString(adbPort));
                 env.put("ANDROID_AVD_USER_PORT", Integer.toString(userPort));
