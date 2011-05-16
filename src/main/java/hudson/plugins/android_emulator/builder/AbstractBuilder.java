@@ -123,7 +123,7 @@ public abstract class AbstractBuilder extends Builder {
                 throws IOException, InterruptedException {
         // Run aapt command on given APK
         ByteArrayOutputStream aaptOutput = new ByteArrayOutputStream();
-        String args = String.format("dump badging %s", apkPath.getName());
+        String args = String.format("dump badging \"%s\"", apkPath.getName());
         Utils.runAndroidTool(launcher, aaptOutput, logger, androidSdk, Tool.AAPT, args, apkPath.getParent());
 
         // Determine package ID from aapt output

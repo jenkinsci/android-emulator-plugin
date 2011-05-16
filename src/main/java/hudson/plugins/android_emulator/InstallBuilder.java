@@ -85,7 +85,7 @@ public class InstallBuilder extends AbstractBuilder {
 
         // Execute installation
         AndroidEmulator.log(logger, Messages.INSTALLING_APK(apkPath.getName()));
-        String args = String.format("%s install -r %s", deviceIdentifier, apkPath.getName());
+        String args = String.format("%s install -r \"%s\"", deviceIdentifier, apkPath.getName());
         Utils.runAndroidTool(launcher, logger, logger, androidSdk, Tool.ADB, args, apkPath.getParent());
 
         // TODO: Evaluate success/failure and fail the build (if the user said we should do so)
