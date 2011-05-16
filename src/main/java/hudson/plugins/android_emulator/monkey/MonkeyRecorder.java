@@ -40,7 +40,7 @@ public class MonkeyRecorder extends Recorder {
     @DataBoundConstructor
     public MonkeyRecorder(String filename, BuildOutcome failureOutcome) {
         this.filename = Util.fixEmptyAndTrim(filename);
-        this.failureOutcome = failureOutcome;
+        this.failureOutcome = failureOutcome == null ? BuildOutcome.UNSTABLE : failureOutcome;
     }
 
     @Override
