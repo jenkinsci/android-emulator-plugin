@@ -77,17 +77,17 @@
       <f:section title="${%Common emulator options}">
         <f:entry help="/plugin/android-emulator/help-wipeData.html">
           <f:checkbox id="android-emulator.wipeData" name="android-emulator.wipeData"
-              checked="${instance.shouldWipeData()}" />
+              checked="${instance.wipeData}" />
           <label class="attach-previous">${%Reset emulator state at start-up}</label>
         </f:entry>
         <f:entry help="/plugin/android-emulator/help-showWindow.html">
           <f:checkbox id="android-emulator.showWindow" name="android-emulator.showWindow"
-              checked="${h.defaultToTrue(instance.shouldShowWindow())}" />
+              checked="${h.defaultToTrue(instance.showWindow)}" />
           <label class="attach-previous">${%Show emulator window}</label>
         </f:entry>
         <f:entry help="/plugin/android-emulator/help-useSnapshots.html">
           <f:checkbox id="android-emulator.useSnapshots" name="android-emulator.useSnapshots"
-              checked="${h.defaultToTrue(instance.shouldUseSnapshots())}" />
+              checked="${h.defaultToTrue(instance.useSnapshots)}" />
           <label class="attach-previous">${%Use emulator snapshots}</label>
         </f:entry>
       </f:section>
