@@ -130,7 +130,9 @@ class ScreenDensity implements Serializable {
     static final ScreenDensity MEDIUM = new ScreenDensity(160, "mdpi");
     static final ScreenDensity HIGH = new ScreenDensity(240, "hdpi");
     static final ScreenDensity EXTRA_HIGH = new ScreenDensity(320, "xhdpi");
-    static final ScreenDensity[] PRESETS = new ScreenDensity[] { LOW, MEDIUM, HIGH, EXTRA_HIGH };
+    static final ScreenDensity TV_720P = new ScreenDensity(213, "tvdpi");
+    static final ScreenDensity[] PRESETS = new ScreenDensity[] { LOW, MEDIUM, HIGH, EXTRA_HIGH,
+                                                                 TV_720P };
 
     private final int dpi;
     private final String alias;
