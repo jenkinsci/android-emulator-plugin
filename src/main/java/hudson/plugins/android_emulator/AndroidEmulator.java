@@ -389,6 +389,15 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
             log(logger, Messages.WAITING_INITIAL_SNAPSHOT());
             Thread.sleep((long) (bootDuration * 0.8));
 
+            // Clear main log before creating snapshot
+            final String clearArgs = String.format("-s %s logcat -c", serial);
+            ArgumentListBuilder adbCmd = Utils.getToolCommand(androidSdk, isUnix, Tool.ADB, clearArgs);
+            procStarter.cmds(adbCmd).start().join();
+            final String msg = "Creating snapshot...";
+            final String logArgs = String.format("-s %s shell log -p v -t Jenkins '%s'", serial, msg);
+            adbCmd = Utils.getToolCommand(androidSdk, isUnix, Tool.ADB, logArgs);
+            procStarter.cmds(adbCmd).start().join();
+
             // Pause execution of the emulator
             boolean stopped = sendEmulatorCommand(launcher, logger, userPort, "avd stop");
             if (stopped) {
