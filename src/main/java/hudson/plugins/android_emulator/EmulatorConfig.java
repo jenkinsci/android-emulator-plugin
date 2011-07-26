@@ -273,16 +273,14 @@ class EmulatorConfig implements Serializable {
         sb.append(getAvdName());
 
         // Snapshots
-        if (snapshotState == SnapshotState.INITIALISE) {
-            // For the first boot, do not load from any snapshots that may exist
-            sb.append(" -no-snapshot-load");
-            sb.append(" -no-snapshot-save");
-        } else if (snapshotState == SnapshotState.BOOT) {
-            // For subsequent boots, start from the "jenkins" snapshot
+        if (snapshotState == SnapshotState.BOOT) {
+            // For builds after initial snapshot setup, start directly from the "jenkins" snapshot
             sb.append(" -snapshot "+ Constants.SNAPSHOT_NAME);
             sb.append(" -no-snapshot-save");
         } else if (sdkSupportsSnapshots) {
-            sb.append(" -no-snapstorage");
+            // For the first boot, or snapshot-free builds, do not load any snapshots that may exist
+            sb.append(" -no-snapshot-load");
+            sb.append(" -no-snapshot-save");
         }
 
         // Options
