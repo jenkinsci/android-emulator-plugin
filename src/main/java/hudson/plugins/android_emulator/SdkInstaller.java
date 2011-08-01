@@ -3,25 +3,28 @@ package hudson.plugins.android_emulator;
 import static hudson.plugins.android_emulator.AndroidEmulator.log;
 import hudson.FilePath;
 import hudson.Launcher;
+import hudson.FilePath.FileCallable;
 import hudson.model.BuildListener;
 import hudson.model.Computer;
 import hudson.model.Node;
 import hudson.plugins.android_emulator.SdkInstaller.AndroidInstaller.SdkUnavailableException;
 import hudson.plugins.android_emulator.ValidationResult.Type;
 import hudson.remoting.Callable;
+import hudson.remoting.VirtualChannel;
 
 import java.io.File;
 import java.io.FileFilter;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.io.Serializable;
+import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.Locale;
 
 class SdkInstaller {
 
     /** Recent version of the Android SDK that will be installed. */
-    private static final int SDK_VERSION = 11;
+    private static final int SDK_VERSION = 12;
 
     /** Filename to write some metadata to about our automated installation. */
     private static final String SDK_INFO_FILENAME = ".jenkins-install-info";
@@ -34,6 +37,13 @@ class SdkInstaller {
         // Install the SDK if required
         String androidHome;
         try {
+            // TODO: Support Windows. However, running "android update sdk -u -t <whatever>" seems
+            //       to hang after a successful install (also confirmed manually from cmd.exe)...
+            //       Bug filed here: http://b.android.com/18868
+            AndroidInstaller installer = AndroidInstaller.fromNode(node);
+            if (installer == AndroidInstaller.WINDOWS) {
+                throw new SdkInstallationException("Installation isn't currently supported on Windows");
+            }
             androidHome = installBasicSdk(listener, node, launcher.isUnix()).getRemote();
         } catch (IOException e) {
             throw new SdkInstallationException("Failed to download Android SDK", e);
@@ -65,20 +75,26 @@ class SdkInstaller {
      * @return Path where the SDK is installed, regardless of whether it was installed right now.
      * @throws SdkUnavailableException If the Android SDK is not available on this platform.
      */
-    private static FilePath installBasicSdk(BuildListener listener, Node node, boolean isUnix)
+    private static FilePath installBasicSdk(final BuildListener listener, Node node, boolean isUnix)
             throws SdkUnavailableException, IOException, InterruptedException {
         // Locate where the SDK should be installed to on this node
-        FilePath installDir = getSdkInstallDirectory(node);
+        final FilePath installDir = getSdkInstallDirectory(node);
+        System.out.println(">>> SDK install dir: "+ installDir);
 
         // Get the OS-specific download URL for the SDK
         AndroidInstaller installer = AndroidInstaller.fromNode(node);
-        String downloadUrl = installer.getUrl(SDK_VERSION);
-//        downloadUrl = "file:///tmp/android-sdk_r10-mac_x86.zip"; // TODO: Testing
+        final URL downloadUrl = installer.getUrl(SDK_VERSION);
 
         // Download the SDK, if required
-        URL url = new URL(downloadUrl);
-        String message = "Downloading and installing Android SDK from "+ downloadUrl;
-        boolean wasNowInstalled = installDir.installIfNecessaryFrom(url, listener, message);
+        boolean wasNowInstalled = installDir.act(new FileCallable<Boolean>() {
+            public Boolean invoke(File f, VirtualChannel channel)
+                    throws InterruptedException, IOException {
+                String msg = "Downloading and installing Android SDK from "+ downloadUrl;
+                return installDir.installIfNecessaryFrom(downloadUrl, listener, msg);
+            }
+            private static final long serialVersionUID = 1L;
+        });
+
         if (wasNowInstalled) {
             // If the SDK was required, pull files up from the intermediate directory
             installDir.listDirectories().get(0).moveAllChildrenTo(installDir);
@@ -216,8 +232,11 @@ class SdkInstaller {
             this.extension = extension;
         }
 
-        String getUrl(int version) {
-            return String.format(PATTERN, version, platform, extension);
+        URL getUrl(int version) {
+            try {
+                return new URL(String.format(PATTERN, version, platform, extension));
+            } catch (MalformedURLException e) {}
+            return null;
         }
 
         static AndroidInstaller fromNode(Node node) throws SdkUnavailableException,
