@@ -20,6 +20,10 @@
             <f:textbox name="android-emulator.filename" value="${instance.filename}" />
             <f:description>${%Name of a file within the workspace to write monkey output to}</f:description>
         </f:entry>
-    </f:advanced>
 
+        <f:entry title="${Seed}">
+            <f:textbox name="android-emulator.seed" value="${instance.seed}" />
+            <f:description>${%Seed value for pseudo-random number generator. Number, 'random' or 'timestamp'}</f:description>
+        </f:entry>
+    </f:advanced>
 </j:jelly>
