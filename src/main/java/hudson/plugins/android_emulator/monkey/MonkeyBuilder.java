@@ -18,6 +18,7 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.io.PrintStream;
 import java.io.Serializable;
+import java.util.Random;
 
 import net.sf.json.JSONObject;
 
@@ -49,12 +50,17 @@ public class MonkeyBuilder extends AbstractBuilder {
     @Exported
     public final int throttleMs;
 
+    /** Seed value for the random number generator. Number, "random", or "timestamp" */
+    @Exported
+    public final String seed;
+
     @DataBoundConstructor
-    public MonkeyBuilder(String filename, String packageId, Integer eventCount, Integer throttleMs) {
+    public MonkeyBuilder(String filename, String packageId, Integer eventCount, Integer throttleMs, String seed) {
         this.filename = Util.fixEmptyAndTrim(filename);
         this.packageId = packageId;
         this.eventCount = eventCount == null ? DEFAULT_EVENT_COUNT : Math.abs(eventCount);
         this.throttleMs = throttleMs == null ? 0 : Math.abs(throttleMs);
+        this.seed = seed;
     }
 
     @Override
@@ -71,8 +77,9 @@ public class MonkeyBuilder extends AbstractBuilder {
 
         // Set up arguments to adb
         final String deviceIdentifier = getDeviceIdentifier(build, listener);
-        String args = String.format("%s shell monkey -v -v -p %s --throttle %d %d",
-                deviceIdentifier, packageId, throttleMs, eventCount);
+
+        String args = String.format("%s shell monkey -v -v -p %s -s %d --throttle %d %d",
+                deviceIdentifier, packageId, parseSeed(seed), throttleMs, eventCount);
 
         // Determine output filename
         String outputFile;
@@ -94,6 +101,24 @@ public class MonkeyBuilder extends AbstractBuilder {
         }
 
         return true;
+    }
+
+    private static long parseSeed(String seed) {
+        long seedValue;
+        if ("random".equals(seed)) {
+            seedValue = new Random().nextLong();
+        } else if ("timestamp".equals(seed)) {
+            seedValue = System.currentTimeMillis();
+        } else if (seed != null) {
+            try {
+                seedValue = Long.parseLong(seed);
+            } catch (NumberFormatException e) {
+                seedValue = 0;
+            }
+        } else {
+            seedValue = 0;
+        }
+        return seedValue;
     }
 
     @Extension
