@@ -77,9 +77,10 @@ public class MonkeyBuilder extends AbstractBuilder {
 
         // Set up arguments to adb
         final String deviceIdentifier = getDeviceIdentifier(build, listener);
+        final String expandedPackageId = Utils.expandVariables(build, listener, this.packageId);
         final long seedValue = parseSeed(seed);
         String args = String.format("%s shell monkey -v -v -p %s -s %d --throttle %d %d",
-                deviceIdentifier, packageId, seedValue, throttleMs, eventCount);
+                deviceIdentifier, expandedPackageId, seedValue, throttleMs, eventCount);
 
         // Determine output filename
         String outputFile;
@@ -92,7 +93,7 @@ public class MonkeyBuilder extends AbstractBuilder {
         // Start monkeying around
         OutputStream monkeyOutput = build.getWorkspace().child(outputFile).write();
         try {
-            AndroidEmulator.log(logger, Messages.STARTING_MONKEY(packageId, eventCount, seedValue));
+            AndroidEmulator.log(logger, Messages.STARTING_MONKEY(expandedPackageId, eventCount, seedValue));
             Utils.runAndroidTool(launcher, monkeyOutput, logger, androidSdk, Tool.ADB, args, null);
         } finally {
             if (monkeyOutput != null) {
