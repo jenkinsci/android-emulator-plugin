@@ -692,6 +692,14 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
                     out.write("quit");
                     out.write("\r\n");
                     out.flush();
+                    // Wait for the telnet interface to execute commands.
+                    try {
+                        while (in.readLine() != null) {
+                            // Do nothing
+                        }
+                    } catch (Exception e) {
+                        // Ignore
+                    }
                 } finally {
                     try {
                         out.close();
