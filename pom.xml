@@ -9,7 +9,7 @@
 
   <artifactId>android-emulator</artifactId>
   <packaging>hpi</packaging>
-  <version>1.17-SNAPSHOT</version>
+  <version>1.17</version>
   <name>Android Emulator Plugin</name>
   <url>http://wiki.jenkins-ci.org/display/JENKINS/Android+Emulator+Plugin</url>
   <developers>
