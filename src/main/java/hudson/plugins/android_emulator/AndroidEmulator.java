@@ -691,10 +691,18 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
                 } finally {
                     try {
                         out.close();
+                    } catch (Exception e) {
+                        // Ignore
+                    }
+                    try {
                         in.close();
+                    } catch (Exception e) {
+                        // Ignore
+                    }
+                    try {
                         socket.close();
                     } catch (Exception e) {
-                        // Buh
+                        // Ignore
                     }
                 }
 
