@@ -50,7 +50,7 @@ public class MonkeyBuilder extends AbstractBuilder {
     @Exported
     public final int throttleMs;
 
-    /** Seed value for the random number generator. Number, "random", or "timestamp" */
+    /** Seed value for the random number generator. Number, "random", or "timestamp". */
     @Exported
     public final String seed;
 
@@ -60,7 +60,7 @@ public class MonkeyBuilder extends AbstractBuilder {
         this.packageId = packageId;
         this.eventCount = eventCount == null ? DEFAULT_EVENT_COUNT : Math.abs(eventCount);
         this.throttleMs = throttleMs == null ? 0 : Math.abs(throttleMs);
-        this.seed = seed;
+        this.seed = seed == null ? "" : seed.trim().toLowerCase();
     }
 
     @Override
@@ -77,9 +77,9 @@ public class MonkeyBuilder extends AbstractBuilder {
 
         // Set up arguments to adb
         final String deviceIdentifier = getDeviceIdentifier(build, listener);
-
+        final long seedValue = parseSeed(seed);
         String args = String.format("%s shell monkey -v -v -p %s -s %d --throttle %d %d",
-                deviceIdentifier, packageId, parseSeed(seed), throttleMs, eventCount);
+                deviceIdentifier, packageId, seedValue, throttleMs, eventCount);
 
         // Determine output filename
         String outputFile;
@@ -92,7 +92,7 @@ public class MonkeyBuilder extends AbstractBuilder {
         // Start monkeying around
         OutputStream monkeyOutput = build.getWorkspace().child(outputFile).write();
         try {
-            AndroidEmulator.log(logger, Messages.STARTING_MONKEY(packageId));
+            AndroidEmulator.log(logger, Messages.STARTING_MONKEY(packageId, eventCount, seedValue));
             Utils.runAndroidTool(launcher, monkeyOutput, logger, androidSdk, Tool.ADB, args, null);
         } finally {
             if (monkeyOutput != null) {
