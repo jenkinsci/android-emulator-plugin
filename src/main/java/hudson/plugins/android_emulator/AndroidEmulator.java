@@ -688,6 +688,7 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
 
                     out.write(command);
                     out.write("\r\n");
+                    out.flush();
                 } finally {
                     try {
                         out.close();
