@@ -531,11 +531,15 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
 
         // Clean up logging process
         if (logcatProcess != null) {
-            logcatStream.close();
             if (killed && logcatProcess.isAlive()) {
                 // This should have stopped when the emulator was,
                 // but if not attempt to kill the process manually
                 logcatProcess.kill();
+            }
+            try {
+                logcatStream.close();
+            } catch (Exception e) {
+                // Ignore
             }
 
             // Archive the logs
