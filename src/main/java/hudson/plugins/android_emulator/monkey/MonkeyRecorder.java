@@ -88,7 +88,7 @@ public class MonkeyRecorder extends Recorder {
 
         // Extract common data
         int totalEventCount = 0;
-        Matcher matcher = Pattern.compile(":Monkey: seed=\\d+ count=(\\d+)").matcher(monkeyOutput);
+        Matcher matcher = Pattern.compile(":Monkey: seed=-?\\d+ count=(\\d+)").matcher(monkeyOutput);
         if (matcher.find()) {
             totalEventCount = Integer.parseInt(matcher.group(1));
         }
