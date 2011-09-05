@@ -3,6 +3,7 @@ package hudson.plugins.android_emulator.monkey;
 import hudson.model.Action;
 import hudson.plugins.android_emulator.Messages;
 
+import org.apache.commons.lang.builder.HashCodeBuilder;
 import org.kohsuke.stapler.export.Exported;
 
 public class MonkeyAction implements Action {
@@ -26,7 +27,7 @@ public class MonkeyAction implements Action {
         if (result == MonkeyResult.Success) {
             return "monkey-happy_48x48.png";
         }
-        return  "monkey-sad_48x48.png";
+        return "monkey-sad_48x48.png";
     }
 
     @Exported
@@ -63,6 +64,35 @@ public class MonkeyAction implements Action {
 
     public String getUrlName() {
         return null;
+    }
+
+    @Override
+    public boolean equals(Object that) {
+        if (this == that) {
+            return true;
+        }
+        if (!(that instanceof MonkeyAction)) {
+            return false;
+        }
+
+        MonkeyAction other = (MonkeyAction) that;
+        return result == other.result
+            && eventCount == other.eventCount
+            && totalEventCount == other.totalEventCount;
+    }
+
+    @Override
+    public int hashCode() {
+        return new HashCodeBuilder()
+            .append(result)
+            .append(eventCount)
+            .append(totalEventCount)
+            .toHashCode();
+    }
+
+    @Override
+    public String toString() {
+        return String.format("%s:%d,%d", result, eventCount, totalEventCount);
     }
 
 }

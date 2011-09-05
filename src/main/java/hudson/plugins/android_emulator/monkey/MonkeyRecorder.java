@@ -70,14 +70,15 @@ public class MonkeyRecorder extends Recorder {
 
         // Parse output and apply it to the build
         PrintStream logger = listener.getLogger();
-        MonkeyAction result = parseMonkeyOutput(build, logger, monkeyOutput);
+        MonkeyAction result = parseMonkeyOutput(build, logger, monkeyOutput, failureOutcome);
         build.addAction(result);
 
         return true;
     }
 
-    private MonkeyAction parseMonkeyOutput(AbstractBuild<?, ?> build, PrintStream logger,
-            String monkeyOutput) {
+
+    static MonkeyAction parseMonkeyOutput(AbstractBuild<?, ?> build, PrintStream logger,
+            String monkeyOutput, BuildOutcome failureOutcome) {
         // No input, no output
         if (monkeyOutput == null) {
             return new MonkeyAction(MonkeyResult.NothingToParse);
