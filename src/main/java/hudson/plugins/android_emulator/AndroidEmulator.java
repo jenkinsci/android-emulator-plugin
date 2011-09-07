@@ -22,6 +22,7 @@ import hudson.plugins.android_emulator.sdk.Tool;
 import hudson.plugins.android_emulator.util.Utils;
 import hudson.plugins.android_emulator.util.ValidationResult;
 import hudson.remoting.Callable;
+import hudson.remoting.Future;
 import hudson.tasks.BuildWrapper;
 import hudson.tasks.BuildWrapperDescriptor;
 import hudson.util.ArgumentListBuilder;
@@ -42,6 +43,8 @@ import java.net.Socket;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -63,6 +66,9 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
 
     /** Duration by which emulator booting should normally complete. */
     private static final int BOOT_COMPLETE_TIMEOUT_MS = 120 * 1000;
+
+    /** Duration during which an emulator command should complete. */
+    private static final int EMULATOR_COMMAND_TIMEOUT_MS = 60 * 1000;
 
     private DescriptorImpl descriptor;
 
@@ -724,14 +730,33 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
             private static final long serialVersionUID = 1L;
         };
 
-        boolean result = false;
+        Boolean result = null;
+        Future<Boolean> future = null;
         try {
-            result = launcher.getChannel().call(task);
+            future = launcher.getChannel().callAsync(task);
+
+            final long timeout = EMULATOR_COMMAND_TIMEOUT_MS;
+            final long sleep = timeout / 10;
+            long start = System.currentTimeMillis();
+            do {
+                try {
+                    result = future.get(sleep, TimeUnit.MILLISECONDS);
+                } catch (TimeoutException e) {
+                    result = null;
+                }
+            } while (result == null
+                    && (System.currentTimeMillis() < (start + timeout)));
+
         } catch (Exception e) {
             log(logger, String.format("Failed to execute emulator command '%s': %s", command, e));
+        } finally {
+            if ((future != null) && !future.isDone()) {
+                log(logger, String.format("Emulator command failed to complete '%s' - aborting", command));
+                future.cancel(true /* may interrupt */);
+            }
         }
 
-        return result;
+        return Boolean.TRUE.equals(result);
     }
 
     @Extension(ordinal=-100) // Negative ordinal makes us execute after other wrappers (i.e. Xvnc)
