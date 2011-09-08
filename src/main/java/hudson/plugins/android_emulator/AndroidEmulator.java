@@ -28,6 +28,7 @@ import hudson.util.ArgumentListBuilder;
 import hudson.util.ForkOutputStream;
 import hudson.util.FormValidation;
 import hudson.util.NullStream;
+import hudson.util.StreamTaskListener;
 
 import java.io.BufferedReader;
 import java.io.ByteArrayOutputStream;
@@ -42,6 +43,7 @@ import java.net.Socket;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -646,16 +648,20 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
                 ByteArrayOutputStream stream = new ByteArrayOutputStream(4);
 
                 // Run "getprop"
-                launcher.launch().cmds(bootCheckCmd).stdout(stream).start().join();
+                Proc proc = launcher.launch().cmds(bootCheckCmd).stdout(stream).start();
+                long waitTimeout = timeout / 8;
+                int retVal = proc.joinWithTimeout(waitTimeout, TimeUnit.MILLISECONDS, StreamTaskListener.fromStderr());
 
-                // Check output
-                String result = stream.toString().trim();
-                if (result.equals("1")) {
-                    return true;
+                if (retVal == 0) {
+	                // Check output
+	                String result = stream.toString().trim();
+	                if (result.equals("1")) {
+	                    return true;
+	                }
+
+	                // Otherwise continue...
+	                Thread.sleep(sleep);
                 }
-
-                // Otherwise continue...
-                Thread.sleep(sleep);
 
                 // Ensure the emulator is connected to adb, in case it had crashed
                 launcher.launch().cmds(connectCmd).start().join();
