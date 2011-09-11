@@ -534,19 +534,16 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
         if (logcatProcess != null) {
             if (logcatProcess.isAlive()) {
                 // This should have stopped when the emulator was,
-                // but if not attempt to kill the process manually
-                // Give the logcat process a final chance to finish
+                // but if not attempt to kill the process manually.
+                // First, give it a final chance to finish cleanly.
                 Thread.sleep(5 * 1000);
                 if (logcatProcess.isAlive()) {
-                    // Still alive make sure process is killed
                     logcatProcess.kill();
                 }
             }
             try {
                 logcatStream.close();
-            } catch (Exception e) {
-                // Ignore
-            }
+            } catch (Exception ignore) {}
 
             // Archive the logs
             if (logcatFile.length() != 0) {
@@ -1011,9 +1008,7 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
                     socket.getOutputStream();
                     socket.close();
                     return true;
-                } catch (IOException ex) {
-                    // Ignore
-                }
+                } catch (IOException ignore) {}
 
                 Thread.sleep(1000);
             }
