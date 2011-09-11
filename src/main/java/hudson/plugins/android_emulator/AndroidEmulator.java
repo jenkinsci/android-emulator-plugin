@@ -22,6 +22,7 @@ import hudson.plugins.android_emulator.sdk.Tool;
 import hudson.plugins.android_emulator.util.Utils;
 import hudson.plugins.android_emulator.util.ValidationResult;
 import hudson.remoting.Callable;
+import hudson.remoting.Future;
 import hudson.tasks.BuildWrapper;
 import hudson.tasks.BuildWrapperDescriptor;
 import hudson.util.ArgumentListBuilder;
@@ -42,7 +43,9 @@ import java.net.Socket;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -64,6 +67,9 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
 
     /** Duration by which emulator booting should normally complete. */
     private static final int BOOT_COMPLETE_TIMEOUT_MS = 120 * 1000;
+
+    /** Duration during which an emulator command should complete. */
+    private static final int EMULATOR_COMMAND_TIMEOUT_MS = 60 * 1000;
 
     private DescriptorImpl descriptor;
 
@@ -681,7 +687,8 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
     }
 
     /**
-     * Sends a user command to the running emulator via its telnet interface.
+     * Sends a user command to the running emulator via its telnet interface.<br>
+     * Execution will be cancelled if it takes longer than {@link #EMULATOR_COMMAND_TIMEOUT_MS}.
      *
      * @param logger The build logger.
      * @param launcher The launcher for the remote node.
@@ -691,20 +698,31 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
      */
     private boolean sendEmulatorCommand(final Launcher launcher, final PrintStream logger,
             final int port, final String command) {
-        boolean result = false;
+        Boolean result = null;
+        Future<Boolean> future = null;
         try {
-            // Execute the task on the remote machine
+            // Execute the task on the remote machine, asynchronously
             EmulatorCommandTask task = new EmulatorCommandTask(port, command);
-            result = launcher.getChannel().call(task);
+            future = launcher.getChannel().callAsync(task);
+            result = future.get(EMULATOR_COMMAND_TIMEOUT_MS, TimeUnit.MILLISECONDS);
         } catch (IOException e) {
             // Slave communication failed
             log(logger, Messages.SENDING_COMMAND_FAILED(command, e));
             e.printStackTrace(logger);
         } catch (InterruptedException e) {
             // Ignore; the caller should handle shutdown
+        } catch (ExecutionException e) {
+            // Emulator command itself threw an exception
+            log(logger, Messages.SENDING_COMMAND_FAILED(command, e));
+            e.printStackTrace(logger);
+        } catch (TimeoutException e) {
+            log(logger, Messages.SENDING_COMMAND_TIMED_OUT(command));
+            if (future != null) {
+                future.cancel(true);
+            }
         }
 
-        return result;
+        return Boolean.TRUE.equals(result);
     }
 
     @Extension(ordinal=-100) // Negative ordinal makes us execute after other wrappers (i.e. Xvnc)
