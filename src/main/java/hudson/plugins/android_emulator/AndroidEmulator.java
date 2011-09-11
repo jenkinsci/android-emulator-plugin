@@ -1001,7 +1001,7 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
             try {
                 // Connect to the emulator's console port
                 socket = new Socket("127.0.0.1", port);
-                out = new PrintWriter(socket.getOutputStream(), true);
+                out = new PrintWriter(socket.getOutputStream());
                 in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
 
                 // If we didn't get a banner response, give up
@@ -1009,9 +1009,17 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
                     return false;
                 }
 
-                // Send command
+                // Send command, then exit the console
                 out.write(command);
                 out.write("\r\n");
+                out.flush();
+                out.write("quit\r\n");
+                out.flush();
+
+                // Wait for the commands to return a response
+                while (in.readLine() != null) {
+                    // Ignore
+                }
             } finally {
                 out.close();
                 in.close();
