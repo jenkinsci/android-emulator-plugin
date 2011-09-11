@@ -994,6 +994,7 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
             this.command = command;
         }
 
+        @SuppressWarnings("null")
         public Boolean call() throws IOException {
             Socket socket = null;
             BufferedReader in = null;
@@ -1021,9 +1022,15 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
                     // Ignore
                 }
             } finally {
-                out.close();
-                in.close();
-                socket.close();
+                try {
+                    out.close();
+                } catch (Exception ignore) {}
+                try {
+                    in.close();
+                } catch (Exception ignore) {}
+                try {
+                    socket.close();
+                } catch (Exception ignore) {}
             }
 
             return true;
