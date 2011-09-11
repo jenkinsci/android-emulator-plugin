@@ -40,6 +40,7 @@ import java.io.PrintStream;
 import java.io.PrintWriter;
 import java.io.Serializable;
 import java.net.Socket;
+import java.net.SocketException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -537,7 +538,6 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
 
         // Stop emulator process
         log(logger, Messages.STOPPING_EMULATOR());
-        sendEmulatorCommand(launcher, logger, userPort, "avd stop");
         boolean killed = sendEmulatorCommand(launcher, logger, userPort, "kill");
 
         // Ensure the process is dead
@@ -730,6 +730,12 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
             // Ignore; the caller should handle shutdown
         } catch (ExecutionException e) {
             // Emulator command itself threw an exception
+            if (command.equals("kill") && e.getCause() instanceof SocketException) {
+                // This is expected: sending "kill" causes the emulator process to kill itself
+                return true;
+            }
+
+            // Otherwise, it was some generic failure
             log(logger, Messages.SENDING_COMMAND_FAILED(command, e));
             e.printStackTrace(logger);
         } catch (TimeoutException e) {
