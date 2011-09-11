@@ -28,7 +28,6 @@ import hudson.util.ArgumentListBuilder;
 import hudson.util.ForkOutputStream;
 import hudson.util.FormValidation;
 import hudson.util.NullStream;
-import hudson.util.StreamTaskListener;
 
 import java.io.BufferedReader;
 import java.io.ByteArrayOutputStream;
@@ -644,27 +643,26 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
         ArgumentListBuilder connectCmd = Utils.getToolCommand(androidSdk, launcher.isUnix(), Tool.ADB, adbConnectArgs);
 
         try {
+            final long adbTimeout = timeout / 8;
             while (System.currentTimeMillis() < start + timeout && emulatorProcess.isAlive()) {
                 ByteArrayOutputStream stream = new ByteArrayOutputStream(4);
 
-                // Run "getprop"
+                // Run "getprop", timing-out in case adb hangs
                 Proc proc = launcher.launch().cmds(bootCheckCmd).stdout(stream).start();
-                long waitTimeout = timeout / 8;
-                int retVal = proc.joinWithTimeout(waitTimeout, TimeUnit.MILLISECONDS, StreamTaskListener.fromStderr());
-
+                int retVal = proc.joinWithTimeout(adbTimeout, TimeUnit.MILLISECONDS, launcher.getListener());
                 if (retVal == 0) {
-	                // Check output
+	                // If boot is complete, our work here is done
 	                String result = stream.toString().trim();
 	                if (result.equals("1")) {
 	                    return true;
 	                }
-
-	                // Otherwise continue...
-	                Thread.sleep(sleep);
                 }
 
+                // Otherwise continue...
+                Thread.sleep(sleep);
+
                 // Ensure the emulator is connected to adb, in case it had crashed
-                launcher.launch().cmds(connectCmd).start().join();
+                launcher.launch().cmds(connectCmd).start().joinWithTimeout(1L, TimeUnit.SECONDS, launcher.getListener());
             }
         } catch (InterruptedException ex) {
             log(logger, Messages.INTERRUPTED_DURING_BOOT_COMPLETION());
