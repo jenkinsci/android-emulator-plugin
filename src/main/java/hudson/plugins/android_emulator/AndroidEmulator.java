@@ -729,21 +729,24 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
         } catch (InterruptedException e) {
             // Ignore; the caller should handle shutdown
         } catch (ExecutionException e) {
-            // Emulator command itself threw an exception
+            // Exception thrown while trying to execute command
             if (command.equals("kill") && e.getCause() instanceof SocketException) {
                 // This is expected: sending "kill" causes the emulator process to kill itself
-                return true;
+                result = true;
+            } else {
+                // Otherwise, it was some generic failure
+                log(logger, Messages.SENDING_COMMAND_FAILED(command, e));
+                e.printStackTrace(logger);
             }
-
-            // Otherwise, it was some generic failure
-            log(logger, Messages.SENDING_COMMAND_FAILED(command, e));
-            e.printStackTrace(logger);
         } catch (TimeoutException e) {
+            // Command execution timed-out
             log(logger, Messages.SENDING_COMMAND_TIMED_OUT(command));
-            if (future != null) {
+        } finally {
+            if (future != null && !future.isDone()) {
                 future.cancel(true);
             }
         }
+
 
         return Boolean.TRUE.equals(result);
     }
