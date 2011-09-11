@@ -418,8 +418,9 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
             if (stopped) {
                 // Attempt snapshot generation
                 log(logger, Messages.EMULATOR_PAUSED_SNAPSHOT());
+                int creationTimeout = EMULATOR_COMMAND_TIMEOUT_MS * 4;
                 boolean success = sendEmulatorCommand(launcher, logger, userPort,
-                        "avd snapshot save "+ Constants.SNAPSHOT_NAME);
+                        "avd snapshot save "+ Constants.SNAPSHOT_NAME, creationTimeout);
                 if (!success) {
                     log(logger, Messages.SNAPSHOT_CREATION_FAILED());
                 }
@@ -698,13 +699,29 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
      */
     private boolean sendEmulatorCommand(final Launcher launcher, final PrintStream logger,
             final int port, final String command) {
+        return sendEmulatorCommand(launcher, logger, port, command, EMULATOR_COMMAND_TIMEOUT_MS);
+    }
+
+    /**
+     * Sends a user command to the running emulator via its telnet interface.<br>
+     * Execution will be cancelled if it takes longer than {@code timeoutMs}.
+     *
+     * @param logger The build logger.
+     * @param launcher The launcher for the remote node.
+     * @param port The emulator's telnet port.
+     * @param command The command to execute on the emulator's telnet interface.
+     * @param timeoutMs How long to wait (in ms) for the command to complete before cancelling it.
+     * @return Whether sending the command succeeded.
+     */
+    private boolean sendEmulatorCommand(final Launcher launcher, final PrintStream logger,
+            final int port, final String command, int timeoutMs) {
         Boolean result = null;
         Future<Boolean> future = null;
         try {
             // Execute the task on the remote machine, asynchronously
             EmulatorCommandTask task = new EmulatorCommandTask(port, command);
             future = launcher.getChannel().callAsync(task);
-            result = future.get(EMULATOR_COMMAND_TIMEOUT_MS, TimeUnit.MILLISECONDS);
+            result = future.get(timeoutMs, TimeUnit.MILLISECONDS);
         } catch (IOException e) {
             // Slave communication failed
             log(logger, Messages.SENDING_COMMAND_FAILED(command, e));
