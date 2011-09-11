@@ -691,43 +691,17 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
      */
     private boolean sendEmulatorCommand(final Launcher launcher, final PrintStream logger,
             final int port, final String command) {
-        Callable<Boolean, IOException> task = new Callable<Boolean, IOException>() {
-            @SuppressWarnings("null")
-            public Boolean call() throws IOException {
-                Socket socket = null;
-                BufferedReader in = null;
-                PrintWriter out = null;
-                try {
-                    socket = new Socket("127.0.0.1", port);
-                    out = new PrintWriter(socket.getOutputStream(), true);
-                    in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-                    if (in.readLine() == null) {
-                        return false;
-                    }
-
-                    out.write(command);
-                    out.write("\r\n");
-                } finally {
-                    try {
-                        out.close();
-                        in.close();
-                        socket.close();
-                    } catch (Exception e) {
-                        // Buh
-                    }
-                }
-
-                return true;
-            }
-
-            private static final long serialVersionUID = 1L;
-        };
-
         boolean result = false;
         try {
+            // Execute the task on the remote machine
+            EmulatorCommandTask task = new EmulatorCommandTask(port, command);
             result = launcher.getChannel().call(task);
-        } catch (Exception e) {
-            log(logger, String.format("Failed to execute emulator command '%s': %s", command, e));
+        } catch (IOException e) {
+            // Slave communication failed
+            log(logger, Messages.SENDING_COMMAND_FAILED(command, e));
+            e.printStackTrace(logger);
+        } catch (InterruptedException e) {
+            // Ignore; the caller should handle shutdown
         }
 
         return result;
@@ -989,6 +963,48 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
         }
 
     }
+
+    /** Task that will execute a command on the given emulator's console port, then quit. */
+    private static final class EmulatorCommandTask implements Callable<Boolean, IOException> {
+
+        private final int port;
+        private final String command;
+
+        @SuppressWarnings("hiding")
+        EmulatorCommandTask(int port, String command) {
+            this.port = port;
+            this.command = command;
+        }
+
+        public Boolean call() throws IOException {
+            Socket socket = null;
+            BufferedReader in = null;
+            PrintWriter out = null;
+            try {
+                // Connect to the emulator's console port
+                socket = new Socket("127.0.0.1", port);
+                out = new PrintWriter(socket.getOutputStream(), true);
+                in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+
+                // If we didn't get a banner response, give up
+                if (in.readLine() == null) {
+                    return false;
+                }
+
+                // Send command
+                out.write(command);
+                out.write("\r\n");
+            } finally {
+                out.close();
+                in.close();
+                socket.close();
+            }
+
+            return true;
+        }
+
+        private static final long serialVersionUID = 1L;
+    };
 
     /** Task that will block until it can either connect to a port on localhost, or it times-out. */
     private static final class LocalPortOpenTask implements Callable<Boolean, InterruptedException> {
