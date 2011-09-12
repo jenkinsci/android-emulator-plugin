@@ -3,6 +3,7 @@ package hudson.plugins.android_emulator.util;
 import hudson.EnvVars;
 import hudson.FilePath;
 import hudson.Launcher;
+import hudson.Proc;
 import hudson.Util;
 import hudson.Launcher.ProcStarter;
 import hudson.model.AbstractBuild;
@@ -24,6 +25,9 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.Executors;
+import java.util.concurrent.FutureTask;
+import java.util.concurrent.TimeUnit;
 
 public class Utils {
 
@@ -407,6 +411,39 @@ public class Utils {
             result = Util.replaceMacro(Util.replaceMacro(result, envVars), buildVars);
         }
         return result;
+    }
+
+    /**
+     * Attempts to kill the given process, timing-out after {@code timeoutMs}.
+     *
+     * @param process The process to kill.
+     * @param timeoutMs How long to wait for before cancelling the attempt to kill the process.
+     * @return {@code true} if the process was killed successfully.
+     */
+    public static boolean killProcess(final Proc process, final int timeoutMs) {
+        Boolean result = null;
+        FutureTask<Boolean> task = null;
+        try {
+            // Attempt to kill the process; remoting will be handled by the process object
+            task = new FutureTask<Boolean>(new java.util.concurrent.Callable<Boolean>() {
+                public Boolean call() throws Exception {
+                    process.kill();
+                    return true;
+                }
+            });
+
+            // Execute the task asynchronously and wait for a result or timeout
+            Executors.newSingleThreadExecutor().execute(task);
+            result = task.get(timeoutMs, TimeUnit.MILLISECONDS);
+        } catch (Exception e) {
+            // Ignore
+        } finally {
+            if (task != null && !task.isDone()) {
+                task.cancel(true);
+            }
+        }
+
+        return Boolean.TRUE.equals(result);
     }
 
 }

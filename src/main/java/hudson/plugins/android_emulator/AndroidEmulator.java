@@ -69,8 +69,11 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
     /** Duration by which emulator booting should normally complete. */
     private static final int BOOT_COMPLETE_TIMEOUT_MS = 120 * 1000;
 
-    /** Duration during which an emulator command should complete. */
+    /** Interval during which an emulator command should complete. */
     private static final int EMULATOR_COMMAND_TIMEOUT_MS = 60 * 1000;
+
+    /** Interval during which killing a process should complete. */
+    private static final int KILL_PROCESS_TIMEOUT_MS = 10 * 1000;
 
     private DescriptorImpl descriptor;
 
@@ -542,7 +545,11 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
 
         // Ensure the process is dead
         if (!killed && emulatorProcess.isAlive()) {
-            emulatorProcess.kill();
+            // Give up trying to kill it after a few seconds, in case it's deadlocked
+            boolean success = Utils.killProcess(emulatorProcess, KILL_PROCESS_TIMEOUT_MS);
+            if (!success) {
+                log(logger, Messages.EMULATOR_SHUTDOWN_FAILED());
+            }
         }
 
         // Clean up logging process
@@ -551,9 +558,9 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
                 // This should have stopped when the emulator was,
                 // but if not attempt to kill the process manually.
                 // First, give it a final chance to finish cleanly.
-                Thread.sleep(5 * 1000);
+                Thread.sleep(3 * 1000);
                 if (logcatProcess.isAlive()) {
-                    logcatProcess.kill();
+                    Utils.killProcess(logcatProcess, KILL_PROCESS_TIMEOUT_MS);
                 }
             }
             try {
@@ -718,7 +725,7 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
         Boolean result = null;
         Future<Boolean> future = null;
         try {
-            // Execute the task on the remote machine, asynchronously
+            // Execute the task on the remote machine asynchronously, with a timeout
             EmulatorCommandTask task = new EmulatorCommandTask(port, command);
             future = launcher.getChannel().callAsync(task);
             result = future.get(timeoutMs, TimeUnit.MILLISECONDS);
