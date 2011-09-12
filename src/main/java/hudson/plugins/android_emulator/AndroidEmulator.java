@@ -306,12 +306,20 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
 
         // Wait for TCP socket to become available
         boolean socket = waitForSocket(launcher, adbPort, ADB_CONNECT_TIMEOUT_MS);
-        if (!socket || !emulatorProcess.isAlive()) {
+        if (!socket) {
             log(logger, Messages.EMULATOR_DID_NOT_START());
             build.setResult(Result.NOT_BUILT);
             cleanUp(logger, launcher, androidSdk, portAllocator, emulatorProcess, adbPort, userPort);
             return null;
         }
+
+        // As of SDK Tools r12, "emulator" is no longer the main process; it just starts a certain
+        // child process depending on the AVD architecture.  Therefore on Windows, checking the
+        // status of this original process will not work, as it ends after it has started the child.
+        //
+        // With the adb socket open we know the correct process is running, so we set this flag to
+        // indicate that any methods wanting to check the "emulator" process state should ignore it.
+        boolean ignoreProcess = !emulatorProcess.isAlive();
 
         // Notify adb of our existence
         final String serial;
@@ -347,7 +355,7 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
             bootTimeout *= 4;
         }
         boolean bootSucceeded = waitForBootCompletion(logger, launcher, androidSdk, emulatorProcess,
-                serial, adbConnectArgs, bootTimeout);
+                ignoreProcess, serial, adbConnectArgs, bootTimeout);
         if (!bootSucceeded) {
             if ((System.currentTimeMillis() - bootTime) < bootTimeout) {
                 log(logger, Messages.EMULATOR_STOPPED_DURING_BOOT());
@@ -625,13 +633,14 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
      * @param launcher The launcher for the remote node.
      * @param androidSdk The Android SDK being used.
      * @param emulatorProcess The Android emulator process.
+     * @param ignoreProcess Whether to bypass checking that the process is alive (e.g. on Windows).
      * @param serial The serial of the device to connect to.
      * @param timeout How long to keep trying (in milliseconds) before giving up.
      * @return <code>true</code> if the emulator has booted, <code>false</code> if we timed-out.
      */
     private boolean waitForBootCompletion(final PrintStream logger, final Launcher launcher,
-            final AndroidSdk androidSdk, final Proc emulatorProcess, final String serial,
-            final String adbConnectArgs, final int timeout) {
+            final AndroidSdk androidSdk, final Proc emulatorProcess, final boolean ignoreProcess,
+            final String serial, final String adbConnectArgs, final int timeout) {
         long start = System.currentTimeMillis();
         int sleep = timeout / (int) Math.sqrt(timeout / 1000);
 
@@ -641,7 +650,7 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
 
         try {
             final long adbTimeout = timeout / 8;
-            while (System.currentTimeMillis() < start + timeout && emulatorProcess.isAlive()) {
+            while (System.currentTimeMillis() < start + timeout && (ignoreProcess || emulatorProcess.isAlive())) {
                 ByteArrayOutputStream stream = new ByteArrayOutputStream(4);
 
                 // Run "getprop", timing-out in case adb hangs
