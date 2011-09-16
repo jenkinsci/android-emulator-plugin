@@ -75,8 +75,20 @@ class EmulatorConfig implements Serializable {
         }
 
         this.osVersion = AndroidPlatform.valueOf(osVersion);
+        if (this.osVersion == null) {
+            throw new IllegalArgumentException(
+                    "OS version not recognised: " + osVersion);
+        }
         this.screenDensity = ScreenDensity.valueOf(screenDensity);
+        if (this.screenDensity == null) {
+            throw new IllegalArgumentException(
+                    "Screen density not recognised: " + screenDensity);
+        }
         this.screenResolution = ScreenResolution.valueOf(screenResolution);
+        if (this.screenResolution == null) {
+            throw new IllegalArgumentException(
+                    "Screen resolution not recognised: " + screenResolution);
+        }
         this.deviceLocale = deviceLocale;
         this.sdCardSize = sdCardSize;
         this.wipeData = wipeData;

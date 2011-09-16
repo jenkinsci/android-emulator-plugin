@@ -210,12 +210,20 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
             return null;
         }
 
+        EmulatorConfig emuConfig;
+        try {
+            emuConfig = EmulatorConfig.create(avdName, osVersion, screenDensity,
+                screenResolution, deviceLocale, sdCardSize, wipeData, showWindow, useSnapshots,
+                commandLineOptions);
+        } catch (IllegalArgumentException e) {
+            log(logger, Messages.EMULATOR_CONFIGURATION_BAD(e.getLocalizedMessage()));
+            build.setResult(Result.NOT_BUILT);
+            return null;
+        }
+
         // Ok, everything looks good.. let's go
         String displayHome = androidSdk.hasKnownRoot() ? androidSdk.getSdkRoot() : Messages.USING_PATH();
         log(logger, Messages.USING_SDK(displayHome));
-        EmulatorConfig emuConfig = EmulatorConfig.create(avdName, osVersion, screenDensity,
-                screenResolution, deviceLocale, sdCardSize, wipeData, showWindow, useSnapshots,
-                commandLineOptions);
 
         return doSetUp(build, launcher, listener, androidSdk, emuConfig, expandedProperties);
     }
