@@ -194,10 +194,23 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
         // Despite the nice inline checks and warnings when the user is editing the config,
         // these are not binding, so the user may have saved invalid configuration.
         // Here we check whether or not it's worth proceeding based on the saved values.
+        // As config variables aren't yet expanded, this check can't catch all possible errors.
         String configError = isConfigValid(avdName, osVersion, screenDensity, screenResolution,
                 deviceLocale, sdCardSize);
         if (configError != null) {
             log(logger, Messages.ERROR_MISCONFIGURED(configError));
+            build.setResult(Result.NOT_BUILT);
+            return null;
+        }
+
+        // Build emulator config, ensuring that variables expand to valid SDK values
+        EmulatorConfig emuConfig;
+        try {
+            emuConfig = EmulatorConfig.create(avdName, osVersion, screenDensity,
+                screenResolution, deviceLocale, sdCardSize, wipeData, showWindow, useSnapshots,
+                commandLineOptions);
+        } catch (IllegalArgumentException e) {
+            log(logger, Messages.EMULATOR_CONFIGURATION_BAD(e.getLocalizedMessage()));
             build.setResult(Result.NOT_BUILT);
             return null;
         }
@@ -213,9 +226,6 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
         // Ok, everything looks good.. let's go
         String displayHome = androidSdk.hasKnownRoot() ? androidSdk.getSdkRoot() : Messages.USING_PATH();
         log(logger, Messages.USING_SDK(displayHome));
-        EmulatorConfig emuConfig = EmulatorConfig.create(avdName, osVersion, screenDensity,
-                screenResolution, deviceLocale, sdCardSize, wipeData, showWindow, useSnapshots,
-                commandLineOptions);
 
         return doSetUp(build, launcher, listener, androidSdk, emuConfig, expandedProperties);
     }
