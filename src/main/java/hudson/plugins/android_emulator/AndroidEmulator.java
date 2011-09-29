@@ -8,14 +8,21 @@ import hudson.Launcher;
 import hudson.Proc;
 import hudson.Util;
 import hudson.Launcher.ProcStarter;
+import hudson.matrix.Combination;
 import hudson.model.AbstractBuild;
 import hudson.model.AbstractProject;
 import hudson.model.BuildListener;
 import hudson.model.Computer;
 import hudson.model.Hudson;
+import hudson.model.Node;
 import hudson.model.Result;
 import hudson.model.TaskListener;
+import hudson.plugins.android_emulator.sdk.AndroidSdk;
+import hudson.plugins.android_emulator.sdk.Tool;
+import hudson.plugins.android_emulator.util.Utils;
+import hudson.plugins.android_emulator.util.ValidationResult;
 import hudson.remoting.Callable;
+import hudson.remoting.Future;
 import hudson.tasks.BuildWrapper;
 import hudson.tasks.BuildWrapperDescriptor;
 import hudson.util.ArgumentListBuilder;
@@ -24,6 +31,7 @@ import hudson.util.FormValidation;
 import hudson.util.NullStream;
 
 import java.io.BufferedReader;
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -33,15 +41,18 @@ import java.io.PrintWriter;
 import java.io.Serializable;
 import java.io.StringWriter;
 import java.net.Socket;
+import java.net.SocketException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import net.sf.json.JSONObject;
 
-import org.apache.commons.io.output.ByteArrayOutputStream;
 import org.jvnet.hudson.plugins.port_allocator.PortAllocationManager;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.QueryParameter;
@@ -59,20 +70,27 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
     /** Duration by which emulator booting should normally complete. */
     private static final int BOOT_COMPLETE_TIMEOUT_MS = 120 * 1000;
 
+    /** Interval during which an emulator command should complete. */
+    private static final int EMULATOR_COMMAND_TIMEOUT_MS = 60 * 1000;
+
+    /** Interval during which killing a process should complete. */
+    private static final int KILL_PROCESS_TIMEOUT_MS = 10 * 1000;
+
     private DescriptorImpl descriptor;
 
-    private final String avdName;
-    private final String osVersion;
-    private final String screenDensity;
-    private final String screenResolution;
-    private final String deviceLocale;
-    private final String sdCardSize;
-    private final boolean wipeData;
-    private final boolean showWindow;
-    private final boolean useSnapshots;
-    private final String commandLineOptions;
-    private final int startupDelay;
-    private final HardwareProperty[] hardwareProperties;
+    // Config properties
+    @Exported public final String avdName;
+    @Exported public final String osVersion;
+    @Exported public final String screenDensity;
+    @Exported public final String screenResolution;
+    @Exported public final String deviceLocale;
+    @Exported public final String sdCardSize;
+    @Exported public final boolean wipeData;
+    @Exported public final boolean showWindow;
+    @Exported public final boolean useSnapshots;
+    @Exported public final String commandLineOptions;
+    @Exported public final int startupDelay;
+    @Exported public final HardwareProperty[] hardwareProperties;
 
     @DataBoundConstructor
     public AndroidEmulator(String avdName, String osVersion, String screenDensity,
@@ -97,52 +115,43 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
         return avdName != null;
     }
 
-    public String getOsVersion() {
-        return osVersion;
+    /**
+     * A hash representing the variables that are used to determine which emulator configuration
+     * should be started to fulfil the job configuration.
+     *
+     * @param node The Node on which the emulator would be run.
+     * @return A hash representing the emulator configuration for this instance.
+     */
+    public String getConfigHash(Node node) {
+        return getConfigHash(node, null);
     }
 
-    public String getAvdName() {
-        return avdName;
-    }
+    /**
+     * A hash representing the variables that are used to determine which emulator configuration
+     * should be started to fulfil the job configuration.
+     *
+     * @param node The Node on which the emulator would be run.
+     * @param combination The matrix combination values used to expand emulator config variables.
+     * @return A hash representing the emulator configuration for this instance.
+     */
+    @SuppressWarnings("hiding")
+    public String getConfigHash(Node node, Combination combination) {
+        EnvVars envVars;
+        try {
+            envVars = node.toComputer().getEnvironment();
+        } catch (Exception e) {
+            e.printStackTrace();
+            return null;
+        }
 
-    public String getScreenDensity() {
-        return screenDensity;
-    }
+        // Expand variables using the node's environment and the matrix properties, if any
+        String avdName = Utils.expandVariables(envVars, combination, this.avdName);
+        String osVersion = Utils.expandVariables(envVars, combination, this.osVersion);
+        String screenDensity = Utils.expandVariables(envVars, combination, this.screenDensity);
+        String screenResolution = Utils.expandVariables(envVars, combination, this.screenResolution);
+        String deviceLocale = Utils.expandVariables(envVars, combination, this.deviceLocale);
 
-    public String getScreenResolution() {
-        return screenResolution;
-    }
-
-    public String getDeviceLocale() {
-        return deviceLocale;
-    }
-
-    public String getSdCardSize() {
-        return sdCardSize;
-    }
-
-    public boolean shouldWipeData() {
-        return wipeData;
-    }
-
-    public boolean shouldShowWindow() {
-        return showWindow;
-    }
-
-    public boolean shouldUseSnapshots() {
-        return useSnapshots;
-    }
-
-    public String getCommandLineOptions() {
-        return commandLineOptions;
-    }
-
-    public int getStartupDelay() {
-        return startupDelay;
-    }
-
-    public HardwareProperty[] getHardwareProperties() {
-        return hardwareProperties;
+        return EmulatorConfig.getAvdName(avdName, osVersion, screenDensity, screenResolution, deviceLocale);
     }
 
     @Override
@@ -185,10 +194,23 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
         // Despite the nice inline checks and warnings when the user is editing the config,
         // these are not binding, so the user may have saved invalid configuration.
         // Here we check whether or not it's worth proceeding based on the saved values.
+        // As config variables aren't yet expanded, this check can't catch all possible errors.
         String configError = isConfigValid(avdName, osVersion, screenDensity, screenResolution,
                 deviceLocale, sdCardSize);
         if (configError != null) {
             log(logger, Messages.ERROR_MISCONFIGURED(configError));
+            build.setResult(Result.NOT_BUILT);
+            return null;
+        }
+
+        // Build emulator config, ensuring that variables expand to valid SDK values
+        EmulatorConfig emuConfig;
+        try {
+            emuConfig = EmulatorConfig.create(avdName, osVersion, screenDensity,
+                screenResolution, deviceLocale, sdCardSize, wipeData, showWindow, useSnapshots,
+                commandLineOptions);
+        } catch (IllegalArgumentException e) {
+            log(logger, Messages.EMULATOR_CONFIGURATION_BAD(e.getLocalizedMessage()));
             build.setResult(Result.NOT_BUILT);
             return null;
         }
@@ -217,9 +239,6 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
         // Ok, everything looks good.. let's go
         String displayHome = androidSdk.hasKnownRoot() ? androidSdk.getSdkRoot() : Messages.USING_PATH();
         log(logger, Messages.USING_SDK(displayHome));
-        EmulatorConfig emuConfig = EmulatorConfig.create(avdName, osVersion, screenDensity,
-                screenResolution, deviceLocale, sdCardSize, wipeData, showWindow, useSnapshots,
-                commandLineOptions);
 
         return doSetUp(build, launcher, listener, androidSdk, emuConfig, expandedProperties);
     }
@@ -255,7 +274,7 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
         }
 
         // Delay start up by the configured amount of time
-        final int delaySecs = getStartupDelay();
+        final int delaySecs = startupDelay;
         if (delaySecs > 0) {
             log(logger, Messages.DELAYING_START_UP(delaySecs));
             Thread.sleep(delaySecs * 1000);
@@ -268,14 +287,16 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
 
         // Determine whether we need to create the first snapshot
         final SnapshotState snapshotState;
-        if (shouldUseSnapshots() && androidSdk.supportsSnapshots()) {
+        if (useSnapshots && androidSdk.supportsSnapshots()) {
             boolean hasSnapshot = emuConfig.hasExistingSnapshot(launcher, androidSdk);
             if (hasSnapshot) {
                 // Boot from the existing "jenkins" snapshot
                 snapshotState = SnapshotState.BOOT;
             } else {
-                // Create an initial "jenkins" snapshot
+                // Create an initial "jenkins" snapshot...
                 snapshotState = SnapshotState.INITIALISE;
+                // ..with a clean start
+                emuConfig.setShouldWipeData();
             }
         } else {
             // If snapshots are disabled or not supported, there's nothing to do
@@ -294,6 +315,8 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
         // Start emulator process
         if (snapshotState == SnapshotState.BOOT) {
             log(logger, Messages.STARTING_EMULATOR_FROM_SNAPSHOT());
+        } else if (snapshotState == SnapshotState.INITIALISE) {
+            log(logger, Messages.STARTING_EMULATOR_SNAPSHOT_INIT());
         } else {
             log(logger, Messages.STARTING_EMULATOR());
         }
@@ -316,12 +339,20 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
 
         // Wait for TCP socket to become available
         boolean socket = waitForSocket(launcher, adbPort, ADB_CONNECT_TIMEOUT_MS);
-        if (!socket || !emulatorProcess.isAlive()) {
+        if (!socket) {
             log(logger, Messages.EMULATOR_DID_NOT_START());
             build.setResult(Result.NOT_BUILT);
             cleanUp(logger, launcher, androidSdk, portAllocator, emulatorProcess, adbPort, userPort);
             return null;
         }
+
+        // As of SDK Tools r12, "emulator" is no longer the main process; it just starts a certain
+        // child process depending on the AVD architecture.  Therefore on Windows, checking the
+        // status of this original process will not work, as it ends after it has started the child.
+        //
+        // With the adb socket open we know the correct process is running, so we set this flag to
+        // indicate that any methods wanting to check the "emulator" process state should ignore it.
+        boolean ignoreProcess = !emulatorProcess.isAlive();
 
         // Notify adb of our existence
         final String serial;
@@ -357,7 +388,7 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
             bootTimeout *= 4;
         }
         boolean bootSucceeded = waitForBootCompletion(logger, launcher, androidSdk, emulatorProcess,
-                serial, adbConnectArgs, bootTimeout);
+                ignoreProcess, serial, adbConnectArgs, bootTimeout);
         if (!bootSucceeded) {
             if ((System.currentTimeMillis() - bootTime) < bootTimeout) {
                 log(logger, Messages.EMULATOR_STOPPED_DURING_BOOT());
@@ -398,18 +429,26 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
         if (snapshotState == SnapshotState.INITIALISE) {
             // In order to create a clean initial snapshot, give the system some more time to settle
             log(logger, Messages.WAITING_INITIAL_SNAPSHOT());
-            Thread.sleep(bootDuration / 2);
+            Thread.sleep((long) (bootDuration * 0.8));
+
+            // Clear main log before creating snapshot
+            final String clearArgs = String.format("-s %s logcat -c", serial);
+            ArgumentListBuilder adbCmd = Utils.getToolCommand(androidSdk, isUnix, Tool.ADB, clearArgs);
+            procStarter.cmds(adbCmd).start().join();
+            final String msg = "Creating snapshot...";
+            final String logArgs = String.format("-s %s shell log -p v -t Jenkins '%s'", serial, msg);
+            adbCmd = Utils.getToolCommand(androidSdk, isUnix, Tool.ADB, logArgs);
+            procStarter.cmds(adbCmd).start().join();
 
             // Pause execution of the emulator
             boolean stopped = sendEmulatorCommand(launcher, logger, userPort, "avd stop");
             if (stopped) {
                 // Attempt snapshot generation
                 log(logger, Messages.EMULATOR_PAUSED_SNAPSHOT());
+                int creationTimeout = EMULATOR_COMMAND_TIMEOUT_MS * 4;
                 boolean success = sendEmulatorCommand(launcher, logger, userPort,
-                        "avd snapshot save "+ Constants.SNAPSHOT_NAME);
-                if (success) {
-                    log(logger, Messages.SNAPSHOT_CREATED());
-                } else {
+                        "avd snapshot save "+ Constants.SNAPSHOT_NAME, creationTimeout);
+                if (!success) {
                     log(logger, Messages.SNAPSHOT_CREATION_FAILED());
                 }
 
@@ -433,6 +472,7 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
         return new Environment() {
             @Override
             public void buildEnvVars(Map<String, String> env) {
+                env.put("ANDROID_SERIAL", serial);
                 env.put("ANDROID_AVD_DEVICE", serial);
                 env.put("ANDROID_AVD_ADB_PORT", Integer.toString(adbPort));
                 env.put("ANDROID_AVD_USER_PORT", Integer.toString(userPort));
@@ -459,7 +499,7 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
     }
 
     /** Helper method for writing to the build log in a consistent manner. */
-    synchronized static void log(final PrintStream logger, final String message) {
+    public synchronized static void log(final PrintStream logger, final String message) {
         log(logger, message, false);
     }
 
@@ -532,22 +572,31 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
 
         // Stop emulator process
         log(logger, Messages.STOPPING_EMULATOR());
-        sendEmulatorCommand(launcher, logger, userPort, "avd stop");
         boolean killed = sendEmulatorCommand(launcher, logger, userPort, "kill");
 
         // Ensure the process is dead
         if (!killed && emulatorProcess.isAlive()) {
-            emulatorProcess.kill();
+            // Give up trying to kill it after a few seconds, in case it's deadlocked
+            boolean success = Utils.killProcess(emulatorProcess, KILL_PROCESS_TIMEOUT_MS);
+            if (!success) {
+                log(logger, Messages.EMULATOR_SHUTDOWN_FAILED());
+            }
         }
 
         // Clean up logging process
         if (logcatProcess != null) {
-            logcatStream.close();
-            if (killed && logcatProcess.isAlive()) {
+            if (logcatProcess.isAlive()) {
                 // This should have stopped when the emulator was,
-                // but if not attempt to kill the process manually
-                logcatProcess.kill();
+                // but if not attempt to kill the process manually.
+                // First, give it a final chance to finish cleanly.
+                Thread.sleep(3 * 1000);
+                if (logcatProcess.isAlive()) {
+                    Utils.killProcess(logcatProcess, KILL_PROCESS_TIMEOUT_MS);
+                }
             }
+            try {
+                logcatStream.close();
+            } catch (Exception ignore) {}
 
             // Archive the logs
             if (logcatFile.length() != 0) {
@@ -629,13 +678,14 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
      * @param launcher The launcher for the remote node.
      * @param androidSdk The Android SDK being used.
      * @param emulatorProcess The Android emulator process.
+     * @param ignoreProcess Whether to bypass checking that the process is alive (e.g. on Windows).
      * @param serial The serial of the device to connect to.
      * @param timeout How long to keep trying (in milliseconds) before giving up.
      * @return <code>true</code> if the emulator has booted, <code>false</code> if we timed-out.
      */
     private boolean waitForBootCompletion(final PrintStream logger, final Launcher launcher,
-            final AndroidSdk androidSdk, final Proc emulatorProcess, final String serial,
-            final String adbConnectArgs, final int timeout) {
+            final AndroidSdk androidSdk, final Proc emulatorProcess, final boolean ignoreProcess,
+            final String serial, final String adbConnectArgs, final int timeout) {
         long start = System.currentTimeMillis();
         int sleep = timeout / (int) Math.sqrt(timeout / 1000);
 
@@ -644,23 +694,26 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
         ArgumentListBuilder connectCmd = Utils.getToolCommand(androidSdk, launcher.isUnix(), Tool.ADB, adbConnectArgs);
 
         try {
-            while (System.currentTimeMillis() < start + timeout && emulatorProcess.isAlive()) {
+            final long adbTimeout = timeout / 8;
+            while (System.currentTimeMillis() < start + timeout && (ignoreProcess || emulatorProcess.isAlive())) {
                 ByteArrayOutputStream stream = new ByteArrayOutputStream(4);
 
-                // Run "getprop"
-                launcher.launch().cmds(bootCheckCmd).stdout(stream).start().join();
-
-                // Check output
-                String result = stream.toString().trim();
-                if (result.equals("1")) {
-                    return true;
+                // Run "getprop", timing-out in case adb hangs
+                Proc proc = launcher.launch().cmds(bootCheckCmd).stdout(stream).start();
+                int retVal = proc.joinWithTimeout(adbTimeout, TimeUnit.MILLISECONDS, launcher.getListener());
+                if (retVal == 0) {
+	                // If boot is complete, our work here is done
+	                String result = stream.toString().trim();
+	                if (result.equals("1")) {
+	                    return true;
+	                }
                 }
 
                 // Otherwise continue...
                 Thread.sleep(sleep);
 
                 // Ensure the emulator is connected to adb, in case it had crashed
-                launcher.launch().cmds(connectCmd).start().join();
+                launcher.launch().cmds(connectCmd).start().joinWithTimeout(1L, TimeUnit.SECONDS, launcher.getListener());
             }
         } catch (InterruptedException ex) {
             log(logger, Messages.INTERRUPTED_DURING_BOOT_COMPLETION());
@@ -673,7 +726,8 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
     }
 
     /**
-     * Sends a user command to the running emulator via its telnet interface.
+     * Sends a user command to the running emulator via its telnet interface.<br>
+     * Execution will be cancelled if it takes longer than {@link #EMULATOR_COMMAND_TIMEOUT_MS}.
      *
      * @param logger The build logger.
      * @param launcher The launcher for the remote node.
@@ -683,46 +737,56 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
      */
     private boolean sendEmulatorCommand(final Launcher launcher, final PrintStream logger,
             final int port, final String command) {
-        Callable<Boolean, IOException> task = new Callable<Boolean, IOException>() {
-            @SuppressWarnings("null")
-            public Boolean call() throws IOException {
-                Socket socket = null;
-                BufferedReader in = null;
-                PrintWriter out = null;
-                try {
-                    socket = new Socket("127.0.0.1", port);
-                    out = new PrintWriter(socket.getOutputStream(), true);
-                    in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-                    if (in.readLine() == null) {
-                        return false;
-                    }
+        return sendEmulatorCommand(launcher, logger, port, command, EMULATOR_COMMAND_TIMEOUT_MS);
+    }
 
-                    out.write(command);
-                    out.write("\r\n");
-                } finally {
-                    try {
-                        out.close();
-                        in.close();
-                        socket.close();
-                    } catch (Exception e) {
-                        // Buh
-                    }
-                }
-
-                return true;
-            }
-
-            private static final long serialVersionUID = 1L;
-        };
-
-        boolean result = false;
+    /**
+     * Sends a user command to the running emulator via its telnet interface.<br>
+     * Execution will be cancelled if it takes longer than {@code timeoutMs}.
+     *
+     * @param logger The build logger.
+     * @param launcher The launcher for the remote node.
+     * @param port The emulator's telnet port.
+     * @param command The command to execute on the emulator's telnet interface.
+     * @param timeoutMs How long to wait (in ms) for the command to complete before cancelling it.
+     * @return Whether sending the command succeeded.
+     */
+    private boolean sendEmulatorCommand(final Launcher launcher, final PrintStream logger,
+            final int port, final String command, int timeoutMs) {
+        Boolean result = null;
+        Future<Boolean> future = null;
         try {
-            result = launcher.getChannel().call(task);
-        } catch (Exception e) {
-            log(logger, String.format("Failed to execute emulator command '%s': %s", command, e));
+            // Execute the task on the remote machine asynchronously, with a timeout
+            EmulatorCommandTask task = new EmulatorCommandTask(port, command);
+            future = launcher.getChannel().callAsync(task);
+            result = future.get(timeoutMs, TimeUnit.MILLISECONDS);
+        } catch (IOException e) {
+            // Slave communication failed
+            log(logger, Messages.SENDING_COMMAND_FAILED(command, e));
+            e.printStackTrace(logger);
+        } catch (InterruptedException e) {
+            // Ignore; the caller should handle shutdown
+        } catch (ExecutionException e) {
+            // Exception thrown while trying to execute command
+            if (command.equals("kill") && e.getCause() instanceof SocketException) {
+                // This is expected: sending "kill" causes the emulator process to kill itself
+                result = true;
+            } else {
+                // Otherwise, it was some generic failure
+                log(logger, Messages.SENDING_COMMAND_FAILED(command, e));
+                e.printStackTrace(logger);
+            }
+        } catch (TimeoutException e) {
+            // Command execution timed-out
+            log(logger, Messages.SENDING_COMMAND_TIMED_OUT(command));
+        } finally {
+            if (future != null && !future.isDone()) {
+                future.cancel(true);
+            }
         }
 
-        return result;
+
+        return Boolean.TRUE.equals(result);
     }
 
     @Extension(ordinal=-100) // Negative ordinal makes us execute after other wrappers (i.e. Xvnc)
@@ -986,6 +1050,63 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
 
     }
 
+    /** Task that will execute a command on the given emulator's console port, then quit. */
+    private static final class EmulatorCommandTask implements Callable<Boolean, IOException> {
+
+        private final int port;
+        private final String command;
+
+        @SuppressWarnings("hiding")
+        EmulatorCommandTask(int port, String command) {
+            this.port = port;
+            this.command = command;
+        }
+
+        @SuppressWarnings("null")
+        public Boolean call() throws IOException {
+            Socket socket = null;
+            BufferedReader in = null;
+            PrintWriter out = null;
+            try {
+                // Connect to the emulator's console port
+                socket = new Socket("127.0.0.1", port);
+                out = new PrintWriter(socket.getOutputStream());
+                in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+
+                // If we didn't get a banner response, give up
+                if (in.readLine() == null) {
+                    return false;
+                }
+
+                // Send command, then exit the console
+                out.write(command);
+                out.write("\r\n");
+                out.flush();
+                out.write("quit\r\n");
+                out.flush();
+
+                // Wait for the commands to return a response
+                while (in.readLine() != null) {
+                    // Ignore
+                }
+            } finally {
+                try {
+                    out.close();
+                } catch (Exception ignore) {}
+                try {
+                    in.close();
+                } catch (Exception ignore) {}
+                try {
+                    socket.close();
+                } catch (Exception ignore) {}
+            }
+
+            return true;
+        }
+
+        private static final long serialVersionUID = 1L;
+    };
+
     /** Task that will block until it can either connect to a port on localhost, or it times-out. */
     private static final class LocalPortOpenTask implements Callable<Boolean, InterruptedException> {
 
@@ -1013,9 +1134,7 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
                     socket.getOutputStream();
                     socket.close();
                     return true;
-                } catch (IOException ex) {
-                    // Ignore
-                }
+                } catch (IOException ignore) {}
 
                 Thread.sleep(1000);
             }

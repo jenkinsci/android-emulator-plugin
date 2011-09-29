@@ -1,14 +1,20 @@
-package hudson.plugins.android_emulator;
+package hudson.plugins.android_emulator.util;
 
 import hudson.EnvVars;
 import hudson.FilePath;
 import hudson.Launcher;
+import hudson.Proc;
 import hudson.Util;
 import hudson.Launcher.ProcStarter;
 import hudson.model.AbstractBuild;
 import hudson.model.BuildListener;
 import hudson.model.Computer;
 import hudson.model.Hudson;
+import hudson.plugins.android_emulator.Constants;
+import hudson.plugins.android_emulator.Messages;
+import hudson.plugins.android_emulator.AndroidEmulator.DescriptorImpl;
+import hudson.plugins.android_emulator.sdk.AndroidSdk;
+import hudson.plugins.android_emulator.sdk.Tool;
 import hudson.remoting.Callable;
 import hudson.util.ArgumentListBuilder;
 
@@ -19,6 +25,9 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.Executors;
+import java.util.concurrent.FutureTask;
+import java.util.concurrent.TimeUnit;
 
 public class Utils {
 
@@ -28,7 +37,7 @@ public class Utils {
      * @return The configured Android SDK root, if any. May include un-expanded variables.
      */
     public static String getConfiguredAndroidHome() {
-        return Hudson.getInstance().getDescriptorByType(AndroidEmulator.DescriptorImpl.class).androidHome;
+        return Hudson.getInstance().getDescriptorByType(DescriptorImpl.class).androidHome;
     }
 
     /**
@@ -285,7 +294,7 @@ public class Utils {
         // Determine the path to the desired tool
         String androidToolsDir;
         if (androidSdk.hasKnownRoot()) {
-            if (tool.isPlatformTool && androidSdk.usesPlatformTools()) {
+            if (tool.isPlatformTool() && androidSdk.usesPlatformTools()) {
                 androidToolsDir = androidSdk.getSdkRoot() +"/platform-tools/";
             } else {
                 androidToolsDir = androidSdk.getSdkRoot() +"/tools/";
@@ -393,12 +402,48 @@ public class Utils {
      */
     public static String expandVariables(EnvVars envVars, Map<String,String> buildVars,
             String token) {
+        if (buildVars == null) {
+            buildVars = new HashMap<String,String>(0);
+        }
 
         String result = Util.fixEmptyAndTrim(token);
         if (result != null) {
             result = Util.replaceMacro(Util.replaceMacro(result, envVars), buildVars);
         }
         return result;
+    }
+
+    /**
+     * Attempts to kill the given process, timing-out after {@code timeoutMs}.
+     *
+     * @param process The process to kill.
+     * @param timeoutMs How long to wait for before cancelling the attempt to kill the process.
+     * @return {@code true} if the process was killed successfully.
+     */
+    public static boolean killProcess(final Proc process, final int timeoutMs) {
+        Boolean result = null;
+        FutureTask<Boolean> task = null;
+        try {
+            // Attempt to kill the process; remoting will be handled by the process object
+            task = new FutureTask<Boolean>(new java.util.concurrent.Callable<Boolean>() {
+                public Boolean call() throws Exception {
+                    process.kill();
+                    return true;
+                }
+            });
+
+            // Execute the task asynchronously and wait for a result or timeout
+            Executors.newSingleThreadExecutor().execute(task);
+            result = task.get(timeoutMs, TimeUnit.MILLISECONDS);
+        } catch (Exception e) {
+            // Ignore
+        } finally {
+            if (task != null && !task.isDone()) {
+                task.cancel(true);
+            }
+        }
+
+        return Boolean.TRUE.equals(result);
     }
 
 }

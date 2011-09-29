@@ -8,7 +8,11 @@ import hudson.model.BuildListener;
 import hudson.model.Computer;
 import hudson.model.Node;
 import hudson.plugins.android_emulator.SdkInstaller.AndroidInstaller.SdkUnavailableException;
-import hudson.plugins.android_emulator.ValidationResult.Type;
+import hudson.plugins.android_emulator.sdk.AndroidSdk;
+import hudson.plugins.android_emulator.sdk.Tool;
+import hudson.plugins.android_emulator.util.Utils;
+import hudson.plugins.android_emulator.util.ValidationResult;
+import hudson.plugins.android_emulator.util.ValidationResult.Type;
 import hudson.remoting.Callable;
 import hudson.remoting.VirtualChannel;
 

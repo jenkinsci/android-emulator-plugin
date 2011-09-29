@@ -1,10 +1,10 @@
-package hudson.plugins.android_emulator;
+package hudson.plugins.android_emulator.util;
 
 import hudson.util.FormValidation;
 
 public class ValidationResult {
 
-    static enum Type {
+    public static enum Type {
         OK,
         WARNING,
         ERROR

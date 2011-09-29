@@ -4,6 +4,9 @@ import hudson.Launcher;
 import hudson.Util;
 import hudson.model.BuildListener;
 import hudson.plugins.android_emulator.AndroidEmulator.HardwareProperty;
+import hudson.plugins.android_emulator.sdk.AndroidSdk;
+import hudson.plugins.android_emulator.sdk.Tool;
+import hudson.plugins.android_emulator.util.Utils;
 import hudson.remoting.Callable;
 import hudson.util.ArgumentListBuilder;
 import hudson.util.StreamCopyThread;
@@ -30,7 +33,7 @@ class EmulatorConfig implements Serializable {
     private ScreenResolution screenResolution;
     private String deviceLocale;
     private String sdCardSize;
-    private final boolean wipeData;
+    private boolean wipeData;
     private final boolean showWindow;
     private final boolean useSnapshots;
     private final String commandLineOptions;
@@ -72,8 +75,20 @@ class EmulatorConfig implements Serializable {
         }
 
         this.osVersion = AndroidPlatform.valueOf(osVersion);
+        if (this.osVersion == null) {
+            throw new IllegalArgumentException(
+                    "OS version not recognised: " + osVersion);
+        }
         this.screenDensity = ScreenDensity.valueOf(screenDensity);
+        if (this.screenDensity == null) {
+            throw new IllegalArgumentException(
+                    "Screen density not recognised: " + screenDensity);
+        }
         this.screenResolution = ScreenResolution.valueOf(screenResolution);
+        if (this.screenResolution == null) {
+            throw new IllegalArgumentException(
+                    "Screen resolution not recognised: " + screenResolution);
+        }
         this.deviceLocale = deviceLocale;
         this.sdCardSize = sdCardSize;
         this.wipeData = wipeData;
@@ -91,6 +106,15 @@ class EmulatorConfig implements Serializable {
         }
 
         return new EmulatorConfig(avdName, wipeData, showWindow, useSnapshots, commandLineOptions);
+    }
+
+    public static final String getAvdName(String avdName, String osVersion, String screenDensity,
+            String screenResolution, String deviceLocale) {
+        try {
+            return create(avdName, osVersion, screenDensity, screenResolution, deviceLocale, null,
+                    false, false, false, null).getAvdName();
+        } catch (IllegalArgumentException e) {}
+        return null;
     }
 
     public boolean isNamedEmulator() {
@@ -142,6 +166,10 @@ class EmulatorConfig implements Serializable {
 
     public String getSdCardSize() {
         return sdCardSize;
+    }
+
+    public void setShouldWipeData() {
+        wipeData = true;
     }
 
     public boolean shouldWipeData() {
@@ -257,16 +285,14 @@ class EmulatorConfig implements Serializable {
         sb.append(getAvdName());
 
         // Snapshots
-        if (snapshotState == SnapshotState.INITIALISE) {
-            // For the first boot, do not load from any snapshots that may exist
-            sb.append(" -no-snapshot-load");
-            sb.append(" -no-snapshot-save");
-        } else if (snapshotState == SnapshotState.BOOT) {
-            // For subsequent boots, start from the "jenkins" snapshot
+        if (snapshotState == SnapshotState.BOOT) {
+            // For builds after initial snapshot setup, start directly from the "jenkins" snapshot
             sb.append(" -snapshot "+ Constants.SNAPSHOT_NAME);
             sb.append(" -no-snapshot-save");
         } else if (sdkSupportsSnapshots) {
-            sb.append(" -no-snapstorage");
+            // For the first boot, or snapshot-free builds, do not load any snapshots that may exist
+            sb.append(" -no-snapshot-load");
+            sb.append(" -no-snapshot-save");
         }
 
         // Options

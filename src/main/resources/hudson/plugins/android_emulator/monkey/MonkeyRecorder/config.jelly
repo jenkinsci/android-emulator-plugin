@@ -1,0 +1,13 @@
+<j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define" xmlns:l="/lib/layout" xmlns:t="/lib/hudson" xmlns:f="/lib/form">
+
+    <f:entry title="${%Filename}">
+        <f:textbox name="android-emulator.filename" value="${instance.filename}" />
+        <f:description>${%Optional: Name of a file within the workspace to read monkey output from}</f:description>
+    </f:entry>
+
+    <f:entry title="${%Set build result}" field="failureOutcome">
+        <f:enum>${it.displayName}</f:enum>
+        <f:description>${%Sets the result of the build to this value if monkey caused a crash or ANR}</f:description>
+    </f:entry>
+
+</j:jelly>

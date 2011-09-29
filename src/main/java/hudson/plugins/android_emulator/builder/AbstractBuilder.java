@@ -1,10 +1,15 @@
-package hudson.plugins.android_emulator;
+package hudson.plugins.android_emulator.builder;
 
 import hudson.EnvVars;
 import hudson.FilePath;
 import hudson.Launcher;
 import hudson.model.AbstractBuild;
 import hudson.model.BuildListener;
+import hudson.plugins.android_emulator.AndroidEmulator;
+import hudson.plugins.android_emulator.Messages;
+import hudson.plugins.android_emulator.sdk.AndroidSdk;
+import hudson.plugins.android_emulator.sdk.Tool;
+import hudson.plugins.android_emulator.util.Utils;
 import hudson.tasks.Builder;
 
 import java.io.ByteArrayOutputStream;
@@ -118,7 +123,7 @@ public abstract class AbstractBuilder extends Builder {
                 throws IOException, InterruptedException {
         // Run aapt command on given APK
         ByteArrayOutputStream aaptOutput = new ByteArrayOutputStream();
-        String args = String.format("dump badging %s", apkPath.getName());
+        String args = String.format("dump badging \"%s\"", apkPath.getName());
         Utils.runAndroidTool(launcher, aaptOutput, logger, androidSdk, Tool.AAPT, args, apkPath.getParent());
 
         // Determine package ID from aapt output
