@@ -1,8 +1,10 @@
 package hudson.plugins.android_emulator;
 
+import hudson.FilePath;
 import hudson.Launcher;
 import hudson.Util;
 import hudson.model.BuildListener;
+import hudson.model.TaskListener;
 import hudson.plugins.android_emulator.AndroidEmulator.HardwareProperty;
 import hudson.plugins.android_emulator.sdk.AndroidSdk;
 import hudson.plugins.android_emulator.sdk.Tool;
@@ -210,6 +212,18 @@ class EmulatorConfig implements Serializable {
         return new EmulatorConfigTask(hardwareProperties, isUnix, listener);
     }
 
+    /**
+     * Gets a task that deletes the AVD corresponding to this instance's configuration.
+     *
+     * @param isUnix  Whether the target system is sane.
+     * @param listener The listener to use for logging.
+     * @return A Callable that will delete the AVD with for this configuration.
+     */
+    public Callable<Boolean, Exception> getEmulatorDeletionTask(boolean isUnix,
+            TaskListener listener) {
+        return new EmulatorDeletionTask(isUnix, listener);
+    }
+
     private File getHomeDirectory(boolean isUnix) {
         // Locate the base directory where Android SDK data (such as AVDs) should be kept
         // From git://android.git.kernel.org/platform/external/qemu.git/android/utils/bufprint.c
@@ -239,6 +253,10 @@ class EmulatorConfig implements Serializable {
 
     private File getAvdDirectory(final File homeDir) {
         return new File(getAvdHome(homeDir), getAvdName() +".avd");
+    }
+
+    private File getAvdMetadataFile(final File homeDir) {
+        return new File(getAvdHome(homeDir), getAvdName() +".ini");
     }
 
     private Map<String,String> parseAvdConfigFile(File homeDir) throws IOException {
@@ -600,6 +618,46 @@ class EmulatorConfig implements Serializable {
 
             return null;
         }
+    }
+
+    /** A task that deletes the AVD corresponding to our local state. */
+    private final class EmulatorDeletionTask implements Callable<Boolean, Exception> {
+
+        private static final long serialVersionUID = 1L;
+        private final boolean isUnix;
+
+        private final TaskListener listener;
+        private transient PrintStream logger;
+
+        public EmulatorDeletionTask(boolean isUnix, TaskListener listener) {
+            this.isUnix = isUnix;
+            this.listener = listener;
+        }
+
+        public Boolean call() throws Exception {
+            if (logger == null) {
+                logger = listener.getLogger();
+            }
+
+            // Check whether the AVD exists
+            final File homeDir = getHomeDirectory(isUnix);
+            final File avdDirectory = getAvdDirectory(homeDir);
+            final boolean emulatorExists = avdDirectory.exists();
+            if (!emulatorExists) {
+                AndroidEmulator.log(logger, Messages.AVD_DIRECTORY_NOT_FOUND(avdDirectory));
+                return false;
+            }
+
+            // Recursively delete the contents
+            new FilePath(avdDirectory).deleteRecursive();
+
+            // Delete the metadata file
+            getAvdMetadataFile(homeDir).delete();
+
+            // Success!
+            return true;
+        }
+
     }
 
 }

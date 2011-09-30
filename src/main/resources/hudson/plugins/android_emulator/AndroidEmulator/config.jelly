@@ -98,6 +98,11 @@
   <f:block>
     <table style="margin-left:2em">
       <f:advanced>
+        <f:entry title="${%Post-build}" help="/plugin/android-emulator/help-deleteAfterBuild.html">
+          <f:checkbox id="android-emulator.deleteAfterBuild" name="android-emulator.deleteAfterBuild"
+              checked="${instance.deleteAfterBuild}" />
+          <label class="attach-previous">${%Delete emulator after build}</label>
+        </f:entry>
         <f:entry title="${%Startup delay}" help="/plugin/android-emulator/help-startupDelay.html">
           <f:textbox name="android-emulator.startupDelay" value="${instance.startupDelay}" style="width:3em"
               default="0" />
