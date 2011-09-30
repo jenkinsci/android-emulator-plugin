@@ -236,6 +236,9 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
             }
         }
 
+        // TODO: Install the required platform if necessary
+        SdkInstaller.installPlatform(logger, launcher, androidSdk, emuConfig);
+
         // Ok, everything looks good.. let's go
         String displayHome = androidSdk.hasKnownRoot() ? androidSdk.getSdkRoot() : Messages.USING_PATH();
         log(logger, Messages.USING_SDK(displayHome));

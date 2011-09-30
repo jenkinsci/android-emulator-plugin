@@ -12,7 +12,6 @@ import hudson.plugins.android_emulator.sdk.AndroidSdk;
 import hudson.plugins.android_emulator.sdk.Tool;
 import hudson.plugins.android_emulator.util.Utils;
 import hudson.plugins.android_emulator.util.ValidationResult;
-import hudson.plugins.android_emulator.util.ValidationResult.Type;
 import hudson.remoting.Callable;
 import hudson.remoting.VirtualChannel;
 
@@ -28,11 +27,21 @@ import java.util.Locale;
 class SdkInstaller {
 
     /** Recent version of the Android SDK that will be installed. */
-    private static final int SDK_VERSION = 12;
+    private static final int SDK_VERSION = 13;
 
     /** Filename to write some metadata to about our automated installation. */
     private static final String SDK_INFO_FILENAME = ".jenkins-install-info";
 
+    /**
+     * Installs the Android SDK on the machine we're executing on.
+     *
+     * @param launcher
+     * @param listener
+     * @return
+     * @throws SdkInstallationException
+     * @throws IOException
+     * @throws InterruptedException
+     */
     static AndroidSdk install(Launcher launcher, BuildListener listener)
             throws SdkInstallationException, IOException, InterruptedException {
         // We should install the SDK on the current build machine
@@ -59,12 +68,11 @@ class SdkInstaller {
         if (!isSdkInstallComplete(node, androidHome)) {
             PrintStream logger = listener.getLogger();
             log(logger, "Going to install required Android SDK components...");
-            installComponents(logger, launcher, androidHome);
+            AndroidSdk sdk = new AndroidSdk(androidHome);
+            installComponent(logger, launcher, sdk, "platform-tool,tool");
 
-            // Check whether, after all the downloading, we actually have a complete SDK installation
-            if (!isSdkInstallComplete(node, androidHome)) {
-                return null;
-            }
+            // If we made it this far, confirm completion by writing our our metadata file
+            getInstallationInfoFilename(node).write(String.valueOf(SDK_VERSION), "UTF-8");
         }
 
         // Create an SDK object now that all the components exist
@@ -117,33 +125,41 @@ class SdkInstaller {
     }
 
     /**
-     * Installs the SDK Tools, Platform Tools, and Platforms into the given installation.
+     * Installs the SDK Tools and Platform Tools into the given installation.
      *
      * @param logger Logs things.
      * @param launcher Used to launch tasks on the remote node.
      * @param sdkRoot Root of the SDK installation to install components for.
      */
-    private static void installComponents(PrintStream logger, Launcher launcher, String sdkRoot)
-            throws IOException, InterruptedException {
-        // Get proxy settings to pass to the 'android' command
+    private static void installComponent(PrintStream logger, Launcher launcher, AndroidSdk sdk,
+            String component) throws IOException, InterruptedException {
         String proxySettings = getProxySettings();
 
-        AndroidSdk sdk = new AndroidSdk(sdkRoot);
-        // TODO: Add "extra" component, behind a boolean preference?
-        // TODO: Oh yeah, it's not possible to install the Google API via `android`...
-        for (String component : "platform-tool,tool,platform".split(",")) {
-            log(logger, String.format("Installing the '%s' SDK component...", component));
-            String upgradeArgs = String.format("update sdk -u %s -t %s", proxySettings, component);
-            Utils.runAndroidTool(launcher, logger, logger, sdk, Tool.ANDROID, upgradeArgs, null);
-        }
+        log(logger, String.format("Installing the '%s' SDK component...", component));
+        String upgradeArgs = String.format("update sdk -o -u %s -t %s", proxySettings, component);
+        Utils.runAndroidTool(launcher, logger, logger, sdk, Tool.ANDROID, upgradeArgs, null);
+    }
 
-        // If we made it this far, confirm completion by writing our our metadata file
-        Node node = Computer.currentComputer().getNode();
-        getInstallationInfoFilename(node).write(String.valueOf(SDK_VERSION), "UTF-8");
+    /**
+     * Installs the given platform and its dependencies into the given installation, if necessary.
+     *
+     * @param logger Logs things.
+     * @param launcher Used to launch tasks on the remote node.
+     * @param sdkRoot Root of the SDK installation to install components for.
+     */
+    public static void installPlatform(PrintStream logger, Launcher launcher, AndroidSdk sdk,
+            EmulatorConfig emuConfig) throws IOException, InterruptedException {
+        // TODO: Get target platform from emuConfig.
+        // TODO: If it's a named AVD, do nothing? Or extract target from .ini file?
+        String platform = "android-4";
+
+        // TODO: Dependency "resolution", based on add-on SDK version code?
+        installComponent(logger, launcher, sdk, platform);
     }
 
     private static String getProxySettings() {
         // TODO: This needs to run on the remote node and fetch System.getprop("http[s].proxyHost")
+        // TODO: Or can/should we integrate with the built-in proxy support (if it's available)
         return "";
     }
 
@@ -160,16 +176,13 @@ class SdkInstaller {
 
         ValidationResult result = Utils.validateAndroidHome(new File(sdkRoot), false);
         System.out.println("SDK validation result: "+ result);
-        if (result.getType() != Type.OK) {
-            // No, we're missing either some tools or platforms
-            System.out.println("SDK is not complete: missing tools or platforms");
-            getInstallationInfoFilename(node).delete();
+        if (result.isFatal()) {
+            // No, we're missing some tools
+            System.out.println("SDK is not complete: missing tools");
             return false;
         }
 
-        // The tools and the platforms directory might exist, but it's possible we haven't finished
-        // downloading all the platforms. The presence of our metadata file confirms completion.
-        System.out.println("SDK metadata file exists? "+ getInstallationInfoFilename(node).exists());
+        // SDK is complete if we got as far as writing the metadata file
         return getInstallationInfoFilename(node).exists();
     }
 
