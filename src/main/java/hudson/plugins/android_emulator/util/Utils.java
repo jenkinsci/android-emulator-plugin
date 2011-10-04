@@ -1,5 +1,6 @@
 package hudson.plugins.android_emulator.util;
 
+import static hudson.plugins.android_emulator.AndroidEmulator.log;
 import hudson.EnvVars;
 import hudson.FilePath;
 import hudson.Launcher;
@@ -16,18 +17,26 @@ import hudson.plugins.android_emulator.AndroidEmulator.DescriptorImpl;
 import hudson.plugins.android_emulator.sdk.AndroidSdk;
 import hudson.plugins.android_emulator.sdk.Tool;
 import hudson.remoting.Callable;
+import hudson.remoting.Future;
 import hudson.util.ArgumentListBuilder;
 
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.io.OutputStream;
+import java.io.PrintStream;
+import java.io.PrintWriter;
+import java.net.Socket;
+import java.net.SocketException;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
 import java.util.concurrent.FutureTask;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 public class Utils {
 
@@ -444,6 +453,111 @@ public class Utils {
         }
 
         return Boolean.TRUE.equals(result);
+    }
+
+    /**
+     * Sends a user command to the running emulator via its telnet interface.<br>
+     * Execution will be cancelled if it takes longer than {@code timeoutMs}.
+     *
+     * @param logger The build logger.
+     * @param launcher The launcher for the remote node.
+     * @param port The emulator's telnet port.
+     * @param command The command to execute on the emulator's telnet interface.
+     * @param timeoutMs How long to wait (in ms) for the command to complete before cancelling it.
+     * @return Whether sending the command succeeded.
+     */
+    public static boolean sendEmulatorCommand(final Launcher launcher, final PrintStream logger,
+            final int port, final String command, int timeoutMs) {
+        Boolean result = null;
+        Future<Boolean> future = null;
+        try {
+            // Execute the task on the remote machine asynchronously, with a timeout
+            EmulatorCommandTask task = new EmulatorCommandTask(port, command);
+            future = launcher.getChannel().callAsync(task);
+            result = future.get(timeoutMs, TimeUnit.MILLISECONDS);
+        } catch (IOException e) {
+            // Slave communication failed
+            log(logger, Messages.SENDING_COMMAND_FAILED(command, e));
+            e.printStackTrace(logger);
+        } catch (InterruptedException e) {
+            // Ignore; the caller should handle shutdown
+        } catch (ExecutionException e) {
+            // Exception thrown while trying to execute command
+            if (command.equals("kill") && e.getCause() instanceof SocketException) {
+                // This is expected: sending "kill" causes the emulator process to kill itself
+                result = true;
+            } else {
+                // Otherwise, it was some generic failure
+                log(logger, Messages.SENDING_COMMAND_FAILED(command, e));
+                e.printStackTrace(logger);
+            }
+        } catch (TimeoutException e) {
+            // Command execution timed-out
+            log(logger, Messages.SENDING_COMMAND_TIMED_OUT(command));
+        } finally {
+            if (future != null && !future.isDone()) {
+                future.cancel(true);
+            }
+        }
+
+        return Boolean.TRUE.equals(result);
+    }
+
+    /** Task that will execute a command on the given emulator's console port, then quit. */
+    private static final class EmulatorCommandTask implements Callable<Boolean, IOException> {
+
+        private final int port;
+        private final String command;
+
+        @SuppressWarnings("hiding")
+        EmulatorCommandTask(int port, String command) {
+            this.port = port;
+            this.command = command;
+        }
+
+        @SuppressWarnings("null")
+        public Boolean call() throws IOException {
+            Socket socket = null;
+            BufferedReader in = null;
+            PrintWriter out = null;
+            try {
+                // Connect to the emulator's console port
+                socket = new Socket("127.0.0.1", port);
+                out = new PrintWriter(socket.getOutputStream());
+                in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+
+                // If we didn't get a banner response, give up
+                if (in.readLine() == null) {
+                    return false;
+                }
+
+                // Send command, then exit the console
+                out.write(command);
+                out.write("\r\n");
+                out.flush();
+                out.write("quit\r\n");
+                out.flush();
+
+                // Wait for the commands to return a response
+                while (in.readLine() != null) {
+                    // Ignore
+                }
+            } finally {
+                try {
+                    out.close();
+                } catch (Exception ignore) {}
+                try {
+                    in.close();
+                } catch (Exception ignore) {}
+                try {
+                    socket.close();
+                } catch (Exception ignore) {}
+            }
+
+            return true;
+        }
+
+        private static final long serialVersionUID = 1L;
     }
 
 }

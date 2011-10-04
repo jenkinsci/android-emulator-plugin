@@ -23,6 +23,9 @@ public abstract class AbstractBuilder extends Builder {
     /** Environment variable set by the plugin to specify the serial of the started AVD. */
     private static final String DEVICE_SERIAL_VARIABLE = "ANDROID_AVD_DEVICE";
 
+    /** Environment variable set by the plugin to specify the telnet interface port. */
+    private static final String DEVICE_USER_PORT_VARIABLE = "ANDROID_AVD_USER_PORT";
+
     /**
      * Gets an Android SDK instance, ready for use.
      *
@@ -51,18 +54,53 @@ public abstract class AbstractBuilder extends Builder {
      * @return The device identifier (defaulting to the value of "<tt>-s $ANDROID_AVD_DEVICE</tt>").
      */
     protected static String getDeviceIdentifier(AbstractBuild<?, ?> build, BuildListener listener) {
-        String deviceIdentifier;
-        String deviceSerialToken = String.format("$%s", DEVICE_SERIAL_VARIABLE);
-        String deviceSerial = Utils.expandVariables(build, listener, deviceSerialToken);
-        if (deviceSerial.equals(deviceSerialToken)) {
+        String deviceSerial = expandVariable(build, listener, DEVICE_SERIAL_VARIABLE);
+        if (deviceSerial == null) {
             // No emulator was started by this plugin; assume only one device is attached
-            deviceIdentifier = "";
-        } else {
-            // Use the serial of the emulator started by this plugin
-            deviceIdentifier = String.format("-s %s", deviceSerial);
+            return "";
         }
 
-        return deviceIdentifier;
+        // Use the serial of the emulator started by this plugin
+        return String.format("-s %s", deviceSerial);
+    }
+
+    /**
+     * Gets the Android device identifier for this job, defaulting to the AVD started by this plugin.
+     *
+     * @param build The build for which we should retrieve the SDK instance.
+     * @param listener The listener used to get the environment variables.
+     * @return The device identifier (defaulting to the value of "<tt>-s $ANDROID_AVD_DEVICE</tt>").
+     */
+    protected static int getDeviceTelnetPort(AbstractBuild<?, ?> build, BuildListener listener) {
+        String devicePort = expandVariable(build, listener, DEVICE_USER_PORT_VARIABLE);
+        if (devicePort == null) {
+            // No emulator was started by this plugin; assume only one device is attached
+            return 5554;
+        }
+
+        // Use the serial of the emulator started by this plugin
+        return Integer.parseInt(devicePort);
+    }
+
+    /**
+     * Expands the given variable name to its value from the given build and environment.
+
+     * @param build Used to get build-specific variables.
+     * @param listener Used to get environment variables.
+     * @param variable The name of the variable to expand.
+     * @return The value of the expanded variable, or {@code null} if it could not be resolved.
+     */
+    private static String expandVariable(AbstractBuild<?, ?> build, BuildListener listener,
+            String variable) {
+        String varFormat = String.format("$%s", variable);
+        String value = Utils.expandVariables(build, listener, varFormat);
+        if (value.equals(varFormat)) {
+            // Variable did not expand to anything
+            return null;
+        }
+
+        // Return expanded value
+        return value;
     }
 
     /**
