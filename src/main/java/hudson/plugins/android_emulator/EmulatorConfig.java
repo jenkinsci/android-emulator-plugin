@@ -241,6 +241,11 @@ class EmulatorConfig implements Serializable {
         return new File(getAvdHome(homeDir), getAvdName() +".avd");
     }
 
+    public File getAvdMetadataFile(boolean isUnix) {
+        final File homeDir = getHomeDirectory(isUnix);
+        return new File(getAvdHome(homeDir), getAvdName() +".ini");
+    }
+
     private Map<String,String> parseAvdConfigFile(File homeDir) throws IOException {
         File configFile = new File(getAvdDirectory(homeDir), "config.ini");
         return Utils.parseConfigFile(configFile);

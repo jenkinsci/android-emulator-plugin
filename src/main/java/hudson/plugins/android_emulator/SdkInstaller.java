@@ -22,7 +22,13 @@ import java.io.PrintStream;
 import java.io.Serializable;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import java.util.Locale;
+import java.util.Map;
+
+import org.apache.commons.lang.StringUtils;
 
 class SdkInstaller {
 
@@ -69,7 +75,7 @@ class SdkInstaller {
             PrintStream logger = listener.getLogger();
             log(logger, "Going to install required Android SDK components...");
             AndroidSdk sdk = new AndroidSdk(androidHome);
-            installComponent(logger, launcher, sdk, "platform-tool,tool");
+            installComponent(logger, launcher, sdk, "platform-tool", "tool");
 
             // If we made it this far, confirm completion by writing our our metadata file
             getInstallationInfoFilename(node).write(String.valueOf(SDK_VERSION), "UTF-8");
@@ -125,18 +131,22 @@ class SdkInstaller {
     }
 
     /**
-     * Installs the SDK Tools and Platform Tools into the given installation.
+     * Installs the given SDK component(s) into the given installation.
      *
      * @param logger Logs things.
      * @param launcher Used to launch tasks on the remote node.
      * @param sdkRoot Root of the SDK installation to install components for.
+     * @param components Name of the component(s) to install.
      */
     private static void installComponent(PrintStream logger, Launcher launcher, AndroidSdk sdk,
-            String component) throws IOException, InterruptedException {
+            String... components) throws IOException, InterruptedException {
         String proxySettings = getProxySettings();
 
-        log(logger, String.format("Installing the '%s' SDK component...", component));
-        String upgradeArgs = String.format("update sdk -o -u %s -t %s", proxySettings, component);
+        String list = StringUtils.join(components, ',');
+        log(logger, String.format("Installing the '%s' SDK component...", list));
+        String upgradeArgs = String.format("update sdk -o -u %s -t %s", proxySettings, list);
+
+        // TODO: We need to be able to kill the command spawned if the build is interrupted!
         Utils.runAndroidTool(launcher, logger, logger, sdk, Tool.ANDROID, upgradeArgs, null);
     }
 
@@ -147,14 +157,90 @@ class SdkInstaller {
      * @param launcher Used to launch tasks on the remote node.
      * @param sdkRoot Root of the SDK installation to install components for.
      */
-    public static void installPlatform(PrintStream logger, Launcher launcher, AndroidSdk sdk,
-            EmulatorConfig emuConfig) throws IOException, InterruptedException {
-        // TODO: Get target platform from emuConfig.
-        // TODO: If it's a named AVD, do nothing? Or extract target from .ini file?
-        String platform = "android-4";
+    public static boolean installDependencies(PrintStream logger, Launcher launcher,
+            AndroidSdk sdk, EmulatorConfig emuConfig) throws IOException, InterruptedException {
+        // TODO: Get AVD platform
+        String platform = getPlatformForEmulator(launcher, emuConfig);
 
-        // TODO: Dependency "resolution", based on add-on SDK version code?
-        installComponent(logger, launcher, sdk, platform);
+        // TODO: Resolve dependencies
+        List<String> components = getSdkComponentsForPlatform(platform);
+        System.out.println(">> Determined required components: "+ components);
+        // TODO: Do nothing if null
+
+        // TODO: Check whether those component(s) are already installed
+
+        // TODO: If not, install component(s)
+        installComponent(logger, launcher, sdk, components.toArray(new String[0]));
+        return true;
+    }
+
+    private static List<String> getSdkComponentsForPlatform(String platform) {
+        System.out.println(">> Figure out SDK components for platform: "+ platform);
+
+        // If it's a straightforward case like "android-10", there are no further dependencies
+        if (!platform.contains(":")) {
+            return Collections.singletonList(platform);
+        }
+
+        // Otherwise, figure out the component name and its platform dependency
+        List<String> components = new ArrayList<String>();
+        String parts[] = platform.toLowerCase().split(":");
+        if (parts.length != 3) {
+            System.out.println("!!! Platform split to too few parts: "+ parts.length);
+            return null;
+        }
+
+        // Add dependent platform
+        String component = String.format("android-%s", parts[2]);
+        components.add(component);
+
+        // Determine addon name
+        component = String.format("addon-%s-%s-%s", parts[1], parts[0], parts[2]);
+        component = component.replaceAll("[^a-z0-9_-]+", "_").replaceAll("_+", "_");
+        components.add(component);
+
+        return components;
+    }
+
+    /**
+     * Determines the Android platform for the given emulator configuration.<br>
+     * This is a string like "android-10" or "Google Inc.:Google APIs:4".
+     *
+     * @param launcher Used to launch tasks on the remote node.
+     * @param emuConfig The emulator whose target platform we want to determine.
+     * @return The platform, or {@code null} if it could not be determined.
+     */
+    private static String getPlatformForEmulator(Launcher launcher, final EmulatorConfig emuConfig)
+            throws IOException, InterruptedException {
+        // For existing, named emulators, get the target from the metadata file
+        if (emuConfig.isNamedEmulator()) {
+            System.out.println("> Getting platform for emulator: "+ emuConfig.getAvdName());
+            return getPlatformFromExistingEmulator(launcher, emuConfig);
+        }
+
+        // Otherwise, use the configured platform
+        return emuConfig.getOsVersion().getTargetName();
+    }
+
+    /**
+     * Determines the Android platform for an existing emulator, via its metadata config file.
+     *
+     * @param launcher Used to access files on the remote node.
+     * @param emuConfig The emulator whose target platform we want to determine.
+     * @return The platform, or {@code null} if it could not be determined.
+     */
+    private static String getPlatformFromExistingEmulator(final Launcher launcher,
+            final EmulatorConfig emuConfig) throws IOException, InterruptedException {
+        return launcher.getChannel().call(new Callable<String, IOException>() {
+            public String call() throws IOException {
+                File metadataFile = emuConfig.getAvdMetadataFile(launcher.isUnix());
+                System.out.println(">> Reading target from metadata file: "+ metadataFile);
+                Map<String, String> metadata = Utils.parseConfigFile(metadataFile);
+                System.out.println(">> Got properties: "+ metadata);
+                return metadata.get("target");
+            }
+            private static final long serialVersionUID = 1L;
+        });
     }
 
     private static String getProxySettings() {
