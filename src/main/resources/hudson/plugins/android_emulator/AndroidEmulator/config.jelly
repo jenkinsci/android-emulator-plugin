@@ -3,7 +3,7 @@
   <f:block>
     <table style="margin-left:2em">
 
-      <f:radioBlock name="android-emulator.useNamed" value="true" 
+      <f:radioBlock name="android-emulator.useNamed" value="true"
           title="${%Run existing emulator}" checked="${instance.useNamedEmulator}"
           help="/plugin/android-emulator/help-emulatorNamed.html">
         <f:block>
