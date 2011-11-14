@@ -367,7 +367,7 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
 
         // Start dumping logs to disk
         final File artifactsDir = build.getArtifactsDir();
-        final FilePath logcatFile = build.getWorkspace().createTempFile("logcat_", ".log");
+        final FilePath logcatFile = build.getWorkspace().createTextTempFile("logcat_", ".log", "", false);
         final OutputStream logcatStream = logcatFile.write();
         final String logcatArgs = String.format("-s %s logcat -v time", serial);
         ArgumentListBuilder logcatCmd = Utils.getToolCommand(androidSdk, isUnix, Tool.ADB, logcatArgs);
