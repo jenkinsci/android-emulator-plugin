@@ -188,8 +188,9 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
         String commandLineOptions = Utils.expandVariables(envVars, buildVars, this.commandLineOptions);
 
         // SDK location
+        Node node = Computer.currentComputer().getNode();
         String androidHome = Utils.expandVariables(envVars, buildVars, descriptor.androidHome);
-        androidHome = Utils.discoverAndroidHome(launcher, envVars, androidHome);
+        androidHome = Utils.discoverAndroidHome(launcher, node, envVars, androidHome);
 
         // Despite the nice inline checks and warnings when the user is editing the config,
         // these are not binding, so the user may have saved invalid configuration.
@@ -236,8 +237,10 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
             }
         }
 
-        // TODO: Install the required platform if necessary
-        SdkInstaller.installDependencies(logger, launcher, androidSdk, emuConfig);
+        // Install the required SDK components for the desired platform, if necessary
+        if (descriptor.shouldInstallSdk) {
+            SdkInstaller.installDependencies(logger, launcher, androidSdk, emuConfig);
+        }
 
         // Ok, everything looks good.. let's go
         String displayHome = androidSdk.hasKnownRoot() ? androidSdk.getSdkRoot() : Messages.USING_PATH();

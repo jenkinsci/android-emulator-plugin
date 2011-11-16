@@ -12,6 +12,9 @@ public class AndroidSdk implements Serializable {
     /** First version in which snapshots were supported. */
     private static final int SDK_TOOLS_SNAPSHOTS = 9;
 
+    /** First version in which we can automatically install individual SDK components. */
+    private static final int SDK_AUTO_INSTALL = 14;
+
     private final String sdkHome;
     private boolean usesPlatformTools;
     private int sdkToolsVersion;
@@ -40,12 +43,20 @@ public class AndroidSdk implements Serializable {
         this.sdkToolsVersion = version;
     }
 
+    public int getSdkToolsVersion() {
+        return this.sdkToolsVersion;
+    }
+
     public boolean supportsEmuConnect() {
         return sdkToolsVersion >= SDK_TOOLS_EMU_CONNECT;
     }
 
     public boolean supportsSnapshots() {
         return sdkToolsVersion >= SDK_TOOLS_SNAPSHOTS;
+    }
+
+    public boolean supportsComponentInstallation() {
+        return sdkToolsVersion >= SDK_AUTO_INSTALL;
     }
 
 }

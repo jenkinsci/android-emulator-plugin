@@ -2,7 +2,9 @@ package hudson.plugins.android_emulator.util;
 
 import hudson.util.FormValidation;
 
-public class ValidationResult {
+import java.io.Serializable;
+
+public class ValidationResult implements Serializable {
 
     public static enum Type {
         OK,
@@ -71,5 +73,7 @@ public class ValidationResult {
     public String toString() {
         return "ValidationResult[type="+ type +", message="+ message +"]";
     }
+
+    private static final long serialVersionUID = 1L;
 
 }

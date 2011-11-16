@@ -15,6 +15,7 @@ import hudson.plugins.android_emulator.util.ValidationResult;
 import hudson.remoting.Callable;
 import hudson.remoting.VirtualChannel;
 
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileFilter;
 import java.io.IOException;
@@ -27,28 +28,38 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.WeakHashMap;
+import java.util.concurrent.Semaphore;
 
 import org.apache.commons.lang.StringUtils;
 
 class SdkInstaller {
 
     /** Recent version of the Android SDK that will be installed. */
-    private static final int SDK_VERSION = 13;
+    private static final int SDK_VERSION = 15;
 
     /** Filename to write some metadata to about our automated installation. */
     private static final String SDK_INFO_FILENAME = ".jenkins-install-info";
 
+    /** Map of nodes to locks, to ensure only one executor attempts SDK installation at once. */
+    private static final Map<Node, Semaphore> mutexByNode = new WeakHashMap<Node, Semaphore>();
+
     /**
-     * Installs the Android SDK on the machine we're executing on.
+     * Downloads and installs the Android SDK on the machine we're executing on.
      *
-     * @param launcher
-     * @param listener
-     * @return
-     * @throws SdkInstallationException
-     * @throws IOException
-     * @throws InterruptedException
+     * @return An {@code AndroidSdk} object for the newly-installed SDK.
      */
     static AndroidSdk install(Launcher launcher, BuildListener listener)
+            throws SdkInstallationException, IOException, InterruptedException {
+        Semaphore semaphore = acquireLock();
+        try {
+            return doInstall(launcher, listener);
+        } finally {
+            semaphore.release();
+        }
+    }
+
+    private static AndroidSdk doInstall(Launcher launcher, BuildListener listener)
             throws SdkInstallationException, IOException, InterruptedException {
         // We should install the SDK on the current build machine
         Node node = Computer.currentComputer().getNode();
@@ -96,8 +107,7 @@ class SdkInstaller {
     private static FilePath installBasicSdk(final BuildListener listener, Node node, boolean isUnix)
             throws SdkUnavailableException, IOException, InterruptedException {
         // Locate where the SDK should be installed to on this node
-        final FilePath installDir = getSdkInstallDirectory(node);
-        System.out.println(">>> SDK install dir: "+ installDir);
+        final FilePath installDir = Utils.getSdkInstallDirectory(node);
 
         // Get the OS-specific download URL for the SDK
         AndroidInstaller installer = AndroidInstaller.fromNode(node);
@@ -118,13 +128,12 @@ class SdkInstaller {
             installDir.listDirectories().get(0).moveAllChildrenTo(installDir);
 
             // Java's ZipEntry doesn't preserve the executable bit...
-            // TODO: Check if this is actually needed on Linux (tar.gz is probably saner)
-            if (isUnix || installer == AndroidInstaller.MAC_OS_X) {
+            if (installer == AndroidInstaller.MAC_OS_X) {
                 setPermissions(installDir.child("tools"));
             }
 
             // Success!
-            log(listener.getLogger(), "SDK installed successfully");
+            log(listener.getLogger(), "Base SDK installed successfully");
         }
 
         return installDir;
@@ -143,7 +152,7 @@ class SdkInstaller {
         String proxySettings = getProxySettings();
 
         String list = StringUtils.join(components, ',');
-        log(logger, String.format("Installing the '%s' SDK component...", list));
+        log(logger, String.format("Installing the '%s' SDK component(s)...", list));
         String upgradeArgs = String.format("update sdk -o -u %s -t %s", proxySettings, list);
 
         // TODO: We need to be able to kill the command spawned if the build is interrupted!
@@ -157,40 +166,71 @@ class SdkInstaller {
      * @param launcher Used to launch tasks on the remote node.
      * @param sdkRoot Root of the SDK installation to install components for.
      */
-    public static boolean installDependencies(PrintStream logger, Launcher launcher,
+    static void installDependencies(PrintStream logger, Launcher launcher,
             AndroidSdk sdk, EmulatorConfig emuConfig) throws IOException, InterruptedException {
-        // TODO: Get AVD platform
+        // Get AVD platform from emulator config
         String platform = getPlatformForEmulator(launcher, emuConfig);
 
-        // TODO: Resolve dependencies
-        List<String> components = getSdkComponentsForPlatform(platform);
-        System.out.println(">> Determined required components: "+ components);
-        // TODO: Do nothing if null
+        // Check whether this platform is already installed
+        ByteArrayOutputStream targetList = new ByteArrayOutputStream();
+        // Preferably we'd use the "--compact" flag here, but it wasn't added until r12
+        Utils.runAndroidTool(launcher, targetList, logger, sdk, Tool.ANDROID, "list target", null);
+        if (targetList.toString().contains('"'+ platform +'"')) {
+            return;
+        }
 
-        // TODO: Check whether those component(s) are already installed
+        // Check whether we are capable of installing individual components
+        log(logger, "The configured Android platform needs to be installed: "+ platform);
+        if (!launcher.isUnix() && platform.contains(":") && sdk.getSdkToolsVersion() < 16) {
+            // SDK add-ons cannot be installed on Windows due to http://b.android.com/18868
+            log(logger, "Unfortunately this particular package cannot be automatically installed on SDK Tools r15 or earlier...");
+            return;
+        }
+        if (!sdk.supportsComponentInstallation()) {
+            log(logger, "However, this cannot be automatically installed as SDK Tools r14 or newer is required...");
+            return;
+        }
 
-        // TODO: If not, install component(s)
-        installComponent(logger, launcher, sdk, components.toArray(new String[0]));
-        return true;
+        // Automated installation of ABIs (required for android-14+) is not yet possible with the
+        // SDK Tools, so we should warn the user that we can't automatically set up an AVD.
+        // See http://b.android.com/21880
+        if (platform.endsWith("14")) {
+            log(logger, "It appears that the configured platform is based on Android 4.0 or newer.\n"+
+                    "This requires the 'ARM EABI v7a System Image' package which cannot yet be " +
+                    "automatically installed.\nPlease do so manually via the Android SDK Manager.",
+                    true);
+        }
+
+        // Determine which individual component(s) need to be installed for this platform
+        List<String> components = getSdkComponentsForPlatform(logger, platform);
+        if (components == null || components.size() == 0) {
+            return;
+        }
+
+        // Grab the lock and attempt installation
+        Semaphore semaphore = acquireLock();
+        try {
+            installComponent(logger, launcher, sdk, components.toArray(new String[0]));
+        } finally {
+            semaphore.release();
+        }
     }
 
-    private static List<String> getSdkComponentsForPlatform(String platform) {
-        System.out.println(">> Figure out SDK components for platform: "+ platform);
-
+    private static List<String> getSdkComponentsForPlatform(PrintStream logger, String platform) {
         // If it's a straightforward case like "android-10", there are no further dependencies
         if (!platform.contains(":")) {
             return Collections.singletonList(platform);
         }
 
         // Otherwise, figure out the component name and its platform dependency
-        List<String> components = new ArrayList<String>();
         String parts[] = platform.toLowerCase().split(":");
         if (parts.length != 3) {
-            System.out.println("!!! Platform split to too few parts: "+ parts.length);
+            log(logger, "Cannot automatically install unrecognised Android add-on: "+ platform);
             return null;
         }
 
         // Add dependent platform
+        List<String> components = new ArrayList<String>();
         String component = String.format("android-%s", parts[2]);
         components.add(component);
 
@@ -214,7 +254,6 @@ class SdkInstaller {
             throws IOException, InterruptedException {
         // For existing, named emulators, get the target from the metadata file
         if (emuConfig.isNamedEmulator()) {
-            System.out.println("> Getting platform for emulator: "+ emuConfig.getAvdName());
             return getPlatformFromExistingEmulator(launcher, emuConfig);
         }
 
@@ -227,20 +266,43 @@ class SdkInstaller {
      *
      * @param launcher Used to access files on the remote node.
      * @param emuConfig The emulator whose target platform we want to determine.
-     * @return The platform, or {@code null} if it could not be determined.
+     * @return The platform identifier.
      */
     private static String getPlatformFromExistingEmulator(final Launcher launcher,
             final EmulatorConfig emuConfig) throws IOException, InterruptedException {
         return launcher.getChannel().call(new Callable<String, IOException>() {
             public String call() throws IOException {
                 File metadataFile = emuConfig.getAvdMetadataFile(launcher.isUnix());
-                System.out.println(">> Reading target from metadata file: "+ metadataFile);
                 Map<String, String> metadata = Utils.parseConfigFile(metadataFile);
-                System.out.println(">> Got properties: "+ metadata);
                 return metadata.get("target");
             }
             private static final long serialVersionUID = 1L;
         });
+    }
+
+    /**
+     * Acquires an exclusive lock for the machine we're executing on.
+     * <p>
+     * The lock only has one permit, meaning that other executors on the same node which want to
+     * install SDK components will block here until the lock is released by another executor.
+     *
+     * @return The semaphore for the current machine, which must be released once finished with.
+     */
+    private static Semaphore acquireLock() throws InterruptedException {
+        // Retrieve the lock for this node
+        Semaphore semaphore;
+        final Node node = Computer.currentComputer().getNode();
+        synchronized (node) {
+            semaphore = mutexByNode.get(node);
+            if (semaphore == null) {
+                semaphore = new Semaphore(1);
+                mutexByNode.put(node, semaphore);
+            }
+        }
+
+        // Block until the lock is available
+        semaphore.acquire();
+        return semaphore;
     }
 
     private static String getProxySettings() {
@@ -256,15 +318,18 @@ class SdkInstaller {
      * @param sdkRoot Root directory of the SDK installation to check.
      * @return {@code true} if the basic SDK <b>and</b> all required SDK components are installed.
      */
-    private static boolean isSdkInstallComplete(Node node, String sdkRoot)
+    private static boolean isSdkInstallComplete(Node node, final String sdkRoot)
             throws IOException, InterruptedException {
-        // TODO: This needs to run on the remote node!
+        // Validation needs to run on the remote node
+        ValidationResult result = node.getChannel().call(new Callable<ValidationResult, InterruptedException>() {
+            public ValidationResult call() throws InterruptedException {
+                return Utils.validateAndroidHome(new File(sdkRoot), false);
+            }
+            private static final long serialVersionUID = 1L;
+        });
 
-        ValidationResult result = Utils.validateAndroidHome(new File(sdkRoot), false);
-        System.out.println("SDK validation result: "+ result);
         if (result.isFatal()) {
             // No, we're missing some tools
-            System.out.println("SDK is not complete: missing tools");
             return false;
         }
 
@@ -272,28 +337,9 @@ class SdkInstaller {
         return getInstallationInfoFilename(node).exists();
     }
 
-    /**
-     * Retrieves the path at which the Android SDK shoud be installed on the given node.
-     *
-     * @param node Node to install the SDK on.
-     * @return Path within the tools folder on the node where the SDK should live.
-     */
-    private static final FilePath getSdkInstallDirectory(Node node) {
-        if (node == null) {
-            throw new IllegalArgumentException("Must pass a valid Node!");
-        }
-
-        // Get the root of the node installation
-        FilePath root = node.getRootPath();
-        if (root == null) {
-            throw new IllegalArgumentException("Node " + node.getDisplayName() + " seems to be offline");
-        }
-        return root.child("tools").child("android-sdk");
-    }
-
     /** Gets the path of our installation metadata file for the given node. */
     private static final FilePath getInstallationInfoFilename(Node node) {
-        return getSdkInstallDirectory(node).child(SDK_INFO_FILENAME);
+        return Utils.getSdkInstallDirectory(node).child(SDK_INFO_FILENAME);
     }
 
     /**
@@ -322,8 +368,8 @@ class SdkInstaller {
     /** Helper for getting platform-specific SDK installation information. */
     enum AndroidInstaller {
 
-        LINUX("linux_x86", "tar.gz"),
-        MAC_OS_X("mac_x86", "zip"),
+        LINUX("linux", "tgz"),
+        MAC_OS_X("macosx", "zip"),
         WINDOWS("windows", "zip");
 
         private static final String PATTERN = "http://dl.google.com/android/android-sdk_r%d-%s.%s";
