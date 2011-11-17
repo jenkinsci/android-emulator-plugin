@@ -5,6 +5,8 @@ import hudson.FilePath;
 import hudson.Launcher;
 import hudson.model.AbstractBuild;
 import hudson.model.BuildListener;
+import hudson.model.Computer;
+import hudson.model.Node;
 import hudson.plugins.android_emulator.AndroidEmulator;
 import hudson.plugins.android_emulator.Messages;
 import hudson.plugins.android_emulator.sdk.AndroidSdk;
@@ -40,7 +42,8 @@ public abstract class AbstractBuilder extends Builder {
         EnvVars envVars = Utils.getEnvironment(build, listener);
 
         // Retrieve actual SDK root based on given value
-        String discoveredAndroidHome = Utils.discoverAndroidHome(launcher, envVars, androidHome);
+        Node node = Computer.currentComputer().getNode();
+        String discoveredAndroidHome = Utils.discoverAndroidHome(launcher, node, envVars, androidHome);
 
         // Get Android SDK object from the given root (or locate on PATH)
         return Utils.getAndroidSdk(launcher, discoveredAndroidHome);

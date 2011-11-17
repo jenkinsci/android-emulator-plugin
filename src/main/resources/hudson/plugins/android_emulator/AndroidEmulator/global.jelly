@@ -1,11 +1,21 @@
 <j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define" xmlns:l="/lib/layout" xmlns:t="/lib/hudson" xmlns:f="/lib/form">
+
   <f:section title="${%Android}">
+
     <f:entry title="${%Android SDK root}"
         description="${%Enter the path to the root of an Android SDK installation}"
-        help="${rootURL}/plugin/android-emulator/help-globalConfig.html">
+        help="${rootURL}/plugin/android-emulator/help-sdkRoot.html">
       <input class="setting-input validated" name="android-emulator.androidHome"
           type="text" value="${descriptor.androidHome}"
           checkUrl="'buildWrapper/AndroidEmulator/checkAndroidHome?value='+escape(this.value)" />
     </f:entry>
+
+    <f:entry help="/plugin/android-emulator/help-installSdk.html">
+      <f:checkbox id="android-emulator.shouldInstallSdk" name="android-emulator.shouldInstallSdk"
+          checked="${h.defaultToTrue(descriptor.shouldInstallSdk)}" />
+      <label class="attach-previous">${%Automatically install Android SDK when required}</label>
+    </f:entry>
+
   </f:section>
+
 </j:jelly>

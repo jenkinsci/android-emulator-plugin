@@ -37,3 +37,17 @@ final class EmulatorCreationException extends AndroidEmulatorException {
     private static final long serialVersionUID = 1L;
 
 }
+
+final class SdkInstallationException extends AndroidEmulatorException {
+
+    SdkInstallationException(String message) {
+        super(message);
+    }
+
+    SdkInstallationException(String message, Throwable cause) {
+        super(message, cause);
+    }
+
+    private static final long serialVersionUID = 1L;
+
+}

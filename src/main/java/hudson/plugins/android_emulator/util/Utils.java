@@ -11,6 +11,7 @@ import hudson.model.AbstractBuild;
 import hudson.model.BuildListener;
 import hudson.model.Computer;
 import hudson.model.Hudson;
+import hudson.model.Node;
 import hudson.plugins.android_emulator.Constants;
 import hudson.plugins.android_emulator.Messages;
 import hudson.plugins.android_emulator.AndroidEmulator.DescriptorImpl;
@@ -30,7 +31,10 @@ import java.io.PrintStream;
 import java.io.PrintWriter;
 import java.net.Socket;
 import java.net.SocketException;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
@@ -83,8 +87,10 @@ public class Utils {
      * @param androidHome The (variable-expanded) SDK root given in global config.
      * @return Either a discovered SDK path or, if all else fails, the given androidHome value.
      */
-    public static String discoverAndroidHome(final Launcher launcher, final EnvVars envVars,
-            final String androidHome) {
+    public static String discoverAndroidHome(Launcher launcher, Node node,
+            final EnvVars envVars, final String androidHome) {
+        final String autoInstallDir = getSdkInstallDirectory(node).getRemote();
+
         Callable<String, InterruptedException> task = new Callable<String, InterruptedException>() {
             public String call() throws InterruptedException {
                 // Verify existence of provided value
@@ -95,8 +101,18 @@ public class Utils {
                 // Check for common environment variables
                 String[] keys = { "ANDROID_SDK_ROOT", "ANDROID_SDK_HOME",
                                   "ANDROID_HOME", "ANDROID_SDK" };
+
+                // Resolve each variable to its directory name
+                List<String> potentialSdkDirs = new ArrayList<String>();
                 for (String key : keys) {
-                    String home = envVars.get(key);
+                    potentialSdkDirs.add(envVars.get(key));
+                }
+
+                // Also add the auto-installed SDK directory to the list of candidates
+                potentialSdkDirs.add(autoInstallDir);
+
+                // Check each directory to see if it's a valid Android SDK
+                for (String home : potentialSdkDirs) {
                     if (validateHomeDir(home)) {
                         return home;
                     }
@@ -266,28 +282,52 @@ public class Utils {
         // Get list of required tools when working from PATH
         Tool[] tools = { Tool.ADB, Tool.EMULATOR };
 
-        // Examine each directory specified by the PATH environment variable.
-        int toolCount = 0;
-        String[] paths = System.getenv("PATH").split(File.pathSeparator);
+        // Get list of directories from the PATH environment variable
+        List<String> paths = Arrays.asList(System.getenv("PATH").split(File.pathSeparator));
+
+        // Examine each directory to see whether it contains Android SDK Tools
         for (String path : paths) {
             File toolsDirectory = new File(path);
-            if (toolsDirectory.isDirectory()) {
-                for (Tool tool : tools) {
-                    String executable = tool.getExecutable(isUnix);
-                    if (new File(toolsDirectory, executable).exists()) {
-                        toolCount++;
-                    }
-                }
-            }
-
-            // If all the tools were found in this directory, we have a winner
-            if (toolCount == tools.length) {
+            if (isSdkToolsDirectory(tools, toolsDirectory, isUnix)) {
                 // Return the parent path (i.e. the SDK root)
                 return toolsDirectory.getParent();
             }
         }
 
         return null;
+    }
+
+    private static boolean isSdkToolsDirectory(Tool[] tools, File toolsDir, boolean isUnix) {
+        int toolCount = 0;
+        if (toolsDir.isDirectory()) {
+            for (Tool tool : tools) {
+                String executable = tool.getExecutable(isUnix);
+                if (new File(toolsDir, executable).exists()) {
+                    toolCount++;
+                }
+            }
+        }
+
+        // If all the tools were found in this directory, we have a winner
+        return (toolCount == tools.length);
+    }
+
+    /**
+     * Retrieves the path at which the Android SDK should be installed on the current node.
+     *
+     * @return Path within the tools folder where the SDK should live.
+     */
+    public static final FilePath getSdkInstallDirectory(Node node) {
+        if (node == null) {
+            throw new IllegalArgumentException("Node is null");
+        }
+
+        // Get the root of the node installation
+        FilePath root = node.getRootPath();
+        if (root == null) {
+            throw new IllegalArgumentException("Node " + node.getDisplayName() + " seems to be offline");
+        }
+        return root.child("tools").child("android-sdk");
     }
 
     /**

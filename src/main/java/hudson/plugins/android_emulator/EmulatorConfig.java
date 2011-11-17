@@ -255,7 +255,8 @@ class EmulatorConfig implements Serializable {
         return new File(getAvdHome(homeDir), getAvdName() +".avd");
     }
 
-    private File getAvdMetadataFile(final File homeDir) {
+    public File getAvdMetadataFile(boolean isUnix) {
+        final File homeDir = getHomeDirectory(isUnix);
         return new File(getAvdHome(homeDir), getAvdName() +".ini");
     }
 
@@ -652,7 +653,7 @@ class EmulatorConfig implements Serializable {
             new FilePath(avdDirectory).deleteRecursive();
 
             // Delete the metadata file
-            getAvdMetadataFile(homeDir).delete();
+            getAvdMetadataFile(isUnix).delete();
 
             // Success!
             return true;
