@@ -37,7 +37,7 @@ public interface Constants {
     static final String REGEX_LOCALE = "[a-z]{2}_[A-Z]{2}";
     static final String REGEX_SCREEN_DENSITY = "[0-9]{2,4}|(?i)(x?h|[lm])dpi";
     static final String REGEX_SCREEN_RESOLUTION = "[0-9]{3,4}x[0-9]{3,4}";
-    static final String REGEX_SCREEN_RESOLUTION_ALIAS = "(([HQ]|F?WQ?)V|WX)GA";
+    static final String REGEX_SCREEN_RESOLUTION_ALIAS = "(([HQ]|F?W[SQ]?)V|WX)GA(720|800|-[LP])?";
     static final String REGEX_SCREEN_RESOLUTION_FULL = REGEX_SCREEN_RESOLUTION_ALIAS +"|"+ REGEX_SCREEN_RESOLUTION;
     static final String REGEX_SD_CARD_SIZE = "(?i)([0-9]{1,12}) ?([KM])[B]?";
     static final String REGEX_SNAPSHOT = "[0-9]+ +"+ SNAPSHOT_NAME +" +[0-9]+M ";
@@ -66,9 +66,10 @@ class AndroidPlatform implements Serializable {
     static final AndroidPlatform SDK_3_0 = new AndroidPlatform("3.0", 11);
     static final AndroidPlatform SDK_3_1 = new AndroidPlatform("3.1", 12);
     static final AndroidPlatform SDK_3_2 = new AndroidPlatform("3.2", 13);
+    static final AndroidPlatform SDK_4_0 = new AndroidPlatform("4.0", 14);
     static final AndroidPlatform[] PRESETS = new AndroidPlatform[] { SDK_1_5, SDK_1_6, SDK_2_1,
-                                                                     SDK_2_2, SDK_2_3, SDK_2_3_3,
-                                                                     SDK_3_0, SDK_3_1, SDK_3_2 };
+                                                                     SDK_2_2, SDK_2_3_3, SDK_3_0,
+                                                                     SDK_3_1, SDK_3_2, SDK_4_0 };
 
     private final String name;
     private final int level;
@@ -88,7 +89,8 @@ class AndroidPlatform implements Serializable {
         }
 
         for (AndroidPlatform preset : PRESETS) {
-            if (version.equals(preset.name) || version.equals(preset.level +"")) {
+            if (version.equals(preset.name) || version.equals(String.valueOf(preset.level))
+                    || version.equals(preset.getTargetName())) {
                 return preset;
             }
         }
@@ -200,10 +202,17 @@ class ScreenResolution implements Serializable {
             ScreenDensity.MEDIUM, ScreenDensity.HIGH);
     static final ScreenResolution FWVGA = new ScreenResolution(480, 854, "FWVGA", "WVGA854",
             ScreenDensity.MEDIUM, ScreenDensity.HIGH);
+    static final ScreenResolution WSVGA = new ScreenResolution(1024, 654, "WSVGA", "WSVGA",
+            ScreenDensity.MEDIUM, ScreenDensity.HIGH);
+    static final ScreenResolution WXGA_720 = new ScreenResolution(1280, 720, "WXGA720", "WXGA720",
+            ScreenDensity.MEDIUM);
+    static final ScreenResolution WXGA_800 = new ScreenResolution(1280, 800, "WXGA800", "WXGA800",
+            ScreenDensity.MEDIUM);
     static final ScreenResolution WXGA = new ScreenResolution(1280, 800, "WXGA", "WXGA",
             ScreenDensity.MEDIUM);
-    static final ScreenResolution[] PRESETS = new ScreenResolution[] { QVGA, WQVGA, FWQVGA,
-                                                                       HVGA, WVGA, FWVGA, WXGA };
+    static final ScreenResolution[] PRESETS = new ScreenResolution[] { QVGA, WQVGA, FWQVGA, HVGA,
+                                                                       WVGA, FWVGA, WSVGA,
+                                                                       WXGA_720, WXGA_800, WXGA };
 
     private final int width;
     private final int height;

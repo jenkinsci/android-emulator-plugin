@@ -658,7 +658,7 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
             if (result.isFatal()) {
                 return result.getMessage();
             }
-            result = descriptor.doCheckScreenResolution(screenResolution, null, false);
+            result = descriptor.doCheckScreenResolution(screenResolution, null, null, false);
             if (result.isFatal()) {
                 return result.getMessage();
             }
@@ -932,12 +932,12 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
         }
 
         public FormValidation doCheckScreenResolution(@QueryParameter String value,
-                @QueryParameter String density) {
-            return doCheckScreenResolution(value, density, true).getFormValidation();
+                @QueryParameter String density, @QueryParameter String osVersion) {
+            return doCheckScreenResolution(value, density, osVersion, true).getFormValidation();
         }
 
         private ValidationResult doCheckScreenResolution(String resolution, String density,
-                boolean allowVariables) {
+                String osVersion, boolean allowVariables) {
             if (resolution == null || resolution.equals("")) {
                 return ValidationResult.error(Messages.SCREEN_RESOLUTION_REQUIRED());
             }
@@ -946,7 +946,22 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
                 regex += "|"+ Constants.REGEX_VARIABLE;
             }
             if (!resolution.matches(regex)) {
-                return ValidationResult.error(Messages.INVALID_RESOLUTION_FORMAT());
+                return ValidationResult.warning(Messages.INVALID_RESOLUTION_FORMAT());
+            }
+
+            // Warn about inconsistent WXGA skin names between Android 3.x and 4.x
+            AndroidPlatform platform = AndroidPlatform.valueOf(osVersion);
+            if (platform != null) {
+                int sdkLevel = platform.getSdkLevel();
+                if (sdkLevel >= 11 && platform.getSdkLevel() <= 13) {
+                    if (resolution.equals("WXGA720") || resolution.equals("WXGA800")) {
+                        String msg = String.format("That doesn't look right for Android %s. Did you mean WXGA?", platform);
+                        return ValidationResult.warning(msg);
+                    }
+                } else if (sdkLevel >= 14 && resolution.equals("WXGA")) {
+                    String msg = String.format("That doesn't look right for Android %s. Did you mean WXGA720 or WXGA800?", platform);
+                    return ValidationResult.warning(msg);
+                }
             }
 
             // Check for shenanigans
