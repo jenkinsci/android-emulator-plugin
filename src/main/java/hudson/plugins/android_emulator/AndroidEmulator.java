@@ -413,6 +413,9 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
             return null;
         }
 
+        // Make sure we're still connected
+        connectEmulator(procStarter, adbConnectCmd, listener);
+
         // Unlock emulator by pressing the Menu key once, if required.
         // Upon first boot (and when the data is wiped) the emulator is already unlocked
         final long bootDuration = System.currentTimeMillis() - bootTime;
@@ -429,12 +432,11 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
             procStarter.cmds(menuCmd).start().join();
 
             // If a named emulator already existed, it may not have been booted yet, so the screen
-            // wouldn't be locked.  In this case, after pressing Menu, we press Back to compensate
-            if (emuConfig.isNamedEmulator()) {
-                final String backArgs = String.format(keyEventArgs, 4);
-                ArgumentListBuilder backCmd = Utils.getToolCommand(androidSdk, isUnix, Tool.ADB, backArgs);
-                procStarter.cmds(backCmd).start().join();
-            }
+            // wouldn't be locked.  Similarly, an non-named emulator may have already booted the
+            // first time without us knowing.  In both cases, we press Back after Menu to compensate
+            final String backArgs = String.format(keyEventArgs, 4);
+            ArgumentListBuilder backCmd = Utils.getToolCommand(androidSdk, isUnix, Tool.ADB, backArgs);
+            procStarter.cmds(backCmd).start().join();
         }
 
         // Initialise snapshot image, if required
@@ -471,6 +473,9 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
                     cleanUp(logger, launcher, androidSdk, portAllocator, emuConfig, emulatorProcess,
                             adbPort, userPort, logWriter, logcatFile, logcatStream, artifactsDir);
                 }
+
+                // Make sure we're still connected
+                connectEmulator(procStarter, adbConnectCmd, listener);
             } else {
                 log(logger, Messages.SNAPSHOT_CREATION_FAILED());
             }
@@ -508,6 +513,11 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
                 return true;
             }
         };
+    }
+
+    private static void connectEmulator(ProcStarter procStarter, ArgumentListBuilder cmd, TaskListener listener)
+            throws IOException, InterruptedException {
+        procStarter.cmds(cmd).stdout(new NullStream()).start().joinWithTimeout(1L, TimeUnit.SECONDS, listener);
     }
 
     /** Helper method for writing to the build log in a consistent manner. */
