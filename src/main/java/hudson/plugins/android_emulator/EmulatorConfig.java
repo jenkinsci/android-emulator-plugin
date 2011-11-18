@@ -538,8 +538,14 @@ class EmulatorConfig implements Serializable {
             // For reasons unknown, the return code may not be correctly reported on Windows.
             // So check whether stderr contains failure info (useful for other platforms too).
             String errOutput = stderr.toString();
-            if (errOutput.toString().contains("list targets")) {
+            if (errOutput.contains("list targets")) {
                 AndroidEmulator.log(logger, Messages.INVALID_AVD_TARGET(osVersion.getTargetName()));
+                avdCreated = false;
+                errOutput = null;
+            } else if (errOutput.contains("more than one ABI")) {
+                // TODO: Currently we assume this message means there are *no* ABIs installed...
+                // TODO: See JENKINS-11516
+                AndroidEmulator.log(logger, Messages.ABI_REQUIRED(osVersion.getTargetName()), true);
                 avdCreated = false;
                 errOutput = null;
             }
