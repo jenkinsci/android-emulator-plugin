@@ -1,0 +1,12 @@
+- Move strings to Messages.properties for 1.19
+- SDK installation should be on by default; option name and help file need to be updated
+- ABI support appeared in r13, i.e. using --abi with "android create avd"
+- Need to fix getSdkRootFromPath/isSdkToolsDirectory as they're trying to do an impossible check: that both adb and emulator are in the same directory... to test this, install an SDK without platform-tools and watch the misdetection occur...
+- Need to combine discoverAndroidHome and getAndroidSdk
+- Grab Semaphore when calling adb so that, after we know we've auto-installed some components, we can manually restart adb after all Semaphores have been released -- though this depends on Android bug 21923
+- Tools r16 will probably make "android.bat" become "android.exe" which will cause issues in our Tool class
+- Add timeouts to all ADB actions, including "logcat -c" etc.
+>> STDERR (or whatever we do) isn't caught on Windows, but is on Linux...
+[android] Creating Android AVD: /home/hudson/.android/avd/hudson_en-NZ_160_WXGA_android-14.avd
+	Error: 'WXGA' is not a valid skin name or size (NNNxMMM)
+
