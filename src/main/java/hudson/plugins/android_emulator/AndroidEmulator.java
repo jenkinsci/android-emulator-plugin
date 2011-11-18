@@ -413,9 +413,6 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
             return null;
         }
 
-        // Make sure we're still connected
-        connectEmulator(procStarter, adbConnectCmd, listener);
-
         // Unlock emulator by pressing the Menu key once, if required.
         // Upon first boot (and when the data is wiped) the emulator is already unlocked
         final long bootDuration = System.currentTimeMillis() - bootTime;
@@ -424,6 +421,9 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
             // screen is up and ready to accept key presses.
             // The delay here is a function of boot time, i.e. relative to the slowness of the host
             Thread.sleep(bootDuration / 4);
+
+            // Make sure we're still connected
+            connectEmulator(procStarter, adbConnectCmd, listener);
 
             log(logger, Messages.UNLOCKING_SCREEN());
             final String keyEventArgs = String.format("-s %s shell input keyevent %%d", serial);
@@ -444,6 +444,9 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
             // In order to create a clean initial snapshot, give the system some more time to settle
             log(logger, Messages.WAITING_INITIAL_SNAPSHOT());
             Thread.sleep((long) (bootDuration * 0.8));
+
+            // Make sure we're still connected
+            connectEmulator(procStarter, adbConnectCmd, listener);
 
             // Clear main log before creating snapshot
             final String clearArgs = String.format("-s %s logcat -c", serial);
@@ -473,13 +476,13 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
                     cleanUp(logger, launcher, androidSdk, portAllocator, emuConfig, emulatorProcess,
                             adbPort, userPort, logWriter, logcatFile, logcatStream, artifactsDir);
                 }
-
-                // Make sure we're still connected
-                connectEmulator(procStarter, adbConnectCmd, listener);
             } else {
                 log(logger, Messages.SNAPSHOT_CREATION_FAILED());
             }
         }
+
+        // Make sure we're still connected
+        connectEmulator(procStarter, adbConnectCmd, listener);
 
         // Done!
         final long bootCompleteTime = System.currentTimeMillis();
