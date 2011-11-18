@@ -441,8 +441,8 @@ public class Utils {
     }
 
     /**
-     * Expands the variable in the given string to its value in the environment variables available
-     * to this build.  The Jenkins-specific build variables for this build are then substituted.
+     * Expands the variable in the given string to its value in the variables available to this build.
+     * The Jenkins-specific build variables take precedence over environment variables.
      *
      * @param envVars  Map of the environment variables.
      * @param buildVars  Map of the build-specific variables.
@@ -451,13 +451,15 @@ public class Utils {
      */
     public static String expandVariables(EnvVars envVars, Map<String,String> buildVars,
             String token) {
-        if (buildVars == null) {
-            buildVars = new HashMap<String,String>(0);
+        final Map<String,String> vars = new HashMap<String,String>(envVars);
+        if (buildVars != null) {
+            // Build-specific variables, if any, take priority over environment variables
+            vars.putAll(buildVars);
         }
 
         String result = Util.fixEmptyAndTrim(token);
         if (result != null) {
-            result = Util.replaceMacro(Util.replaceMacro(result, envVars), buildVars);
+            result = Util.replaceMacro(result, vars);
         }
         return result;
     }
