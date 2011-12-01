@@ -6,9 +6,6 @@ public class AndroidSdk implements Serializable {
 
     private static final long serialVersionUID = 1L;
 
-    /** First version in which "adb connect" supported emulators. */
-    private static final int SDK_TOOLS_EMU_CONNECT = 7;
-
     /** First version in which snapshots were supported. */
     private static final int SDK_TOOLS_SNAPSHOTS = 9;
 
@@ -45,10 +42,6 @@ public class AndroidSdk implements Serializable {
 
     public int getSdkToolsVersion() {
         return this.sdkToolsVersion;
-    }
-
-    public boolean supportsEmuConnect() {
-        return sdkToolsVersion >= SDK_TOOLS_EMU_CONNECT;
     }
 
     public boolean supportsSnapshots() {

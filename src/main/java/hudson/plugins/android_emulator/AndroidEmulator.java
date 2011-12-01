@@ -375,16 +375,8 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
         boolean ignoreProcess = !launcher.isUnix() && androidSdk.getSdkToolsVersion() >= 12;
 
         // Notify adb of our existence
-        final String serial;
-        final String adbConnectArgs;
-        if (androidSdk.supportsEmuConnect()) {
-            serial = "emulator-"+ userPort;
-            adbConnectArgs = String.format("connect emu:%s,%s", userPort, adbPort);
-        } else {
-            serial = "localhost:"+ adbPort;
-            adbConnectArgs = "connect "+ serial;
-        }
-        ArgumentListBuilder adbConnectCmd = Utils.getToolCommand(androidSdk, isUnix, Tool.ADB, adbConnectArgs);
+        final String serial = "localhost:"+ adbPort;
+        ArgumentListBuilder adbConnectCmd = Utils.getToolCommand(androidSdk, isUnix, Tool.ADB, "connect " + serial);
         int result = procStarter.cmds(adbConnectCmd).stdout(new NullStream()).start().join();
         if (result != 0) { // adb currently only ever returns 0!
             log(logger, Messages.CANNOT_CONNECT_TO_EMULATOR());
@@ -409,7 +401,7 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
             bootTimeout *= 4;
         }
         boolean bootSucceeded = waitForBootCompletion(logger, launcher, androidSdk, emulatorProcess,
-                ignoreProcess, serial, adbServerPort, adbConnectArgs, bootTimeout);
+                ignoreProcess, serial, adbPort, userPort, adbServerPort, bootTimeout);
         if (!bootSucceeded) {
             if ((System.currentTimeMillis() - bootTime) < bootTimeout) {
                 log(logger, Messages.EMULATOR_STOPPED_DURING_BOOT());
@@ -432,7 +424,7 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
             Thread.sleep(bootDuration / 4);
 
             // Make sure we're still connected
-            connectEmulator(procStarter, adbConnectCmd, listener);
+            connectEmulator(logger, androidSdk, launcher, adbPort, userPort, adbServerPort);
 
             log(logger, Messages.UNLOCKING_SCREEN());
             final String keyEventArgs = String.format("-s %s shell input keyevent %%d", serial);
@@ -455,7 +447,7 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
             Thread.sleep((long) (bootDuration * 0.8));
 
             // Make sure we're still connected
-            connectEmulator(procStarter, adbConnectCmd, listener);
+            connectEmulator(logger, androidSdk, launcher, adbPort, userPort, adbServerPort);
 
             // Clear main log before creating snapshot
             final String clearArgs = String.format("-s %s logcat -c", serial);
@@ -491,7 +483,7 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
         }
 
         // Make sure we're still connected
-        connectEmulator(procStarter, adbConnectCmd, listener);
+        connectEmulator(logger, androidSdk, launcher, adbPort, userPort, adbServerPort);
 
         // Done!
         final long bootCompleteTime = System.currentTimeMillis();
@@ -528,10 +520,25 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
         };
     }
 
-    private static void connectEmulator(ProcStarter procStarter, ArgumentListBuilder cmd, TaskListener listener)
+    private static void connectEmulator(PrintStream logger, AndroidSdk androidSdk, Launcher launcher,
+                                        int adbPort, int userPort, int adbServerPort)
             throws IOException, InterruptedException {
-        procStarter.cmds(cmd).stdout(new NullStream()).start().joinWithTimeout(5L, TimeUnit.SECONDS, listener);
+        final String serial = "localhost:"+ adbPort;
+
+        final ProcStarter procStarter = launcher.launch().stderr(logger).envs("ANDROID_ADB_SERVER_PORT=" + adbServerPort);
+        ArgumentListBuilder adbConnectCmd = Utils.getToolCommand(androidSdk, launcher.isUnix(), Tool.ADB, "connect " + serial);
+        procStarter.cmds(adbConnectCmd).stdout(new NullStream()).start().joinWithTimeout(5L, TimeUnit.SECONDS, launcher.getListener());
     }
+
+    private static void disconnectEmulator(PrintStream logger, AndroidSdk androidSdk, Launcher launcher,
+                                           int adbPort, int userPort, int adbServerPort)
+            throws IOException, InterruptedException {
+        final String args = "disconnect localhost:"+ adbPort;
+        ArgumentListBuilder adbDisconnectCmd = Utils.getToolCommand(androidSdk, launcher.isUnix(), Tool.ADB, args);
+        final ProcStarter procStarter = launcher.launch().stderr(logger).envs("ANDROID_ADB_SERVER_PORT=" + adbServerPort);
+        procStarter.cmds(adbDisconnectCmd).stdout(new NullStream()).start().joinWithTimeout(5L, TimeUnit.SECONDS, launcher.getListener());
+    }
+
 
     /** Helper method for writing to the build log in a consistent manner. */
     public synchronized static void log(final PrintStream logger, final String message) {
@@ -599,14 +606,10 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
         //        Launcher.kill(EnvVars) does not appear to help either.
         //        This is (a) inconsistent; (b) very annoying.
 
-        final ProcStarter procStarter = launcher.launch().stderr(logger).envs("ANDROID_ADB_SERVER_PORT=" + Integer.toString(adbServerPort));
+        final ProcStarter procStarter = launcher.launch().stderr(logger).envs("ANDROID_ADB_SERVER_PORT=" + adbServerPort);
 
         // Disconnect emulator from adb
-        if (!androidSdk.supportsEmuConnect()) {
-            final String args = "disconnect localhost:"+ adbPort;
-            ArgumentListBuilder adbDisconnectCmd = Utils.getToolCommand(androidSdk, launcher.isUnix(), Tool.ADB, args);
-            procStarter.cmds(adbDisconnectCmd).stdout(new NullStream()).start().join();
-        }
+        disconnectEmulator(logger, androidSdk, launcher, adbPort, userPort, adbServerPort);
 
         // Stop emulator process
         log(logger, Messages.STOPPING_EMULATOR());
@@ -738,17 +741,17 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
      */
     private boolean waitForBootCompletion(final PrintStream logger, final Launcher launcher,
             final AndroidSdk androidSdk, final Proc emulatorProcess, final boolean ignoreProcess,
-            final String serial, final int adbServerPort, final String adbConnectArgs, final int timeout) {
+            final String serial, final int adbPort, final int userPort, final int adbServerPort, final int timeout) {
         long start = System.currentTimeMillis();
-        int sleep = timeout / (int) Math.sqrt(timeout / 1000);
-        final ProcStarter procStarter = launcher.launch().envs("ANDROID_ADB_SERVER_PORT=" + Integer.toString(adbServerPort));
+        int sleep = timeout / (int) (Math.sqrt(timeout / 1000) * 2);
+        final ProcStarter procStarter = launcher.launch().envs("ANDROID_ADB_SERVER_PORT=" + adbServerPort);
 
         final String args = String.format("-s %s shell getprop dev.bootcomplete", serial);
         ArgumentListBuilder bootCheckCmd = Utils.getToolCommand(androidSdk, launcher.isUnix(), Tool.ADB, args);
-        ArgumentListBuilder connectCmd = Utils.getToolCommand(androidSdk, launcher.isUnix(), Tool.ADB, adbConnectArgs);
 
         try {
             final long adbTimeout = timeout / 8;
+            int iterations = 0;
             while (System.currentTimeMillis() < start + timeout && (ignoreProcess || emulatorProcess.isAlive())) {
                 ByteArrayOutputStream stream = new ByteArrayOutputStream(4);
 
@@ -766,11 +769,14 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
                 // Otherwise continue...
 
                 // Ensure the emulator is connected to adb, in case it had crashed
-                Proc connect = procStarter.cmds(connectCmd).start();
+                if (++iterations % 2 == 0) {
+                  try {
+                    disconnectEmulator(logger, androidSdk, launcher, adbPort, userPort, adbServerPort);
+                  } catch (Exception ex) { }
+                }
+                connectEmulator(logger, androidSdk, launcher, adbPort, userPort, adbServerPort);
 
                 Thread.sleep(sleep);
-
-                connect.joinWithTimeout(5L, TimeUnit.SECONDS, launcher.getListener());
             }
         } catch (InterruptedException ex) {
             log(logger, Messages.INTERRUPTED_DURING_BOOT_COMPLETION());
