@@ -206,10 +206,11 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
 
         // Build emulator config, ensuring that variables expand to valid SDK values
         EmulatorConfig emuConfig;
+        final String androidSdkHome = (envVars != null && descriptor.shouldKeepInWorkspace ? envVars.get("WORKSPACE") : null);
         try {
             emuConfig = EmulatorConfig.create(avdName, osVersion, screenDensity,
                 screenResolution, deviceLocale, sdCardSize, wipeData, showWindow, useSnapshots,
-                commandLineOptions, targetAbi);
+                commandLineOptions, targetAbi, androidSdkHome);
         } catch (IllegalArgumentException e) {
             log(logger, Messages.EMULATOR_CONFIGURATION_BAD(e.getLocalizedMessage()));
             build.setResult(Result.NOT_BUILT);
@@ -217,7 +218,7 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
         }
 
         // Confirm that the required SDK tools are available
-        AndroidSdk androidSdk = Utils.getAndroidSdk(launcher, androidHome);
+        AndroidSdk androidSdk = Utils.getAndroidSdk(launcher, androidHome, androidSdkHome);
         if (androidSdk == null) {
             if (!descriptor.shouldInstallSdk) {
                 // Couldn't find an SDK, don't want to install it, give up
@@ -229,12 +230,14 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
             // Ok, let's download and install the SDK
             log(logger, Messages.INSTALLING_SDK());
             try {
-                androidSdk = SdkInstaller.install(launcher, listener);
+                androidSdk = SdkInstaller.install(launcher, listener, androidSdkHome);
             } catch (SdkInstallationException e) {
                 log(logger, Messages.SDK_INSTALLATION_FAILED(), e);
                 build.setResult(Result.NOT_BUILT);
                 return null;
             }
+        } else if (descriptor.shouldKeepInWorkspace) {
+            SdkInstaller.optOutOfSdkStatistics(launcher, listener, androidSdkHome);
         }
 
         // Install the required SDK components for the desired platform, if necessary
@@ -745,6 +748,8 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
 
         /** Whether the SDK should be automatically installed where it's not found. */
         public boolean shouldInstallSdk = true;
+        /** Whether the emulators should be kept in the workspace. */
+        public boolean shouldKeepInWorkspace = false;
 
         public DescriptorImpl() {
             super(AndroidEmulator.class);
@@ -760,6 +765,7 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
         public boolean configure(StaplerRequest req, JSONObject json) throws FormException {
             androidHome = json.optString("androidHome");
             shouldInstallSdk = json.optBoolean("shouldInstallSdk", true);
+            shouldKeepInWorkspace = json.optBoolean("shouldKeepInWorkspace", false);
             save();
             return true;
         }
@@ -808,7 +814,8 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
 
             return new AndroidEmulator(avdName, osVersion, screenDensity, screenResolution,
                     deviceLocale, sdCardSize, hardware.toArray(new HardwareProperty[0]), wipeData,
-                    showWindow, useSnapshots, deleteAfterBuild, startupDelay, commandLineOptions, targetAbi);
+                    showWindow, useSnapshots, deleteAfterBuild, startupDelay, commandLineOptions,
+                    targetAbi);
         }
 
         @Override
