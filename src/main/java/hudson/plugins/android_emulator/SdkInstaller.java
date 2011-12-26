@@ -191,8 +191,8 @@ class SdkInstaller {
             return;
         }
 
-        // Automated installation of ABIs (required for android-14+) is not yet possible with the
-        // SDK Tools, so we should warn the user that we can't automatically set up an AVD.
+        // Automated installation of ABIs (required for android-14+) is not possible until r17, so
+        // we should warn the user that we can't automatically set up an AVD with older SDK Tools.
         // See http://b.android.com/21880
         if ((platform.endsWith("14") || platform.endsWith("15")) && !sdk.supportsSystemImageInstallation()) {
             log(logger, "It appears that the configured platform is based on Android 4.0 or newer.\n"+
@@ -232,11 +232,20 @@ class SdkInstaller {
 
         // Add dependent platform
         List<String> components = new ArrayList<String>();
-        String component = String.format("android-%s", parts[2]);
-        components.add(component);
+        components.add(String.format("android-%s", parts[2]));
+
+        // Add system image, if required
+        // Even if a system image doesn't exist for this platform, the installer silently ignores it
+        try {
+            if (Integer.parseInt(parts[2]) >= 14) {
+                components.add(String.format("sysimg-%s", parts[2]));
+            }
+        } catch (NumberFormatException e) {
+            log(logger, "Android add-on name looks incorrect: "+ platform);
+        }
 
         // Determine addon name
-        component = String.format("addon-%s-%s-%s", parts[1], parts[0], parts[2]);
+        String component = String.format("addon-%s-%s-%s", parts[1], parts[0], parts[2]);
         component = component.replaceAll("[^a-z0-9_-]+", "_").replaceAll("_+", "_");
         components.add(component);
 
