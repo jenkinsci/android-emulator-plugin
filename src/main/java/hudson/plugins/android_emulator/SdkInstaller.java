@@ -36,7 +36,7 @@ import org.apache.commons.lang.StringUtils;
 class SdkInstaller {
 
     /** Recent version of the Android SDK that will be installed. */
-    private static final int SDK_VERSION = 15;
+    private static final int SDK_VERSION = 16;
 
     /** Filename to write some metadata to about our automated installation. */
     private static final String SDK_INFO_FILENAME = ".jenkins-install-info";
@@ -182,7 +182,7 @@ class SdkInstaller {
         // Check whether we are capable of installing individual components
         log(logger, "The configured Android platform needs to be installed: "+ platform);
         if (!launcher.isUnix() && platform.contains(":") && sdk.getSdkToolsVersion() < 16) {
-            // SDK add-ons cannot be installed on Windows due to http://b.android.com/18868
+            // SDK add-ons can't be installed on Windows until r16 due to http://b.android.com/18868
             log(logger, "Unfortunately this particular package cannot be automatically installed on SDK Tools r15 or earlier...");
             return;
         }
@@ -194,10 +194,11 @@ class SdkInstaller {
         // Automated installation of ABIs (required for android-14+) is not yet possible with the
         // SDK Tools, so we should warn the user that we can't automatically set up an AVD.
         // See http://b.android.com/21880
-        if (platform.endsWith("14")) {
+        if ((platform.endsWith("14") || platform.endsWith("15")) && !sdk.supportsSystemImageInstallation()) {
             log(logger, "It appears that the configured platform is based on Android 4.0 or newer.\n"+
-                    "This requires the 'ARM EABI v7a System Image' package which cannot yet be " +
-                    "automatically installed.\nPlease do so manually via the Android SDK Manager.",
+                    "This requires the 'ARM EABI v7a System Image' package which cannot be " +
+                    "automatically installed with SDK Tools r16 or earlier.\nPlease install this " +
+                    "component manually via the Android SDK Manager, or upgrade to SDK Tools r17.",
                     true);
         }
 

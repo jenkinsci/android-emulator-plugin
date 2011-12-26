@@ -12,6 +12,9 @@ public class AndroidSdk implements Serializable {
     /** First version in which we can automatically install individual SDK components. */
     private static final int SDK_AUTO_INSTALL = 14;
 
+    /** First version in which we can programmatically install system images. */
+    private static final int SDK_INSTALL_SYSTEM_IMAGE = 17;
+
     private final String sdkHome;
     private boolean usesPlatformTools;
     private int sdkToolsVersion;
@@ -50,6 +53,10 @@ public class AndroidSdk implements Serializable {
 
     public boolean supportsComponentInstallation() {
         return sdkToolsVersion >= SDK_AUTO_INSTALL;
+    }
+
+    public boolean supportsSystemImageInstallation() {
+        return sdkToolsVersion >= SDK_INSTALL_SYSTEM_IMAGE;
     }
 
 }
