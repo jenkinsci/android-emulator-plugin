@@ -26,7 +26,7 @@ public class SnapshotLoadBuilder extends AbstractSnapshotBuilder {
         return Messages.LOADING_SNAPSHOT(name, port);
     }
 
-    @Extension
+    //@Extension
     public static class DescriptorImpl extends Descriptor<Builder> implements Serializable {
 
         private static final long serialVersionUID = 1L;
