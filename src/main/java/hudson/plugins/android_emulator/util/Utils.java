@@ -379,8 +379,18 @@ public class Utils {
     public static void runAndroidTool(Launcher launcher, OutputStream stdout, OutputStream stderr,
             AndroidSdk androidSdk, Tool tool, String args, FilePath workingDirectory)
                 throws IOException, InterruptedException {
+        runAndroidTool(launcher, new EnvVars(), stdout, stderr, androidSdk, tool, args, workingDirectory);
+    }
+
+    public static void runAndroidTool(Launcher launcher, EnvVars env, OutputStream stdout, OutputStream stderr,
+            AndroidSdk androidSdk, Tool tool, String args, FilePath workingDirectory)
+                throws IOException, InterruptedException {
+
         ArgumentListBuilder cmd = Utils.getToolCommand(androidSdk, launcher.isUnix(), tool, args);
         ProcStarter procStarter = launcher.launch().stdout(stdout).stderr(stderr).cmds(cmd);
+        if (env != null) {
+            procStarter = procStarter.envs(env);
+        }
         if (workingDirectory != null) {
             procStarter = procStarter.pwd(workingDirectory);
         }

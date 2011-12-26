@@ -7,6 +7,7 @@ import hudson.model.AbstractBuild;
 import hudson.model.BuildListener;
 import hudson.model.Computer;
 import hudson.model.Node;
+import hudson.model.TaskListener;
 import hudson.plugins.android_emulator.AndroidEmulator;
 import hudson.plugins.android_emulator.Messages;
 import hudson.plugins.android_emulator.sdk.AndroidSdk;
@@ -144,7 +145,8 @@ public abstract class AbstractBuilder extends Builder {
         // Execute uninstallation
         AndroidEmulator.log(logger, Messages.UNINSTALLING_APK(packageId));
         String adbArgs = String.format("%s uninstall %s", deviceIdentifier, packageId);
-        Utils.runAndroidTool(launcher, logger, logger, androidSdk, Tool.ADB, adbArgs, null);
+        Utils.runAndroidTool(launcher, build.getEnvironment(TaskListener.NULL),
+                logger, logger, androidSdk, Tool.ADB, adbArgs, null);
     }
 
     /**

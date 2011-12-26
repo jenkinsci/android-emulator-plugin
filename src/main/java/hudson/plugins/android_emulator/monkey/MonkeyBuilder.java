@@ -6,6 +6,7 @@ import hudson.Util;
 import hudson.model.AbstractBuild;
 import hudson.model.BuildListener;
 import hudson.model.Descriptor;
+import hudson.model.TaskListener;
 import hudson.plugins.android_emulator.AndroidEmulator;
 import hudson.plugins.android_emulator.Messages;
 import hudson.plugins.android_emulator.builder.AbstractBuilder;
@@ -94,7 +95,8 @@ public class MonkeyBuilder extends AbstractBuilder {
         OutputStream monkeyOutput = build.getWorkspace().child(outputFile).write();
         try {
             AndroidEmulator.log(logger, Messages.STARTING_MONKEY(expandedPackageId, eventCount, seedValue));
-            Utils.runAndroidTool(launcher, monkeyOutput, logger, androidSdk, Tool.ADB, args, null);
+            Utils.runAndroidTool(launcher, build.getEnvironment(TaskListener.NULL), monkeyOutput,
+                    logger, androidSdk, Tool.ADB, args, null);
         } finally {
             if (monkeyOutput != null) {
                 monkeyOutput.close();
