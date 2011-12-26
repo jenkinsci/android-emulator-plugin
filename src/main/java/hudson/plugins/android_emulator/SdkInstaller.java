@@ -67,13 +67,6 @@ class SdkInstaller {
         // Install the SDK if required
         String androidHome;
         try {
-            // TODO: Support Windows. However, running "android update sdk -u -t <whatever>" seems
-            //       to hang after a successful install (also confirmed manually from cmd.exe)...
-            //       Bug filed here: http://b.android.com/18868
-            AndroidInstaller installer = AndroidInstaller.fromNode(node);
-            if (installer == AndroidInstaller.WINDOWS) {
-                throw new SdkInstallationException("Installation isn't currently supported on Windows");
-            }
             androidHome = installBasicSdk(listener, node, launcher.isUnix()).getRemote();
         } catch (IOException e) {
             throw new SdkInstallationException("Failed to download Android SDK", e);
