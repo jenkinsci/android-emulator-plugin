@@ -71,6 +71,9 @@ class AndroidPlatform implements Serializable {
     static final AndroidPlatform[] PRESETS = new AndroidPlatform[] { SDK_1_5, SDK_1_6, SDK_2_1,
                                                                      SDK_2_2, SDK_2_3_3, SDK_3_0,
                                                                      SDK_3_1, SDK_3_2, SDK_4_0_3 };
+    static final AndroidPlatform[] ALL = new AndroidPlatform[] { SDK_1_1, SDK_1_5, SDK_1_6, SDK_2_0,
+        SDK_2_0_1, SDK_2_1, SDK_2_2, SDK_2_3, SDK_2_3_3, SDK_3_0, SDK_3_1, SDK_3_2, SDK_4_0,
+        SDK_4_0_3 };
 
     private final String name;
     private final int level;
@@ -89,7 +92,7 @@ class AndroidPlatform implements Serializable {
             return null;
         }
 
-        for (AndroidPlatform preset : PRESETS) {
+        for (AndroidPlatform preset : ALL) {
             if (version.equals(preset.name) || version.equals(String.valueOf(preset.level))
                     || version.equals(preset.getTargetName())) {
                 return preset;
