@@ -506,6 +506,9 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
                     env.put("ANDROID_AVD_SKIN", emuConfig.getScreenResolution().getSkinName());
                     env.put("ANDROID_AVD_LOCALE", emuConfig.getDeviceLocale());
                 }
+                if (androidSdk.hasKnownRoot()) {
+                    env.put("JENKINS_ANDROID_HOME", androidSdk.getSdkRoot());
+                }
             }
 
             @Override
