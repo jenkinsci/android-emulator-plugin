@@ -386,14 +386,6 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
             return null;
         }
 
-        // Start dumping logs to disk
-        final File artifactsDir = build.getArtifactsDir();
-        final FilePath logcatFile = build.getWorkspace().createTextTempFile("logcat_", ".log", "", false);
-        final OutputStream logcatStream = logcatFile.write();
-        final String logcatArgs = String.format("-s %s logcat -v time", serial);
-        ArgumentListBuilder logcatCmd = Utils.getToolCommand(androidSdk, isUnix, Tool.ADB, logcatArgs);
-        final Proc logWriter = procStarter.cmds(logcatCmd).stdout(logcatStream).stderr(new NullStream()).start();
-
         // Monitor device for boot completion signal
         log(logger, Messages.WAITING_FOR_BOOT_COMPLETION());
         int bootTimeout = BOOT_COMPLETE_TIMEOUT_MS;
@@ -410,9 +402,17 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
             }
             build.setResult(Result.NOT_BUILT);
             cleanUp(logger, launcher, androidSdk, portAllocator, emuConfig, emulatorProcess,
-                    adbPort, userPort, adbServerPort, logWriter, logcatFile, logcatStream, artifactsDir);
+                    adbPort, userPort, adbServerPort);
             return null;
         }
+
+        // Start dumping logcat to temporary file
+        final File artifactsDir = build.getArtifactsDir();
+        final FilePath logcatFile = build.getWorkspace().createTextTempFile("logcat_", ".log", "", false);
+        final OutputStream logcatStream = logcatFile.write();
+        final String logcatArgs = String.format("-s %s logcat -v time", serial);
+        ArgumentListBuilder logcatCmd = Utils.getToolCommand(androidSdk, isUnix, Tool.ADB, logcatArgs);
+        final Proc logWriter = procStarter.cmds(logcatCmd).stdout(logcatStream).stderr(new NullStream()).start();
 
         // Unlock emulator by pressing the Menu key once, if required.
         // Upon first boot (and when the data is wiped) the emulator is already unlocked
