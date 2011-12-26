@@ -69,15 +69,15 @@ class SdkInstaller {
         try {
             androidHome = installBasicSdk(listener, node, launcher.isUnix()).getRemote();
         } catch (IOException e) {
-            throw new SdkInstallationException("Failed to download Android SDK", e);
+            throw new SdkInstallationException(Messages.SDK_DOWNLOAD_FAILED(), e);
         } catch (SdkUnavailableException e) {
-            throw new SdkInstallationException("Failed to download Android SDK", e);
+            throw new SdkInstallationException(Messages.SDK_DOWNLOAD_FAILED(), e);
         }
 
         // Check whether we need to install the SDK components
         if (!isSdkInstallComplete(node, androidHome)) {
             PrintStream logger = listener.getLogger();
-            log(logger, "Going to install required Android SDK components...");
+            log(logger, Messages.INSTALLING_REQUIRED_COMPONENTS());
             AndroidSdk sdk = new AndroidSdk(androidHome);
             installComponent(logger, launcher, sdk, "platform-tool", "tool");
 
@@ -110,7 +110,7 @@ class SdkInstaller {
         boolean wasNowInstalled = installDir.act(new FileCallable<Boolean>() {
             public Boolean invoke(File f, VirtualChannel channel)
                     throws InterruptedException, IOException {
-                String msg = "Downloading and installing Android SDK from "+ downloadUrl;
+                String msg = Messages.DOWNLOADING_SDK_FROM(downloadUrl);
                 return installDir.installIfNecessaryFrom(downloadUrl, listener, msg);
             }
             private static final long serialVersionUID = 1L;
@@ -126,7 +126,7 @@ class SdkInstaller {
             }
 
             // Success!
-            log(listener.getLogger(), "Base SDK installed successfully");
+            log(listener.getLogger(), Messages.BASE_SDK_INSTALLED());
         }
 
         return installDir;
@@ -145,7 +145,7 @@ class SdkInstaller {
         String proxySettings = getProxySettings();
 
         String list = StringUtils.join(components, ',');
-        log(logger, String.format("Installing the '%s' SDK component(s)...", list));
+        log(logger, Messages.INSTALLING_SDK_COMPONENTS(list.toString()));
         String upgradeArgs = String.format("update sdk -o -u %s -t %s", proxySettings, list);
 
         // TODO: We need to be able to kill the command spawned if the build is interrupted!
@@ -173,14 +173,14 @@ class SdkInstaller {
         }
 
         // Check whether we are capable of installing individual components
-        log(logger, "The configured Android platform needs to be installed: "+ platform);
+        log(logger, Messages.PLATFORM_INSTALL_REQUIRED(platform));
         if (!launcher.isUnix() && platform.contains(":") && sdk.getSdkToolsVersion() < 16) {
             // SDK add-ons can't be installed on Windows until r16 due to http://b.android.com/18868
-            log(logger, "Unfortunately this particular package cannot be automatically installed on SDK Tools r15 or earlier...");
+            log(logger, Messages.SDK_ADDON_INSTALLATION_UNSUPPORTED());
             return;
         }
         if (!sdk.supportsComponentInstallation()) {
-            log(logger, "However, this cannot be automatically installed as SDK Tools r14 or newer is required...");
+            log(logger, Messages.SDK_COMPONENT_INSTALLATION_UNSUPPORTED());
             return;
         }
 
@@ -188,11 +188,7 @@ class SdkInstaller {
         // we should warn the user that we can't automatically set up an AVD with older SDK Tools.
         // See http://b.android.com/21880
         if ((platform.endsWith("14") || platform.endsWith("15")) && !sdk.supportsSystemImageInstallation()) {
-            log(logger, "It appears that the configured platform is based on Android 4.0 or newer.\n"+
-                    "This requires the 'ARM EABI v7a System Image' package which cannot be " +
-                    "automatically installed with SDK Tools r16 or earlier.\nPlease install this " +
-                    "component manually via the Android SDK Manager, or upgrade to SDK Tools r17.",
-                    true);
+            log(logger, Messages.ABI_INSTALLATION_UNSUPPORTED(), true);
         }
 
         // Determine which individual component(s) need to be installed for this platform
@@ -219,7 +215,7 @@ class SdkInstaller {
         // Otherwise, figure out the component name and its platform dependency
         String parts[] = platform.toLowerCase().split(":");
         if (parts.length != 3) {
-            log(logger, "Cannot automatically install unrecognised Android add-on: "+ platform);
+            log(logger, Messages.SDK_ADDON_FORMAT_UNRECOGNISED(platform));
             return null;
         }
 
@@ -234,7 +230,7 @@ class SdkInstaller {
                 components.add(String.format("sysimg-%s", parts[2]));
             }
         } catch (NumberFormatException e) {
-            log(logger, "Android add-on name looks incorrect: "+ platform);
+            log(logger, Messages.SDK_ADDON_NAME_INCORRECT(platform));
         }
 
         // Determine addon name
@@ -413,7 +409,7 @@ class SdkInstaller {
             if (os.contains("windows")) {
                 return WINDOWS;
             }
-            throw new SdkUnavailableException("The Android SDK is not available for "+ prop);
+            throw new SdkUnavailableException(Messages.SDK_UNAVAILABLE(prop));
         }
 
         static final class SdkUnavailableException extends Exception {

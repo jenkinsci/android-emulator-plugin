@@ -1,4 +1,3 @@
-- Move strings to Messages.properties for 1.19
 - SDK installation should be on by default; option name and help file need to be updated
 - ABI support appeared in r13, i.e. using --abi with "android create avd"
 - Need to fix getSdkRootFromPath/isSdkToolsDirectory as they're trying to do an impossible check: that both adb and emulator are in the same directory... to test this, install an SDK without platform-tools and watch the misdetection occur...

@@ -231,11 +231,11 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
             }
 
             // Ok, let's download and install the SDK
-            log(logger, "No Android SDK found; let's install it automatically...");
+            log(logger, Messages.INSTALLING_SDK());
             try {
                 androidSdk = SdkInstaller.install(launcher, listener);
             } catch (SdkInstallationException e) {
-                log(logger, "Android SDK installation failed", e);
+                log(logger, Messages.SDK_INSTALLATION_FAILED(), e);
                 build.setResult(Result.NOT_BUILT);
                 return null;
             }
@@ -453,7 +453,7 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
             final String clearArgs = String.format("-s %s logcat -c", serial);
             ArgumentListBuilder adbCmd = Utils.getToolCommand(androidSdk, isUnix, Tool.ADB, clearArgs);
             procStarter.cmds(adbCmd).start().join();
-            final String msg = "Creating snapshot...";
+            final String msg = Messages.LOG_CREATING_SNAPSHOT();
             final String logArgs = String.format("-s %s shell log -p v -t Jenkins '%s'", serial, msg);
             adbCmd = Utils.getToolCommand(androidSdk, isUnix, Tool.ADB, logArgs);
             procStarter.cmds(adbCmd).start().join();
@@ -996,11 +996,11 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
                 int sdkLevel = platform.getSdkLevel();
                 if (sdkLevel >= 11 && platform.getSdkLevel() <= 13) {
                     if (resolution.equals("WXGA720") || resolution.equals("WXGA800")) {
-                        String msg = String.format("That doesn't look right for Android %s. Did you mean WXGA?", platform);
+                        String msg = Messages.SUSPECT_RESOLUTION_ANDROID_3(platform);
                         return ValidationResult.warning(msg);
                     }
                 } else if (sdkLevel >= 14 && resolution.equals("WXGA")) {
-                    String msg = String.format("That doesn't look right for Android %s. Did you mean WXGA720 or WXGA800?", platform);
+                    String msg = Messages.SUSPECT_RESOLUTION_ANDROID_4(platform);
                     return ValidationResult.warning(msg);
                 }
             }

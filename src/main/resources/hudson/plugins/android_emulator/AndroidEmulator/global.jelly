@@ -13,7 +13,7 @@
     <f:entry help="/plugin/android-emulator/help-installSdk.html">
       <f:checkbox id="android-emulator.shouldInstallSdk" name="android-emulator.shouldInstallSdk"
           checked="${h.defaultToTrue(descriptor.shouldInstallSdk)}" />
-      <label class="attach-previous">${%Automatically install Android SDK when required}</label>
+      <label class="attach-previous">${%Automatically install Android components when required}</label>
     </f:entry>
 
   </f:section>
