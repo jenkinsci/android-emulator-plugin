@@ -818,8 +818,7 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
         public String androidHome;
 
         /** Whether the SDK should be automatically installed where it's not found. */
-        @Exported
-        public boolean shouldInstallSdk;
+        public boolean shouldInstallSdk = true;
 
         public DescriptorImpl() {
             super(AndroidEmulator.class);
@@ -833,7 +832,8 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
 
         @Override
         public boolean configure(StaplerRequest req, JSONObject json) throws FormException {
-            req.bindParameters(this, "android-emulator.");
+            androidHome = json.optString("androidHome");
+            shouldInstallSdk = json.optBoolean("shouldInstallSdk", true);
             save();
             return true;
         }
