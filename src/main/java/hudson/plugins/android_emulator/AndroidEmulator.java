@@ -550,7 +550,7 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
     }
 
     /** Helper method for writing to the build log in a consistent manner. */
-    synchronized static void log(final PrintStream logger, final String message, final Throwable t) {
+    public synchronized static void log(final PrintStream logger, final String message, final Throwable t) {
         log(logger, message, false);
         StringWriter s = new StringWriter();
         t.printStackTrace(new PrintWriter(s));

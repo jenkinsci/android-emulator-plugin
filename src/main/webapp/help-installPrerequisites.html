@@ -1,0 +1,14 @@
+Installs any platforms required to build the Android apps in this job's workspace.
+<p>
+In an Android app project, test project or library project the platform version to build against
+must be specified in either the <tt>project.properties</tt> or <tt>default.properties</tt> file, by
+setting the <tt>target</tt> parameter.
+</p>
+<p>
+This build step will search for these files in your workspace, determine which target platform(s)
+are required, and then ensure that they are installed. If the required platforms are already
+installed, no action is taken.
+<br>
+Therefore it should always be safe to run this build step before any build steps which compile an
+Android project.
+</p>

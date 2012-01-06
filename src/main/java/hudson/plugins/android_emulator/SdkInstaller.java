@@ -35,7 +35,7 @@ import java.util.concurrent.Semaphore;
 
 import org.apache.commons.lang.StringUtils;
 
-class SdkInstaller {
+public class SdkInstaller {
 
     /** Recent version of the Android SDK that will be installed. */
     private static final int SDK_VERSION = 16;
@@ -159,17 +159,32 @@ class SdkInstaller {
     }
 
     /**
-     * Installs the given platform and its dependencies into the given installation, if necessary.
+     * Installs the platform for an emulator config into the given SDK installation, if necessary.
      *
      * @param logger Logs things.
      * @param launcher Used to launch tasks on the remote node.
-     * @param sdkRoot Root of the SDK installation to install components for.
+     * @param sdk SDK installation to install components for.
+     * @param emuConfig Specifies the platform to be installed.
      */
     static void installDependencies(PrintStream logger, Launcher launcher,
             AndroidSdk sdk, EmulatorConfig emuConfig) throws IOException, InterruptedException {
         // Get AVD platform from emulator config
         String platform = getPlatformForEmulator(launcher, emuConfig);
 
+        // Install platform and any dependencies it may have
+        installPlatform(logger, launcher, sdk, platform);
+    }
+
+    /**
+     * Installs the given platform and its dependencies into the given installation, if necessary.
+     *
+     * @param logger Logs things.
+     * @param launcher Used to launch tasks on the remote node.
+     * @param sdk SDK installation to install components for.
+     * @param platform Specifies the platform to be installed.
+     */
+    public static void installPlatform(PrintStream logger, Launcher launcher,
+            AndroidSdk sdk, String platform) throws IOException, InterruptedException {
         // Check whether this platform is already installed
         ByteArrayOutputStream targetList = new ByteArrayOutputStream();
         // Preferably we'd use the "--compact" flag here, but it wasn't added until r12
