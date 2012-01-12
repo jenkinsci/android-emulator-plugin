@@ -18,8 +18,10 @@ import hudson.remoting.VirtualChannel;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileFilter;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.PrintStream;
+import java.io.PrintWriter;
 import java.io.Serializable;
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -83,6 +85,10 @@ class SdkInstaller {
 
             // If we made it this far, confirm completion by writing our our metadata file
             getInstallationInfoFilename(node).write(String.valueOf(SDK_VERSION), "UTF-8");
+
+            // As this SDK will not be used manually, opt out of the stats gathering;
+            // this also prevents the opt-in dialog from popping up during execution
+            optOutOfSdkStatistics(launcher, listener);
         }
 
         // Create an SDK object now that all the components exist
@@ -280,6 +286,21 @@ class SdkInstaller {
     }
 
     /**
+     * Writes the configuration file required to opt out of SDK usage statistics gathering.
+     *
+     * @param launcher Used for running tasks on the remote node.
+     * @param listener Used to access logger.
+     */
+    private static void optOutOfSdkStatistics(Launcher launcher, BuildListener listener) {
+        Callable<Void, Exception> optOutTask = new StatsOptOutTask(launcher.isUnix(), listener);
+        try {
+            launcher.getChannel().call(optOutTask);
+        } catch (Exception e) {
+            log(listener.getLogger(), "SDK statistics opt-out failed.", e);
+        }
+    }
+
+    /**
      * Acquires an exclusive lock for the machine we're executing on.
      * <p>
      * The lock only has one permit, meaning that other executors on the same node which want to
@@ -362,6 +383,44 @@ class SdkInstaller {
             return f.isFile() && (!f.getName().contains(".") || f.getName().endsWith(".sh"));
         }
         private static final long serialVersionUID = 1L;
+    }
+
+    /** Helper to run SDK statistics opt-out task on a remote node. */
+    private static final class StatsOptOutTask implements Callable<Void, Exception> {
+
+        private static final long serialVersionUID = 1L;
+        private final boolean isUnix;
+
+        private final BuildListener listener;
+        private transient PrintStream logger;
+
+        public StatsOptOutTask(boolean isUnix, BuildListener listener) {
+            this.isUnix = isUnix;
+            this.listener = listener;
+        }
+
+        public Void call() throws Exception {
+            if (logger == null) {
+                logger = listener.getLogger();
+            }
+
+            final File homeDir = Utils.getHomeDirectory(isUnix);
+            final File androidDir = new File(homeDir, ".android");
+            androidDir.mkdirs();
+
+            File configFile = new File(androidDir, "ddms.cfg");
+            PrintWriter out;
+            try {
+                out = new PrintWriter(configFile);
+                out.println("pingOptIn=false");
+                out.flush();
+                out.close();
+            } catch (FileNotFoundException e) {
+                log(logger, "Failed to automatically opt out of SDK statistics gathering.", e);
+            }
+
+            return null;
+        }
     }
 
     /** Helper for getting platform-specific SDK installation information. */

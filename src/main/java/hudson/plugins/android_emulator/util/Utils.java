@@ -273,6 +273,34 @@ public class Utils {
     }
 
     /**
+     * Locates the current user's home directory using the same scheme as the Android SDK does.
+     *
+     * @param isUnix Whether the system where this command should run is sane.
+     * @return A {@link File} representing the directory in which the ".android" subdirectory should go.
+     */
+    public static File getHomeDirectory(boolean isUnix) {
+        // From git://android.git.kernel.org/platform/external/qemu.git/android/utils/bufprint.c
+        String homeDirPath = System.getenv("ANDROID_SDK_HOME");
+        if (homeDirPath == null) {
+            if (isUnix) {
+                homeDirPath = System.getenv("HOME");
+                if (homeDirPath == null) {
+                    homeDirPath = "/tmp";
+                }
+            } else {
+                // The emulator checks Win32 "CSIDL_PROFILE", which should equal USERPROFILE
+                homeDirPath = System.getenv("USERPROFILE");
+                if (homeDirPath == null) {
+                    // Otherwise fall back to user.home (which should equal USERPROFILE anyway)
+                    homeDirPath = System.getProperty("user.home");
+                }
+            }
+        }
+
+        return new File(homeDirPath);
+    }
+
+    /**
      * Detects the root directory of an SDK installation based on the Android tools on the PATH.
      *
      * @param isUnix Whether the system where this command should run is sane.

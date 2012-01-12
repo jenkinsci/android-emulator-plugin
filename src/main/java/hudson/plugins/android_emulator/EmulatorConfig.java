@@ -224,29 +224,6 @@ class EmulatorConfig implements Serializable {
         return new EmulatorDeletionTask(isUnix, listener);
     }
 
-    private File getHomeDirectory(boolean isUnix) {
-        // Locate the base directory where Android SDK data (such as AVDs) should be kept
-        // From git://android.git.kernel.org/platform/external/qemu.git/android/utils/bufprint.c
-        String homeDirPath = System.getenv("ANDROID_SDK_HOME");
-        if (homeDirPath == null) {
-            if (isUnix) {
-                homeDirPath = System.getenv("HOME");
-                if (homeDirPath == null) {
-                    homeDirPath = "/tmp";
-                }
-            } else {
-                // The emulator checks Win32 "CSIDL_PROFILE", which should equal USERPROFILE
-                homeDirPath = System.getenv("USERPROFILE");
-                if (homeDirPath == null) {
-                    // Otherwise fall back to user.home (which should equal USERPROFILE anyway)
-                    homeDirPath = System.getProperty("user.home");
-                }
-            }
-        }
-
-        return new File(homeDirPath);
-    }
-
     private File getAvdHome(final File homeDir) {
         return new File(homeDir, ".android/avd/");
     }
@@ -256,7 +233,7 @@ class EmulatorConfig implements Serializable {
     }
 
     public File getAvdMetadataFile(boolean isUnix) {
-        final File homeDir = getHomeDirectory(isUnix);
+        final File homeDir = Utils.getHomeDirectory(isUnix);
         return new File(getAvdHome(homeDir), getAvdName() +".ini");
     }
 
@@ -375,7 +352,7 @@ class EmulatorConfig implements Serializable {
                 logger = listener.getLogger();
             }
 
-            final File homeDir = getHomeDirectory(isUnix);
+            final File homeDir = Utils.getHomeDirectory(isUnix);
             final File avdDirectory = getAvdDirectory(homeDir);
             final boolean emulatorExists = avdDirectory.exists();
 
@@ -607,7 +584,7 @@ class EmulatorConfig implements Serializable {
                 logger = listener.getLogger();
             }
 
-            final File homeDir = getHomeDirectory(isUnix);
+            final File homeDir = Utils.getHomeDirectory(isUnix);
 
             // Parse the AVD's config
             Map<String, String> configValues;
@@ -647,7 +624,7 @@ class EmulatorConfig implements Serializable {
             }
 
             // Check whether the AVD exists
-            final File homeDir = getHomeDirectory(isUnix);
+            final File homeDir = Utils.getHomeDirectory(isUnix);
             final File avdDirectory = getAvdDirectory(homeDir);
             final boolean emulatorExists = avdDirectory.exists();
             if (!emulatorExists) {
