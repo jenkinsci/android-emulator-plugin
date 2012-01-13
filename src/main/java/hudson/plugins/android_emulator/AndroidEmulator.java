@@ -62,7 +62,7 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
     private static final int ADB_CONNECT_TIMEOUT_MS = 60 * 1000;
 
     /** Duration by which emulator booting should normally complete. */
-    private static final int BOOT_COMPLETE_TIMEOUT_MS = 120 * 1000;
+    private static final int BOOT_COMPLETE_TIMEOUT_MS = 180 * 1000;
 
     /** Interval during which an emulator command should complete. */
     private static final int EMULATOR_COMMAND_TIMEOUT_MS = 60 * 1000;
