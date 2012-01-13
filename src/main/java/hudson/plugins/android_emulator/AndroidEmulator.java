@@ -508,6 +508,7 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
                 }
                 if (androidSdk.hasKnownRoot()) {
                     env.put("JENKINS_ANDROID_HOME", androidSdk.getSdkRoot());
+                    env.put("ANDROID_HOME", androidSdk.getSdkRoot());
                 }
             }
 
