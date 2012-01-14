@@ -1,5 +1,6 @@
 package hudson.plugins.android_emulator.monkey;
 
+import static hudson.plugins.android_emulator.AndroidEmulator.log;
 import hudson.Extension;
 import hudson.Launcher;
 import hudson.Util;
@@ -7,7 +8,6 @@ import hudson.model.AbstractBuild;
 import hudson.model.BuildListener;
 import hudson.model.Descriptor;
 import hudson.model.TaskListener;
-import hudson.plugins.android_emulator.AndroidEmulator;
 import hudson.plugins.android_emulator.Messages;
 import hudson.plugins.android_emulator.builder.AbstractBuilder;
 import hudson.plugins.android_emulator.sdk.AndroidSdk;
@@ -72,7 +72,7 @@ public class MonkeyBuilder extends AbstractBuilder {
         // Discover Android SDK
         AndroidSdk androidSdk = getAndroidSdk(build, launcher, listener);
         if (androidSdk == null) {
-            AndroidEmulator.log(logger, Messages.SDK_TOOLS_NOT_FOUND());
+            log(logger, Messages.SDK_TOOLS_NOT_FOUND());
             return false;
         }
 
@@ -94,7 +94,7 @@ public class MonkeyBuilder extends AbstractBuilder {
         // Start monkeying around
         OutputStream monkeyOutput = build.getWorkspace().child(outputFile).write();
         try {
-            AndroidEmulator.log(logger, Messages.STARTING_MONKEY(expandedPackageId, eventCount, seedValue));
+            log(logger, Messages.STARTING_MONKEY(expandedPackageId, eventCount, seedValue));
             Utils.runAndroidTool(launcher, build.getEnvironment(TaskListener.NULL), monkeyOutput,
                     logger, androidSdk, Tool.ADB, args, null);
         } finally {

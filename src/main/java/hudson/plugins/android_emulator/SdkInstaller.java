@@ -52,7 +52,7 @@ public class SdkInstaller {
      *
      * @return An {@code AndroidSdk} object for the newly-installed SDK.
      */
-    static AndroidSdk install(Launcher launcher, BuildListener listener)
+    public static AndroidSdk install(Launcher launcher, BuildListener listener)
             throws SdkInstallationException, IOException, InterruptedException {
         Semaphore semaphore = acquireLock();
         try {
