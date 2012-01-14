@@ -27,6 +27,7 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -186,10 +187,7 @@ public class SdkInstaller {
     public static void installPlatform(PrintStream logger, Launcher launcher,
             AndroidSdk sdk, String platform) throws IOException, InterruptedException {
         // Check whether this platform is already installed
-        ByteArrayOutputStream targetList = new ByteArrayOutputStream();
-        // Preferably we'd use the "--compact" flag here, but it wasn't added until r12
-        Utils.runAndroidTool(launcher, targetList, logger, sdk, Tool.ANDROID, "list target", null);
-        if (targetList.toString().contains('"'+ platform +'"')) {
+        if (isPlatformInstalled(logger, launcher, sdk, platform)) {
             return;
         }
 
@@ -218,6 +216,17 @@ public class SdkInstaller {
             return;
         }
 
+        // If a platform expanded to multiple dependencies (e.g. "GoogleMaps:7" -> android-7 + Maps)
+        // then check whether we really need to install android-7, as it may already be installed
+        if (components.size() > 1) {
+            for (Iterator<String> it = components.iterator(); it.hasNext(); ) {
+                String component = it.next();
+                if (isPlatformInstalled(logger, launcher, sdk, component)) {
+                    it.remove();
+                }
+            }
+        }
+
         // Grab the lock and attempt installation
         Semaphore semaphore = acquireLock();
         try {
@@ -225,6 +234,14 @@ public class SdkInstaller {
         } finally {
             semaphore.release();
         }
+    }
+
+    private static boolean isPlatformInstalled(PrintStream logger, Launcher launcher,
+            AndroidSdk sdk, String platform) throws IOException, InterruptedException {
+        ByteArrayOutputStream targetList = new ByteArrayOutputStream();
+        // Preferably we'd use the "--compact" flag here, but it wasn't added until r12
+        Utils.runAndroidTool(launcher, targetList, logger, sdk, Tool.ANDROID, "list target", null);
+        return targetList.toString().contains('"'+ platform +'"');
     }
 
     private static List<String> getSdkComponentsForPlatform(PrintStream logger, String platform) {
