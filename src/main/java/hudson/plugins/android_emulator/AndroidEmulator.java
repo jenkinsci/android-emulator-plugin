@@ -5,18 +5,18 @@ import hudson.EnvVars;
 import hudson.Extension;
 import hudson.FilePath;
 import hudson.Launcher;
+import hudson.Launcher.ProcStarter;
 import hudson.Proc;
 import hudson.Util;
-import hudson.Launcher.ProcStarter;
 import hudson.matrix.Combination;
+import hudson.model.BuildListener;
+import hudson.model.Result;
+import hudson.model.TaskListener;
 import hudson.model.AbstractBuild;
 import hudson.model.AbstractProject;
-import hudson.model.BuildListener;
 import hudson.model.Computer;
 import hudson.model.Hudson;
 import hudson.model.Node;
-import hudson.model.Result;
-import hudson.model.TaskListener;
 import hudson.plugins.android_emulator.sdk.AndroidSdk;
 import hudson.plugins.android_emulator.sdk.Tool;
 import hudson.plugins.android_emulator.util.Utils;
@@ -81,6 +81,7 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
     @Exported public final String screenResolution;
     @Exported public final String deviceLocale;
     @Exported public final String sdCardSize;
+    @Exported public final String customSuffix;
     @Exported public final HardwareProperty[] hardwareProperties;
 
     // Common properties
@@ -94,9 +95,10 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
     @Exported public final String commandLineOptions;
 
 
+
     @DataBoundConstructor
     public AndroidEmulator(String avdName, String osVersion, String screenDensity,
-            String screenResolution, String deviceLocale, String sdCardSize,
+            String screenResolution, String deviceLocale, String sdCardSize,String customSuffix,
             HardwareProperty[] hardwareProperties, boolean wipeData, boolean showWindow,
             boolean useSnapshots, boolean deleteAfterBuild, int startupDelay,
             String commandLineOptions) {
@@ -106,6 +108,7 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
         this.screenResolution = screenResolution;
         this.deviceLocale = deviceLocale;
         this.sdCardSize = sdCardSize;
+        this.customSuffix = customSuffix;
         this.hardwareProperties = hardwareProperties;
         this.wipeData = wipeData;
         this.showWindow = showWindow;
@@ -154,8 +157,9 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
         String screenDensity = Utils.expandVariables(envVars, combination, this.screenDensity);
         String screenResolution = Utils.expandVariables(envVars, combination, this.screenResolution);
         String deviceLocale = Utils.expandVariables(envVars, combination, this.deviceLocale);
+        String customSuffix = Utils.expandVariables(envVars, combination, this.customSuffix);
 
-        return EmulatorConfig.getAvdName(avdName, osVersion, screenDensity, screenResolution, deviceLocale);
+        return EmulatorConfig.getAvdName(avdName, osVersion, screenDensity, screenResolution, deviceLocale,customSuffix);
     }
 
     @Override
@@ -178,6 +182,7 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
         String screenResolution = Utils.expandVariables(envVars, buildVars, this.screenResolution);
         String deviceLocale = Utils.expandVariables(envVars, buildVars, this.deviceLocale);
         String sdCardSize = Utils.expandVariables(envVars, buildVars, this.sdCardSize);
+        String customSuffix = Utils.expandVariables(envVars, buildVars, this.customSuffix);
 
         // Expand macros within hardware property values
         final int propCount = hardwareProperties == null ? 0 : hardwareProperties.length;
@@ -213,7 +218,7 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
         try {
             emuConfig = EmulatorConfig.create(avdName, osVersion, screenDensity,
                 screenResolution, deviceLocale, sdCardSize, wipeData, showWindow, useSnapshots,
-                commandLineOptions);
+                commandLineOptions,customSuffix);
         } catch (IllegalArgumentException e) {
             log(logger, Messages.EMULATOR_CONFIGURATION_BAD(e.getLocalizedMessage()));
             build.setResult(Result.NOT_BUILT);
@@ -847,6 +852,7 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
             String screenResolution = null;
             String deviceLocale = null;
             String sdCardSize = null;
+            String customSuffix = null;
             List<HardwareProperty> hardware = new ArrayList<HardwareProperty>();
             boolean wipeData = false;
             boolean showWindow = true;
@@ -868,6 +874,7 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
                 if (sdCardSize != null) {
                     sdCardSize = sdCardSize.toUpperCase().replaceAll("[ B]", "");
                 }
+                customSuffix = Util.fixEmptyAndTrim(emulatorData.getString("customSuffix"));
                 hardware = req.bindJSONToList(HardwareProperty.class, emulatorData.get("hardwareProperties"));
             }
             wipeData = formData.getBoolean("wipeData");
@@ -880,7 +887,7 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
             } catch (NumberFormatException e) {}
 
             return new AndroidEmulator(avdName, osVersion, screenDensity, screenResolution,
-                    deviceLocale, sdCardSize, hardware.toArray(new HardwareProperty[0]), wipeData,
+                    deviceLocale, sdCardSize, customSuffix,hardware.toArray(new HardwareProperty[0]), wipeData,
                     showWindow, useSnapshots, deleteAfterBuild, startupDelay, commandLineOptions);
         }
 
