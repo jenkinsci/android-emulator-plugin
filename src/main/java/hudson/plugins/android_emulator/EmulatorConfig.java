@@ -35,6 +35,7 @@ class EmulatorConfig implements Serializable {
     private ScreenResolution screenResolution;
     private String deviceLocale;
     private String sdCardSize;
+    private String customSuffix;
     private boolean wipeData;
     private final boolean showWindow;
     private final boolean useSnapshots;
@@ -51,7 +52,7 @@ class EmulatorConfig implements Serializable {
 
     public EmulatorConfig(String osVersion, String screenDensity, String screenResolution,
             String deviceLocale, String sdCardSize, boolean wipeData, boolean showWindow,
-            boolean useSnapshots, String commandLineOptions)
+            boolean useSnapshots, String commandLineOptions, String customSuffix)
                 throws IllegalArgumentException {
         if (osVersion == null || screenDensity == null || screenResolution == null) {
             throw new IllegalArgumentException("Valid OS version and screen properties must be supplied.");
@@ -97,25 +98,27 @@ class EmulatorConfig implements Serializable {
         this.showWindow = showWindow;
         this.useSnapshots = useSnapshots;
         this.commandLineOptions = commandLineOptions;
+        this.customSuffix = customSuffix;
     }
 
     public static final EmulatorConfig create(String avdName, String osVersion, String screenDensity,
             String screenResolution, String deviceLocale, String sdCardSize, boolean wipeData,
-            boolean showWindow, boolean useSnapshots, String commandLineOptions) {
+            boolean showWindow, boolean useSnapshots, String commandLineOptions,String customSuffix) {
         if (Util.fixEmptyAndTrim(avdName) == null) {
             return new EmulatorConfig(osVersion, screenDensity, screenResolution, deviceLocale,
-                    sdCardSize, wipeData, showWindow, useSnapshots, commandLineOptions);
+                sdCardSize, wipeData, showWindow, useSnapshots, commandLineOptions, customSuffix);
         }
 
         return new EmulatorConfig(avdName, wipeData, showWindow, useSnapshots, commandLineOptions);
     }
 
     public static final String getAvdName(String avdName, String osVersion, String screenDensity,
-            String screenResolution, String deviceLocale) {
+        String screenResolution, String deviceLocale, String customSuffix) {
         try {
             return create(avdName, osVersion, screenDensity, screenResolution, deviceLocale, null,
-                    false, false, false, null).getAvdName();
-        } catch (IllegalArgumentException e) {}
+                false, false, false, null, customSuffix).getAvdName();
+        } catch (IllegalArgumentException e) {
+        }
         return null;
     }
 
@@ -136,6 +139,9 @@ class EmulatorConfig implements Serializable {
         String density = screenDensity.toString();
         String resolution = screenResolution.toString();
         String platform = osVersion.getTargetName().replace(':', '_').replace(' ', '_');
+        if (null !=customSuffix && customSuffix.length() != 0) {
+          return String.format("hudson_%s_%s_%s_%s_%s", locale, density, resolution, platform, customSuffix);
+        }
         return String.format("hudson_%s_%s_%s_%s", locale, density, resolution, platform);
     }
 
