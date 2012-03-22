@@ -4,6 +4,7 @@ package hudson.plugins.android_emulator;
 import hudson.EnvVars;
 import hudson.Extension;
 import hudson.FilePath;
+import hudson.Functions;
 import hudson.Launcher;
 import hudson.Proc;
 import hudson.Util;
@@ -886,7 +887,7 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
 
         @Override
         public String getHelpFile() {
-            return "/plugin/android-emulator/help-buildConfig.html";
+            return Functions.getResourcePath() + "/plugin/android-emulator/help-buildConfig.html";
         }
 
         @Override
