@@ -153,9 +153,9 @@ public class SdkInstaller {
 
         String list = StringUtils.join(components, ',');
         log(logger, Messages.INSTALLING_SDK_COMPONENTS(list.toString()));
-        String upgradeArgs = String.format("update sdk -o -u %s -t %s", proxySettings, list);
+        String all = sdk.getSdkToolsVersion() < 17 ? "-o" : "-a";
+        String upgradeArgs = String.format("update sdk -u %s %s -t %s", all, proxySettings, list);
 
-        // TODO: We need to be able to kill the command spawned if the build is interrupted!
         Utils.runAndroidTool(launcher, logger, logger, sdk, Tool.ANDROID, upgradeArgs, null);
     }
 
