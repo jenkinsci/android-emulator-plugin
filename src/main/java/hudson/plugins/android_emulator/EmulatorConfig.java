@@ -237,8 +237,12 @@ class EmulatorConfig implements Serializable {
         return new File(getAvdHome(homeDir), getAvdName() +".ini");
     }
 
+    private File getAvdConfigFile(File homeDir) {
+        return new File(getAvdDirectory(homeDir), "config.ini");
+    }
+
     private Map<String,String> parseAvdConfigFile(File homeDir) throws IOException {
-        File configFile = new File(getAvdDirectory(homeDir), "config.ini");
+        File configFile = getAvdConfigFile(homeDir);
         return Utils.parseConfigFile(configFile);
     }
 
@@ -354,7 +358,7 @@ class EmulatorConfig implements Serializable {
 
             final File homeDir = Utils.getHomeDirectory(isUnix);
             final File avdDirectory = getAvdDirectory(homeDir);
-            final boolean emulatorExists = avdDirectory.exists();
+            final boolean emulatorExists = getAvdConfigFile(homeDir).exists();
 
             // Can't do anything if a named emulator doesn't exist
             if (isNamedEmulator() && !emulatorExists) {
@@ -436,6 +440,9 @@ class EmulatorConfig implements Serializable {
             final StringBuilder args = new StringBuilder(100);
             args.append("create avd ");
 
+            // Overwrite any existing files
+            args.append("-f ");
+
             // Initialise snapshot support, regardless of whether we will actually use it
             if (androidSdk.supportsSnapshots()) {
                 args.append("-a ");
@@ -455,6 +462,9 @@ class EmulatorConfig implements Serializable {
             // Tack on quoted platform name at the end, since it can be anything
             builder.add("-t");
             builder.add(osVersion.getTargetName());
+
+            // Log command line used, for info
+            AndroidEmulator.log(logger, builder.toStringWithQuote());
 
             // Run!
             boolean avdCreated = false;
@@ -501,7 +511,8 @@ class EmulatorConfig implements Serializable {
 
                 // Wait for happy ending
                 if (process.waitFor() == 0) {
-                    avdCreated = true;
+                    // Do a sanity check to ensure the AVD was really created
+                    avdCreated = getAvdConfigFile(homeDir).exists();
                 }
 
             } catch (IOException e) {
