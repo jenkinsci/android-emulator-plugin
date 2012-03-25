@@ -372,11 +372,23 @@ class EmulatorConfig implements Serializable {
             if (emulatorExists) {
                 // AVD exists: check whether there's anything still to be set up
                 File sdCardFile = new File(getAvdDirectory(homeDir), "sdcard.img");
-                if (getSdCardSize() != null && !sdCardFile.exists()) {
-                    createSdCard = true;
+                boolean sdCardRequired = getSdCardSize() != null;
+
+                // Check if anything needs to be done for snapshot-enabled builds
+                if (shouldUseSnapshots() && androidSdk.supportsSnapshots()) {
+                    if (!snapshotsFile.exists()) {
+                        createSnapshot = true;
+                    }
+
+                    // We should ensure that we start out with a clean SD card for the build
+                    if (sdCardRequired && sdCardFile.exists()) {
+                        sdCardFile.delete();
+                    }
                 }
-                if (shouldUseSnapshots() && androidSdk.supportsSnapshots() && !snapshotsFile.exists()) {
-                    createSnapshot = true;
+
+                // Flag that we need to generate an SD card, if there isn't one existing
+                if (sdCardRequired && !sdCardFile.exists()) {
+                    createSdCard = true;
                 }
 
                 // If everything is ready, then return
