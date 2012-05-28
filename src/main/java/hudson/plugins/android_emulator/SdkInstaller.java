@@ -39,7 +39,7 @@ import org.apache.commons.lang.StringUtils;
 
 public class SdkInstaller {
 
-    /** Recent version of the Android SDK that will be installed. */
+	/** Recent version of the Android SDK that will be installed. */
     private static final int SDK_VERSION = 16;
 
     /** Filename to write some metadata to about our automated installation. */
@@ -323,11 +323,14 @@ public class SdkInstaller {
      * @param emuConfig The emulator whose target platform we want to determine.
      * @return The platform identifier.
      */
-    private static String getPlatformFromExistingEmulator(final Launcher launcher,
+    private static String getPlatformFromExistingEmulator(Launcher launcher,
             final EmulatorConfig emuConfig) throws IOException, InterruptedException {
-        return launcher.getChannel().call(new Callable<String, IOException>() {
+    	
+    	final boolean unixSlave = launcher.isUnix();
+    	return launcher.getChannel().call(new Callable<String, IOException>() {
             public String call() throws IOException {
-                File metadataFile = emuConfig.getAvdMetadataFile(launcher.isUnix());
+            	
+                File metadataFile = emuConfig.getAvdMetadataFile(unixSlave);
                 Map<String, String> metadata = Utils.parseConfigFile(metadataFile);
                 return metadata.get("target");
             }
