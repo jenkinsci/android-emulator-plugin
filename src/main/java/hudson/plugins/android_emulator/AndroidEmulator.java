@@ -133,13 +133,12 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
 
     /**
      * A hash representing the variables that are used to determine which emulator configuration
-     * should be started to fulfil the job configuration.
+     * should be started to fulfill the job configuration.
      *
      * @param node The Node on which the emulator would be run.
      * @param combination The matrix combination values used to expand emulator config variables.
      * @return A hash representing the emulator configuration for this instance.
      */
-    @SuppressWarnings("hiding")
     public String getConfigHash(Node node, Combination combination) {
         EnvVars envVars;
         try {
@@ -160,7 +159,7 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
     }
 
     @Override
-    @SuppressWarnings({"hiding", "unchecked"})
+    @SuppressWarnings({ "unchecked", "rawtypes" })
     public Environment setUp(AbstractBuild build, final Launcher launcher, BuildListener listener)
             throws IOException, InterruptedException {
         final PrintStream logger = listener.getLogger();
@@ -254,7 +253,6 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
         return doSetUp(build, launcher, listener, androidSdk, emuConfig, expandedProperties);
     }
 
-    @SuppressWarnings("hiding")
     private Environment doSetUp(final AbstractBuild<?, ?> build, final Launcher launcher,
             final BuildListener listener, final AndroidSdk androidSdk,
             final EmulatorConfig emuConfig, final HardwareProperty[] hardwareProperties)
@@ -513,8 +511,8 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
                 }
             }
 
-            @Override
-            @SuppressWarnings("unchecked")
+			@Override
+			@SuppressWarnings("rawtypes")
             public boolean tearDown(AbstractBuild build, BuildListener listener)
                     throws IOException, InterruptedException {
                 cleanUp(logger, launcher, androidSdk, portAllocator, emuConfig, emulatorProcess,
@@ -677,7 +675,6 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
      *
      * @return A human-readable error message, or <code>null</code> if the config is valid.
      */
-    @SuppressWarnings("hiding")
     private String isConfigValid(String avdName, String osVersion, String screenDensity,
             String screenResolution, String deviceLocale, String sdCardSize) {
         if (getUseNamedEmulator()) {
@@ -1098,7 +1095,6 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
          * @param port The local TCP port to attempt to connect to.
          * @param timeout How long to keep trying (in milliseconds) before giving up.
          */
-        @SuppressWarnings("hiding")
         public LocalPortOpenTask(int port, int timeout) {
             this.port = port;
             this.timeout = timeout;
@@ -1134,7 +1130,6 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
         public final String value;
 
         @DataBoundConstructor
-        @SuppressWarnings("hiding")
         public HardwareProperty(String key, String value) {
             this.key = key;
             this.value = value;
