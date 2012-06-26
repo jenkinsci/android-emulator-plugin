@@ -17,10 +17,10 @@ import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.PrintStream;
 import java.io.PrintWriter;
+import java.io.PushbackInputStream;
 import java.io.Serializable;
 import java.util.Map;
 import java.util.regex.Pattern;
@@ -35,6 +35,7 @@ class EmulatorConfig implements Serializable {
     private ScreenResolution screenResolution;
     private String deviceLocale;
     private String sdCardSize;
+    private String targetAbi;
     private boolean wipeData;
     private final boolean showWindow;
     private final boolean useSnapshots;
@@ -51,7 +52,7 @@ class EmulatorConfig implements Serializable {
 
     public EmulatorConfig(String osVersion, String screenDensity, String screenResolution,
             String deviceLocale, String sdCardSize, boolean wipeData, boolean showWindow,
-            boolean useSnapshots, String commandLineOptions)
+            boolean useSnapshots, String commandLineOptions, String targetAbi)
                 throws IllegalArgumentException {
         if (osVersion == null || screenDensity == null || screenResolution == null) {
             throw new IllegalArgumentException("Valid OS version and screen properties must be supplied.");
@@ -97,14 +98,15 @@ class EmulatorConfig implements Serializable {
         this.showWindow = showWindow;
         this.useSnapshots = useSnapshots;
         this.commandLineOptions = commandLineOptions;
+        this.targetAbi = targetAbi;
     }
 
     public static final EmulatorConfig create(String avdName, String osVersion, String screenDensity,
             String screenResolution, String deviceLocale, String sdCardSize, boolean wipeData,
-            boolean showWindow, boolean useSnapshots, String commandLineOptions) {
+            boolean showWindow, boolean useSnapshots, String commandLineOptions, String targetAbi) {
         if (Util.fixEmptyAndTrim(avdName) == null) {
             return new EmulatorConfig(osVersion, screenDensity, screenResolution, deviceLocale,
-                    sdCardSize, wipeData, showWindow, useSnapshots, commandLineOptions);
+                    sdCardSize, wipeData, showWindow, useSnapshots, commandLineOptions, targetAbi);
         }
 
         return new EmulatorConfig(avdName, wipeData, showWindow, useSnapshots, commandLineOptions);
@@ -114,7 +116,7 @@ class EmulatorConfig implements Serializable {
             String screenResolution, String deviceLocale) {
         try {
             return create(avdName, osVersion, screenDensity, screenResolution, deviceLocale, null,
-                    false, false, false, null).getAvdName();
+                    false, false, false, null, null).getAvdName();
         } catch (IllegalArgumentException e) {}
         return null;
     }
@@ -475,6 +477,11 @@ class EmulatorConfig implements Serializable {
             builder.add("-t");
             builder.add(osVersion.getTargetName());
 
+            if (targetAbi != null) {
+                builder.add("--abi");
+                builder.add(targetAbi);
+            }
+
             // Log command line used, for info
             AndroidEmulator.log(logger, builder.toStringWithQuote());
 
@@ -490,6 +497,7 @@ class EmulatorConfig implements Serializable {
 
             // Redirect process's stderr to a stream, for logging purposes
             ByteArrayOutputStream stderr = new ByteArrayOutputStream();
+            ByteArrayOutputStream stdout = new ByteArrayOutputStream();
             new StreamCopyThread("", process.getErrorStream(), stderr).start();
 
             // Command may prompt us whether we want to further customise the AVD.
@@ -498,7 +506,7 @@ class EmulatorConfig implements Serializable {
                 boolean processAlive = true;
 
                 // Block until the command outputs something (or process ends)
-                final InputStream in = process.getInputStream();
+                final PushbackInputStream in = new PushbackInputStream(process.getInputStream(), 10);
                 int len = in.read();
                 if (len == -1) {
                     // Check whether the process has exited badly, as sometimes no output is valid.
@@ -510,7 +518,7 @@ class EmulatorConfig implements Serializable {
                     }
                     processAlive = false;
                 }
-                in.close();
+                in.unread(len);
 
                 // Write CRLF, if required
                 if (processAlive) {
@@ -520,6 +528,10 @@ class EmulatorConfig implements Serializable {
                     stream.flush();
                     stream.close();
                 }
+
+                // read the rest of stdout (for debugging purposes)
+                Util.copyStream(in, stdout);
+                in.close();
 
                 // Wait for happy ending
                 if (process.waitFor() == 0) {
@@ -538,14 +550,13 @@ class EmulatorConfig implements Serializable {
             // For reasons unknown, the return code may not be correctly reported on Windows.
             // So check whether stderr contains failure info (useful for other platforms too).
             String errOutput = stderr.toString();
+            String output = stdout.toString();
             if (errOutput.contains("list targets")) {
                 AndroidEmulator.log(logger, Messages.INVALID_AVD_TARGET(osVersion.getTargetName()));
                 avdCreated = false;
                 errOutput = null;
             } else if (errOutput.contains("more than one ABI")) {
-                // TODO: Currently we assume this message means there are *no* ABIs installed...
-                // TODO: See JENKINS-11516
-                AndroidEmulator.log(logger, Messages.ABI_REQUIRED(osVersion.getTargetName()), true);
+                AndroidEmulator.log(logger, Messages.MORE_THAN_ONE_ABI(osVersion.getTargetName(), output), true);
                 avdCreated = false;
                 errOutput = null;
             }
