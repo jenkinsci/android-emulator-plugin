@@ -3,7 +3,7 @@
   <f:block>
     <table style="margin-left:2em">
 
-      <f:radioBlock name="android-emulator.useNamed" value="true" 
+      <f:radioBlock name="android-emulator.useNamed" value="true"
           title="${%Run existing emulator}" checked="${instance.useNamedEmulator}"
           help="${resURL}/plugin/android-emulator/help-emulatorNamed.html">
         <f:block>
@@ -72,6 +72,11 @@
               </f:repeatable>
             </f:entry>
 
+            <f:entry title="${%Target ABI}" help="${resURL}/plugin/android-emulator/help-targetAbi.html">
+                <f:editableComboBox id="android-emulator.targetAbi" field="targetAbi"
+                                    items="${descriptor.targetAbis}"
+                                    checkUrl="'descriptorByName/AndroidEmulator/checkTargetAbi?value='+escape(this.value)" />
+            </f:entry>
           </table>
         </f:block>
       </f:radioBlock>
