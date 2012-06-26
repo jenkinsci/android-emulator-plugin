@@ -75,6 +75,7 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
     @Exported public final String screenDensity;
     @Exported public final String screenResolution;
     @Exported public final String deviceLocale;
+    @Exported public final String targetAbi;
     @Exported public final String sdCardSize;
     @Exported public final HardwareProperty[] hardwareProperties;
 
@@ -94,7 +95,7 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
             String screenResolution, String deviceLocale, String sdCardSize,
             HardwareProperty[] hardwareProperties, boolean wipeData, boolean showWindow,
             boolean useSnapshots, boolean deleteAfterBuild, int startupDelay,
-            String commandLineOptions) {
+            String commandLineOptions, String targetAbi) {
         this.avdName = avdName;
         this.osVersion = osVersion;
         this.screenDensity = screenDensity;
@@ -108,6 +109,7 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
         this.deleteAfterBuild = deleteAfterBuild;
         this.startupDelay = Math.abs(startupDelay);
         this.commandLineOptions = commandLineOptions;
+        this.targetAbi = targetAbi;
     }
 
     public boolean getUseNamedEmulator() {
@@ -207,7 +209,7 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
         try {
             emuConfig = EmulatorConfig.create(avdName, osVersion, screenDensity,
                 screenResolution, deviceLocale, sdCardSize, wipeData, showWindow, useSnapshots,
-                commandLineOptions);
+                commandLineOptions, targetAbi);
         } catch (IllegalArgumentException e) {
             log(logger, Messages.EMULATOR_CONFIGURATION_BAD(e.getLocalizedMessage()));
             build.setResult(Result.NOT_BUILT);
@@ -770,6 +772,7 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
             String screenResolution = null;
             String deviceLocale = null;
             String sdCardSize = null;
+            String targetAbi = null;
             List<HardwareProperty> hardware = new ArrayList<HardwareProperty>();
             boolean wipeData = false;
             boolean showWindow = true;
@@ -792,6 +795,7 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
                     sdCardSize = sdCardSize.toUpperCase().replaceAll("[ B]", "");
                 }
                 hardware = req.bindJSONToList(HardwareProperty.class, emulatorData.get("hardwareProperties"));
+                targetAbi = Util.fixEmptyAndTrim(emulatorData.getString("targetAbi"));
             }
             wipeData = formData.getBoolean("wipeData");
             showWindow = formData.getBoolean("showWindow");
@@ -804,7 +808,7 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
 
             return new AndroidEmulator(avdName, osVersion, screenDensity, screenResolution,
                     deviceLocale, sdCardSize, hardware.toArray(new HardwareProperty[0]), wipeData,
-                    showWindow, useSnapshots, deleteAfterBuild, startupDelay, commandLineOptions);
+                    showWindow, useSnapshots, deleteAfterBuild, startupDelay, commandLineOptions, targetAbi);
         }
 
         @Override
@@ -840,6 +844,11 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
         /** Used in config.jelly: Lists common hardware properties that can be set. */
         public String[] getHardwareProperties() {
             return Constants.HARDWARE_PROPERTIES;
+        }
+
+        /** Used in config.jelly: Lists common abis that can be set. */
+        public String[] getTargetAbis() {
+            return Constants.TARGET_ABIS;
         }
 
         public FormValidation doCheckAvdName(@QueryParameter String value) {
@@ -966,6 +975,22 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
             }
 
             return ValidationResult.ok();
+        }
+
+        public FormValidation doCheckTargetAbi(@QueryParameter String value) {
+            return checkTargetAbi(value).getFormValidation();
+        }
+
+        private ValidationResult checkTargetAbi(String value) {
+            if (value == null || "".equals(value.trim())) {
+                return ValidationResult.ok();
+            }
+            for (String s : Constants.TARGET_ABIS) {
+                if (s.equals(value)) {
+                    return ValidationResult.ok();
+                }
+            }
+            return ValidationResult.error(Messages.INVALID_TARGET_ABI());
         }
 
         public FormValidation doCheckSdCardSize(@QueryParameter String value) {

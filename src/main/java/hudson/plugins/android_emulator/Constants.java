@@ -28,6 +28,11 @@ public interface Constants {
         "hw.touchScreen", "hw.trackBall", "vm.heapSize"
     };
 
+    /** Possible abis */
+    static final String[] TARGET_ABIS = {
+        "armeabi", "armeabi-v7a", "x86", "mips"
+    };
+
     /** Name of the snapshot image we will use. */
     static final String SNAPSHOT_NAME = "jenkins";
 
