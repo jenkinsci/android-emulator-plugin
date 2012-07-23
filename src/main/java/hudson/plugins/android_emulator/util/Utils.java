@@ -41,8 +41,12 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.FutureTask;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class Utils {
+
+    private static final Pattern REVISION = Pattern.compile("(\\d+)(?:\\.(\\d+))?(?:\\.(\\d+))?");
 
     /**
      * Retrieves the configured Android SDK root directory.
@@ -184,8 +188,7 @@ public class Utils {
                 Map<String, String> toolsProperties = Utils.parseConfigFile(toolsPropFile);
                 String revisionStr = Util.fixEmptyAndTrim(toolsProperties.get("Pkg.Revision"));
                 if (revisionStr != null) {
-                    int version = Integer.parseInt(revisionStr);
-                    sdk.setSdkToolsVersion(version);
+                    sdk.setSdkToolsVersion(parseRevisionString(revisionStr));
                 }
 
                 return sdk;
@@ -581,6 +584,19 @@ public class Utils {
         }
 
         return Boolean.TRUE.equals(result);
+    }
+
+    static int parseRevisionString(String revisionStr) {
+        try {
+            return Integer.parseInt(revisionStr);
+        } catch (NumberFormatException e) {
+            Matcher matcher = REVISION.matcher(revisionStr);
+            if (matcher.matches()) {
+                return Integer.parseInt(matcher.group(1));
+            } else {
+                throw new NumberFormatException("Could not parse "+revisionStr);
+            }
+        }
     }
 
     /** Task that will execute a command on the given emulator's console port, then quit. */
