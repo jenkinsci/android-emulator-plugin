@@ -40,19 +40,26 @@ class EmulatorConfig implements Serializable {
     private final boolean showWindow;
     private final boolean useSnapshots;
     private final String commandLineOptions;
+    private final String androidSdkHome;
 
     public EmulatorConfig(String avdName, boolean wipeData, boolean showWindow,
             boolean useSnapshots, String commandLineOptions) {
+        this(avdName, wipeData, showWindow, useSnapshots, commandLineOptions, null);
+    }
+
+    public EmulatorConfig(String avdName, boolean wipeData, boolean showWindow,
+            boolean useSnapshots, String commandLineOptions, String androidSdkHome) {
         this.avdName = avdName;
         this.wipeData = wipeData;
         this.showWindow = showWindow;
         this.useSnapshots = useSnapshots;
         this.commandLineOptions = commandLineOptions;
+        this.androidSdkHome = androidSdkHome;
     }
 
     public EmulatorConfig(String osVersion, String screenDensity, String screenResolution,
             String deviceLocale, String sdCardSize, boolean wipeData, boolean showWindow,
-            boolean useSnapshots, String commandLineOptions, String targetAbi)
+            boolean useSnapshots, String commandLineOptions, String targetAbi, String androidSdkHome)
                 throws IllegalArgumentException {
         if (osVersion == null || screenDensity == null || screenResolution == null) {
             throw new IllegalArgumentException("Valid OS version and screen properties must be supplied.");
@@ -99,24 +106,26 @@ class EmulatorConfig implements Serializable {
         this.useSnapshots = useSnapshots;
         this.commandLineOptions = commandLineOptions;
         this.targetAbi = targetAbi;
+        this.androidSdkHome = androidSdkHome;
     }
 
     public static final EmulatorConfig create(String avdName, String osVersion, String screenDensity,
             String screenResolution, String deviceLocale, String sdCardSize, boolean wipeData,
-            boolean showWindow, boolean useSnapshots, String commandLineOptions, String targetAbi) {
+            boolean showWindow, boolean useSnapshots, String commandLineOptions, String targetAbi,
+            String androidSdkHome) {
         if (Util.fixEmptyAndTrim(avdName) == null) {
             return new EmulatorConfig(osVersion, screenDensity, screenResolution, deviceLocale,
-                    sdCardSize, wipeData, showWindow, useSnapshots, commandLineOptions, targetAbi);
+                    sdCardSize, wipeData, showWindow, useSnapshots, commandLineOptions, targetAbi, androidSdkHome);
         }
 
-        return new EmulatorConfig(avdName, wipeData, showWindow, useSnapshots, commandLineOptions);
+        return new EmulatorConfig(avdName, wipeData, showWindow, useSnapshots, commandLineOptions, androidSdkHome);
     }
 
     public static final String getAvdName(String avdName, String osVersion, String screenDensity,
             String screenResolution, String deviceLocale) {
         try {
             return create(avdName, osVersion, screenDensity, screenResolution, deviceLocale, null,
-                    false, false, false, null, null).getAvdName();
+                    false, false, false, null, null, null).getAvdName();
         } catch (IllegalArgumentException e) {}
         return null;
     }
@@ -235,8 +244,8 @@ class EmulatorConfig implements Serializable {
     }
 
     public File getAvdMetadataFile(boolean isUnix) {
-        final File homeDir = Utils.getHomeDirectory(isUnix);
-        return new File(getAvdHome(homeDir), getAvdName() +".ini");
+        final File homeDir = Utils.getHomeDirectory(androidSdkHome, isUnix);
+        return new File(getAvdHome(homeDir), getAvdName() + ".ini");
     }
 
     private File getAvdConfigFile(File homeDir) {
@@ -358,7 +367,7 @@ class EmulatorConfig implements Serializable {
                 logger = listener.getLogger();
             }
 
-            final File homeDir = Utils.getHomeDirectory(isUnix);
+            final File homeDir = Utils.getHomeDirectory(androidSdk.getSdkHome(), isUnix);
             final File avdDirectory = getAvdDirectory(homeDir);
             final boolean emulatorExists = getAvdConfigFile(homeDir).exists();
 
@@ -490,6 +499,9 @@ class EmulatorConfig implements Serializable {
             final Process process;
             try {
                 ProcessBuilder procBuilder = new ProcessBuilder(builder.toList());
+                if (androidSdk.hasKnownHome()) {
+                    procBuilder.environment().put("ANDROID_SDK_HOME", androidSdk.getSdkHome());
+                }
                 process = procBuilder.start();
             } catch (IOException ex) {
                 throw new EmulatorCreationException(Messages.AVD_CREATION_FAILED());
@@ -582,6 +594,9 @@ class EmulatorConfig implements Serializable {
             // Run!
             try {
                 ProcessBuilder procBuilder = new ProcessBuilder(builder.toList());
+                if (androidSdkHome != null) {
+                    procBuilder.environment().put("ANDROID_SDK_HOME", androidSdkHome);
+                }
                 procBuilder.start().waitFor();
             } catch (InterruptedException ex) {
                 return false;
@@ -618,7 +633,7 @@ class EmulatorConfig implements Serializable {
                 logger = listener.getLogger();
             }
 
-            final File homeDir = Utils.getHomeDirectory(isUnix);
+            final File homeDir = Utils.getHomeDirectory(androidSdkHome, isUnix);
 
             // Parse the AVD's config
             Map<String, String> configValues;
@@ -658,7 +673,7 @@ class EmulatorConfig implements Serializable {
             }
 
             // Check whether the AVD exists
-            final File homeDir = Utils.getHomeDirectory(isUnix);
+            final File homeDir = Utils.getHomeDirectory(androidSdkHome, isUnix);
             final File avdDirectory = getAvdDirectory(homeDir);
             final boolean emulatorExists = avdDirectory.exists();
             if (!emulatorExists) {

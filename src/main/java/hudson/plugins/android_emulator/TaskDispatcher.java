@@ -14,6 +14,8 @@ import hudson.model.queue.CauseOfBlockage;
 import hudson.model.queue.QueueTaskDispatcher;
 import hudson.model.queue.SubTask;
 
+import hudson.plugins.android_emulator.AndroidEmulator.DescriptorImpl;
+
 /**
  * This QueueTaskDispatcher prevents any one Android emulator instance from being executed more than
  * once concurrently on any one build machine.
@@ -37,6 +39,12 @@ public class TaskDispatcher extends QueueTaskDispatcher {
         String desiredHash = getEmulatorConfigHashForTask(node, task);
         if (desiredHash == null) {
             return null;
+        }
+
+        // If the AndroidEmulator uses workspace-local emulators, we don't care.
+        DescriptorImpl descriptor = Hudson.getInstance().getDescriptorByType(DescriptorImpl.class);
+        if (descriptor != null && descriptor.shouldKeepInWorkspace) {
+          return null;
         }
 
         // Check for builds in the queue which have the same emulator config as this task

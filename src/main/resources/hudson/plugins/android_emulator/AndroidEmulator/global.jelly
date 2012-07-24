@@ -15,6 +15,10 @@
       <label class="attach-previous">${%Automatically install Android components when required}</label>
     </f:entry>
 
+    <f:entry help="${resURL}/plugin/android-emulator/help-keepInWorkspace.html">
+      <f:checkbox name="android-emulator.shouldKeepInWorkspace" checked="${descriptor.shouldKeepInWorkspace}" />
+      <label class="attach-previous">${%Keep emulators in the job workspace, in the .android subdirectory, to isolate them as much as possible}</label>
+    </f:entry>
   </f:section>
 
 </j:jelly>
