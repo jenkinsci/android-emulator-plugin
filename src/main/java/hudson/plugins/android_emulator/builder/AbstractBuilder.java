@@ -43,12 +43,13 @@ public abstract class AbstractBuilder extends Builder {
      * @return An Android SDK instance, or {@code null} if none was found.
      */
     protected static AndroidSdk getAndroidSdk(AbstractBuild<?, ?> build, Launcher launcher, BuildListener listener) {
-        boolean installSdkIfRequired = false;
+        boolean installSdkIfRequired = false, keepInWorkspace = false;
         DescriptorImpl descriptor = Hudson.getInstance().getDescriptorByType(DescriptorImpl.class);
         if (descriptor != null) {
             installSdkIfRequired = descriptor.shouldInstallSdk;
+            keepInWorkspace = descriptor.shouldKeepInWorkspace;
         }
-        return getAndroidSdk(build, launcher, listener, installSdkIfRequired);
+        return getAndroidSdk(build, launcher, listener, installSdkIfRequired, keepInWorkspace);
     }
 
     /**
@@ -58,10 +59,11 @@ public abstract class AbstractBuilder extends Builder {
      * @param launcher The launcher for the remote node.
      * @param listener The listener used to get the environment variables.
      * @param installIfRequired If {@code true}, will automatically install the SDK if not found.
+     * @param keepInWorkspace If {@code true}, will keep emulators in workspace.
      * @return An Android SDK instance, or {@code null} if none was found and installation failed.
      */
     protected static AndroidSdk getAndroidSdk(AbstractBuild<?, ?> build, Launcher launcher,
-            BuildListener listener, boolean installIfRequired) {
+            BuildListener listener, boolean installIfRequired, boolean keepInWorkspace) {
         // Get configured, expanded Android SDK root value
         String androidHome = Utils.expandVariables(build, listener, Utils.getConfiguredAndroidHome());
         EnvVars envVars = Utils.getEnvironment(build, listener);
@@ -70,40 +72,10 @@ public abstract class AbstractBuilder extends Builder {
         Node node = Computer.currentComputer().getNode();
         String discoveredAndroidHome = Utils.discoverAndroidHome(launcher, node, envVars, androidHome);
 
+        final String androidSdkHome = (envVars != null && keepInWorkspace ? envVars.get("WORKSPACE") : null);
+
         // Get Android SDK object from the given root (or locate on PATH)
-        AndroidSdk sdk = Utils.getAndroidSdk(launcher, discoveredAndroidHome);
-        if (sdk == null && installIfRequired) {
-            try {
-                log(listener.getLogger(), Messages.INSTALLING_SDK());
-                sdk = SdkInstaller.install(launcher, listener);
-            } catch (Exception e) {
-                log(listener.getLogger(), Messages.SDK_INSTALLATION_FAILED(), e);
-            }
-        }
-
-        // Set environment variable for discovered SDK
-        if (sdk != null) {
-            final String sdkRoot = sdk.getSdkRoot();
-            build.addAction(new EnvironmentContributingAction() {
-                public void buildEnvVars(AbstractBuild<?, ?> build, EnvVars env) {
-                    env.put("ANDROID_HOME", sdkRoot);
-                }
-
-                public String getDisplayName() {
-                    return null;
-                }
-
-                public String getIconFileName() {
-                    return null;
-                }
-
-                public String getUrlName() {
-                    return null;
-                }
-            });
-        }
-
-        return sdk;
+        return Utils.getAndroidSdk(launcher, discoveredAndroidHome, androidSdkHome);
     }
 
     /**

@@ -15,19 +15,29 @@ public class AndroidSdk implements Serializable {
     /** First version in which we can programmatically install system images. */
     private static final int SDK_INSTALL_SYSTEM_IMAGE = 17;
 
+    private final String sdkRoot;
     private final String sdkHome;
     private boolean usesPlatformTools;
     private int sdkToolsVersion;
 
-    public AndroidSdk(String home) {
+    public AndroidSdk(String root, String home) {
+        this.sdkRoot = root;
         this.sdkHome = home;
     }
 
     public boolean hasKnownRoot() {
-        return this.sdkHome != null;
+        return this.sdkRoot != null;
     }
 
     public String getSdkRoot() {
+        return this.sdkRoot;
+    }
+
+    public boolean hasKnownHome() {
+        return this.sdkHome != null;
+    }
+
+    public String getSdkHome() {
         return this.sdkHome;
     }
 

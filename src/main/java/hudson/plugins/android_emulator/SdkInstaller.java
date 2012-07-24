@@ -53,17 +53,17 @@ public class SdkInstaller {
      *
      * @return An {@code AndroidSdk} object for the newly-installed SDK.
      */
-    public static AndroidSdk install(Launcher launcher, BuildListener listener)
+    public static AndroidSdk install(Launcher launcher, BuildListener listener, String androidSdkHome)
             throws SdkInstallationException, IOException, InterruptedException {
         Semaphore semaphore = acquireLock();
         try {
-            return doInstall(launcher, listener);
+            return doInstall(launcher, listener, androidSdkHome);
         } finally {
             semaphore.release();
         }
     }
 
-    private static AndroidSdk doInstall(Launcher launcher, BuildListener listener)
+    private static AndroidSdk doInstall(Launcher launcher, BuildListener listener, String androidSdkHome)
             throws SdkInstallationException, IOException, InterruptedException {
         // We should install the SDK on the current build machine
         Node node = Computer.currentComputer().getNode();
@@ -82,7 +82,7 @@ public class SdkInstaller {
         if (!isSdkInstallComplete(node, androidHome)) {
             PrintStream logger = listener.getLogger();
             log(logger, Messages.INSTALLING_REQUIRED_COMPONENTS());
-            AndroidSdk sdk = new AndroidSdk(androidHome);
+            AndroidSdk sdk = new AndroidSdk(androidHome, androidSdkHome);
             installComponent(logger, launcher, sdk, "platform-tool", "tool");
 
             // If we made it this far, confirm completion by writing our our metadata file
@@ -90,11 +90,11 @@ public class SdkInstaller {
 
             // As this SDK will not be used manually, opt out of the stats gathering;
             // this also prevents the opt-in dialog from popping up during execution
-            optOutOfSdkStatistics(launcher, listener);
+            optOutOfSdkStatistics(launcher, listener, androidSdkHome);
         }
 
         // Create an SDK object now that all the components exist
-        return Utils.getAndroidSdk(launcher, androidHome);
+        return Utils.getAndroidSdk(launcher, androidHome, androidSdkHome);
     }
 
     /**
@@ -341,8 +341,8 @@ public class SdkInstaller {
      * @param launcher Used for running tasks on the remote node.
      * @param listener Used to access logger.
      */
-    private static void optOutOfSdkStatistics(Launcher launcher, BuildListener listener) {
-        Callable<Void, Exception> optOutTask = new StatsOptOutTask(launcher.isUnix(), listener);
+    public static void optOutOfSdkStatistics(Launcher launcher, BuildListener listener, String androidSdkHome) {
+        Callable<Void, Exception> optOutTask = new StatsOptOutTask(androidSdkHome, launcher.isUnix(), listener);
         try {
             launcher.getChannel().call(optOutTask);
         } catch (Exception e) {
@@ -439,12 +439,14 @@ public class SdkInstaller {
     private static final class StatsOptOutTask implements Callable<Void, Exception> {
 
         private static final long serialVersionUID = 1L;
+        private final String androidSdkHome;
         private final boolean isUnix;
 
         private final BuildListener listener;
         private transient PrintStream logger;
 
-        public StatsOptOutTask(boolean isUnix, BuildListener listener) {
+        public StatsOptOutTask(String androidSdkHome, boolean isUnix, BuildListener listener) {
+            this.androidSdkHome = androidSdkHome;
             this.isUnix = isUnix;
             this.listener = listener;
         }
@@ -454,7 +456,7 @@ public class SdkInstaller {
                 logger = listener.getLogger();
             }
 
-            final File homeDir = Utils.getHomeDirectory(isUnix);
+            final File homeDir = Utils.getHomeDirectory(androidSdkHome, isUnix);
             final File androidDir = new File(homeDir, ".android");
             androidDir.mkdirs();
 
