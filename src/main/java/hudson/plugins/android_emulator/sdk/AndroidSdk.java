@@ -17,7 +17,8 @@ public class AndroidSdk implements Serializable {
 
     private final String sdkHome;
     private boolean usesPlatformTools;
-    private int sdkToolsVersion;
+    private String sdkToolsVersion;
+    private int sdkToolsMajorVersion;
 
     public AndroidSdk(String home) {
         this.sdkHome = home;
@@ -39,24 +40,33 @@ public class AndroidSdk implements Serializable {
         this.usesPlatformTools = usesPlatformTools;
     }
 
-    public void setSdkToolsVersion(int version) {
-        this.sdkToolsVersion = version;
+    public void setSdkToolsVersion(String version) {
+      this.sdkToolsVersion = version;
+      try {
+        this.sdkToolsMajorVersion = Integer.parseInt(this.sdkToolsVersion);
+      } catch (NumberFormatException e) {
+        this.sdkToolsMajorVersion = Integer.parseInt(this.sdkToolsVersion.split("\\.")[0]);
+      }
     }
 
-    public int getSdkToolsVersion() {
+    public String getSdkToolsVersion() {
         return this.sdkToolsVersion;
     }
 
+    public int getSdkToolsMajorVersion() {
+      return this.sdkToolsMajorVersion;
+    }
+    
     public boolean supportsSnapshots() {
-        return sdkToolsVersion >= SDK_TOOLS_SNAPSHOTS;
+        return sdkToolsMajorVersion >= SDK_TOOLS_SNAPSHOTS;
     }
 
     public boolean supportsComponentInstallation() {
-        return sdkToolsVersion >= SDK_AUTO_INSTALL;
+        return sdkToolsMajorVersion >= SDK_AUTO_INSTALL;
     }
 
     public boolean supportsSystemImageInstallation() {
-        return sdkToolsVersion >= SDK_INSTALL_SYSTEM_IMAGE;
+        return sdkToolsMajorVersion >= SDK_INSTALL_SYSTEM_IMAGE;
     }
 
 }

@@ -184,8 +184,7 @@ public class Utils {
                 Map<String, String> toolsProperties = Utils.parseConfigFile(toolsPropFile);
                 String revisionStr = Util.fixEmptyAndTrim(toolsProperties.get("Pkg.Revision"));
                 if (revisionStr != null) {
-                    int version = Integer.parseInt(revisionStr);
-                    sdk.setSdkToolsVersion(version);
+                    sdk.setSdkToolsVersion(revisionStr);
                 }
 
                 return sdk;

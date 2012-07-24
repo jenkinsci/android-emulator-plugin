@@ -193,7 +193,7 @@ public class SdkInstaller {
 
         // Check whether we are capable of installing individual components
         log(logger, Messages.PLATFORM_INSTALL_REQUIRED(platform));
-        if (!launcher.isUnix() && platform.contains(":") && sdk.getSdkToolsVersion() < 16) {
+        if (!launcher.isUnix() && platform.contains(":") && sdk.getSdkToolsMajorVersion() < 16) {
             // SDK add-ons can't be installed on Windows until r16 due to http://b.android.com/18868
             log(logger, Messages.SDK_ADDON_INSTALLATION_UNSUPPORTED());
             return;

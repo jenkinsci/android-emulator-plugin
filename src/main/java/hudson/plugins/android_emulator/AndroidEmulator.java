@@ -377,7 +377,7 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
         //
         // With the adb socket open we know the correct process is running, so we set this flag to
         // indicate that any methods wanting to check the "emulator" process state should ignore it.
-        boolean ignoreProcess = !launcher.isUnix() && androidSdk.getSdkToolsVersion() >= 12;
+        boolean ignoreProcess = !launcher.isUnix() && androidSdk.getSdkToolsMajorVersion() >= 12;
 
         // Notify adb of our existence
         final String serial = "localhost:"+ adbPort;
