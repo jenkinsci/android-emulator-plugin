@@ -41,8 +41,12 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.FutureTask;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class Utils {
+
+    private static final Pattern REVISION = Pattern.compile("(\\d+)(?:\\.\\d+){0,2}");
 
     /**
      * Retrieves the configured Android SDK root directory.
@@ -147,16 +151,17 @@ public class Utils {
      * Determines the properties of the SDK installed on the build machine.
      *
      * @param launcher The launcher for the remote node.
-     * @param androidHome The SDK root directory specified in the job/system configuration.
+     * @param androidSdkRoot The SDK root directory specified in the job/system configuration.
+     * @param androidSdkHome The SDK home directory, i.e. the workspace directory.
      * @return AndroidSdk object representing the properties of the installed SDK.
      */
-    public static AndroidSdk getAndroidSdk(Launcher launcher, final String androidHome) {
+    public static AndroidSdk getAndroidSdk(Launcher launcher, final String androidSdkRoot, final String androidSdkHome) {
         final boolean isUnix = launcher.isUnix();
 
         Callable<AndroidSdk, IOException> task = new Callable<AndroidSdk, IOException>() {
             public AndroidSdk call() throws IOException {
-                String sdkRoot = androidHome;
-                if (androidHome == null) {
+                String sdkRoot = androidSdkRoot;
+                if (androidSdkRoot == null) {
                     // If no SDK root was specified, attempt to detect it from PATH
                     sdkRoot = getSdkRootFromPath(isUnix);
 
@@ -173,7 +178,7 @@ public class Utils {
                 }
 
                 // Create SDK instance with what we know so far
-                AndroidSdk sdk = new AndroidSdk(sdkRoot);
+                AndroidSdk sdk = new AndroidSdk(sdkRoot, androidSdkHome);
 
                 // Determine whether SDK has platform tools installed
                 File toolsDirectory = new File(sdkRoot, "platform-tools");
@@ -184,7 +189,7 @@ public class Utils {
                 Map<String, String> toolsProperties = Utils.parseConfigFile(toolsPropFile);
                 String revisionStr = Util.fixEmptyAndTrim(toolsProperties.get("Pkg.Revision"));
                 if (revisionStr != null) {
-                    sdk.setSdkToolsVersion(revisionStr);
+                    sdk.setSdkToolsVersion(parseRevisionString(revisionStr));
                 }
 
                 return sdk;
@@ -277,11 +282,13 @@ public class Utils {
      * @param isUnix Whether the system where this command should run is sane.
      * @return A {@link File} representing the directory in which the ".android" subdirectory should go.
      */
-    public static File getHomeDirectory(boolean isUnix) {
+    public static File getHomeDirectory(String androidSdkHome, boolean isUnix) {
         // From git://android.git.kernel.org/platform/external/qemu.git/android/utils/bufprint.c
         String homeDirPath = System.getenv("ANDROID_SDK_HOME");
         if (homeDirPath == null) {
-            if (isUnix) {
+            if (androidSdkHome != null) {
+                homeDirPath = androidSdkHome;
+            } else if (isUnix) {
                 homeDirPath = System.getenv("HOME");
                 if (homeDirPath == null) {
                     homeDirPath = "/tmp";
@@ -415,11 +422,18 @@ public class Utils {
 
         ArgumentListBuilder cmd = Utils.getToolCommand(androidSdk, launcher.isUnix(), tool, args);
         ProcStarter procStarter = launcher.launch().stdout(stdout).stderr(stderr).cmds(cmd);
+        if (androidSdk.hasKnownHome()) {
+            // Copy the old one, so we don't mutate the argument.
+            env = new EnvVars((env == null ? new EnvVars() : env));
+            env.put("ANDROID_SDK_HOME", androidSdk.getSdkHome());
+        }
+
         if (env != null) {
             procStarter = procStarter.envs(env);
         }
+
         if (workingDirectory != null) {
-            procStarter = procStarter.pwd(workingDirectory);
+            procStarter.pwd(workingDirectory);
         }
         procStarter.join();
     }
@@ -580,6 +594,19 @@ public class Utils {
         }
 
         return Boolean.TRUE.equals(result);
+    }
+
+    static int parseRevisionString(String revisionStr) {
+        try {
+            return Integer.parseInt(revisionStr);
+        } catch (NumberFormatException e) {
+            Matcher matcher = REVISION.matcher(revisionStr);
+            if (matcher.matches()) {
+                return Integer.parseInt(matcher.group(1));
+            } else {
+                throw new NumberFormatException("Could not parse "+revisionStr);
+            }
+        }
     }
 
     /** Task that will execute a command on the given emulator's console port, then quit. */

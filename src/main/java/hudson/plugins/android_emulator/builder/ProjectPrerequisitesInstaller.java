@@ -5,6 +5,7 @@ import hudson.Extension;
 import hudson.Launcher;
 import hudson.FilePath.FileCallable;
 import hudson.model.AbstractBuild;
+import hudson.Functions;
 import hudson.model.BuildListener;
 import hudson.model.Descriptor;
 import hudson.plugins.android_emulator.Messages;
@@ -130,7 +131,7 @@ public class ProjectPrerequisitesInstaller extends AbstractBuilder {
 
         @Override
         public String getHelpFile() {
-            return "/plugin/android-emulator/help-installPrerequisites.html";
+            return Functions.getResourcePath() + "/plugin/android-emulator/help-installPrerequisites.html";
         }
 
         @Override

@@ -2,8 +2,8 @@ package hudson.plugins.android_emulator;
 
 import static hudson.plugins.android_emulator.AndroidEmulator.log;
 import hudson.FilePath;
-import hudson.Launcher;
 import hudson.FilePath.FileCallable;
+import hudson.Launcher;
 import hudson.model.BuildListener;
 import hudson.model.Computer;
 import hudson.model.Node;
@@ -26,13 +26,14 @@ import java.io.Serializable;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.WeakHashMap;
 import java.util.concurrent.Semaphore;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.apache.commons.lang.StringUtils;
 
@@ -52,17 +53,17 @@ public class SdkInstaller {
      *
      * @return An {@code AndroidSdk} object for the newly-installed SDK.
      */
-    public static AndroidSdk install(Launcher launcher, BuildListener listener)
+    public static AndroidSdk install(Launcher launcher, BuildListener listener, String androidSdkHome)
             throws SdkInstallationException, IOException, InterruptedException {
         Semaphore semaphore = acquireLock();
         try {
-            return doInstall(launcher, listener);
+            return doInstall(launcher, listener, androidSdkHome);
         } finally {
             semaphore.release();
         }
     }
 
-    private static AndroidSdk doInstall(Launcher launcher, BuildListener listener)
+    private static AndroidSdk doInstall(Launcher launcher, BuildListener listener, String androidSdkHome)
             throws SdkInstallationException, IOException, InterruptedException {
         // We should install the SDK on the current build machine
         Node node = Computer.currentComputer().getNode();
@@ -81,7 +82,7 @@ public class SdkInstaller {
         if (!isSdkInstallComplete(node, androidHome)) {
             PrintStream logger = listener.getLogger();
             log(logger, Messages.INSTALLING_REQUIRED_COMPONENTS());
-            AndroidSdk sdk = new AndroidSdk(androidHome);
+            AndroidSdk sdk = new AndroidSdk(androidHome, androidSdkHome);
             installComponent(logger, launcher, sdk, "platform-tool", "tool");
 
             // If we made it this far, confirm completion by writing our our metadata file
@@ -89,11 +90,11 @@ public class SdkInstaller {
 
             // As this SDK will not be used manually, opt out of the stats gathering;
             // this also prevents the opt-in dialog from popping up during execution
-            optOutOfSdkStatistics(launcher, listener);
+            optOutOfSdkStatistics(launcher, listener, androidSdkHome);
         }
 
         // Create an SDK object now that all the components exist
-        return Utils.getAndroidSdk(launcher, androidHome);
+        return Utils.getAndroidSdk(launcher, androidHome, androidSdkHome);
     }
 
     /**
@@ -153,9 +154,9 @@ public class SdkInstaller {
 
         String list = StringUtils.join(components, ',');
         log(logger, Messages.INSTALLING_SDK_COMPONENTS(list.toString()));
-        String upgradeArgs = String.format("update sdk -o -u %s -t %s", proxySettings, list);
+        String all = sdk.getSdkToolsVersion() < 17 ? "-o" : "-a";
+        String upgradeArgs = String.format("update sdk -u %s %s -t %s", all, proxySettings, list);
 
-        // TODO: We need to be able to kill the command spawned if the build is interrupted!
         Utils.runAndroidTool(launcher, logger, logger, sdk, Tool.ANDROID, upgradeArgs, null);
     }
 
@@ -245,35 +246,52 @@ public class SdkInstaller {
     }
 
     private static List<String> getSdkComponentsForPlatform(PrintStream logger, String platform) {
-        // If it's a straightforward case like "android-10", there are no further dependencies
-        if (!platform.contains(":")) {
-            return Collections.singletonList(platform);
+        // Gather list of required components
+        List<String> components = new ArrayList<String>();
+
+        // Check for dependent platform
+        int dependentPlatform = -1;
+        Matcher matcher = Pattern.compile("[0-9]{1,2}$").matcher(platform);
+        if (matcher.find()) {
+            String end = matcher.group();
+            try {
+                dependentPlatform = Integer.parseInt(end);
+            } catch (NumberFormatException e) {
+            }
         }
 
-        // Otherwise, figure out the component name and its platform dependency
+        // Add dependent platform
+        if (dependentPlatform > 0) {
+            components.add(String.format("android-%s", dependentPlatform));
+        }
+
+        // Add system image, if required
+        // Even if a system image doesn't exist for this platform, the installer silently ignores it
+        if (dependentPlatform >= 14) {
+            components.add(String.format("sysimg-%s", dependentPlatform));
+        }
+
+        // If it's a straightforward case like "android-10", we're done
+        if (!platform.contains(":")) {
+            return components;
+        }
+
+        // As of SDK r17-ish, we can't always map addon names directly to installable components.
+        // But replacing display name "Google Inc." with vendor ID "google" should cover most cases
+        platform = platform.replace("Google Inc.", "google");
+
         String parts[] = platform.toLowerCase().split(":");
         if (parts.length != 3) {
             log(logger, Messages.SDK_ADDON_FORMAT_UNRECOGNISED(platform));
             return null;
         }
 
-        // Add dependent platform
-        List<String> components = new ArrayList<String>();
-        components.add(String.format("android-%s", parts[2]));
-
-        // Add system image, if required
-        // Even if a system image doesn't exist for this platform, the installer silently ignores it
-        try {
-            if (Integer.parseInt(parts[2]) >= 14) {
-                components.add(String.format("sysimg-%s", parts[2]));
-            }
-        } catch (NumberFormatException e) {
-            log(logger, Messages.SDK_ADDON_NAME_INCORRECT(platform));
-        }
-
         // Determine addon name
-        String component = String.format("addon-%s-%s-%s", parts[1], parts[0], parts[2]);
-        component = component.replaceAll("[^a-z0-9_-]+", "_").replaceAll("_+", "_");
+        String vendor = parts[0].replaceAll("[^a-z0-9_-]+", "_").replaceAll("_+", "_")
+                .replace("_$", "");
+        String addon = parts[1].replaceAll("[^a-z0-9_-]+", "_").replaceAll("_+", "_")
+                .replace("_$", "");
+        String component = String.format("addon-%s-%s-%s", addon, vendor, parts[2]);
         components.add(component);
 
         return components;
@@ -323,8 +341,8 @@ public class SdkInstaller {
      * @param launcher Used for running tasks on the remote node.
      * @param listener Used to access logger.
      */
-    private static void optOutOfSdkStatistics(Launcher launcher, BuildListener listener) {
-        Callable<Void, Exception> optOutTask = new StatsOptOutTask(launcher.isUnix(), listener);
+    public static void optOutOfSdkStatistics(Launcher launcher, BuildListener listener, String androidSdkHome) {
+        Callable<Void, Exception> optOutTask = new StatsOptOutTask(androidSdkHome, launcher.isUnix(), listener);
         try {
             launcher.getChannel().call(optOutTask);
         } catch (Exception e) {
@@ -421,12 +439,14 @@ public class SdkInstaller {
     private static final class StatsOptOutTask implements Callable<Void, Exception> {
 
         private static final long serialVersionUID = 1L;
+        private final String androidSdkHome;
         private final boolean isUnix;
 
         private final BuildListener listener;
         private transient PrintStream logger;
 
-        public StatsOptOutTask(boolean isUnix, BuildListener listener) {
+        public StatsOptOutTask(String androidSdkHome, boolean isUnix, BuildListener listener) {
+            this.androidSdkHome = androidSdkHome;
             this.isUnix = isUnix;
             this.listener = listener;
         }
@@ -436,7 +456,7 @@ public class SdkInstaller {
                 logger = listener.getLogger();
             }
 
-            final File homeDir = Utils.getHomeDirectory(isUnix);
+            final File homeDir = Utils.getHomeDirectory(androidSdkHome, isUnix);
             final File androidDir = new File(homeDir, ".android");
             androidDir.mkdirs();
 

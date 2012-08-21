@@ -1,6 +1,7 @@
 package hudson.plugins.android_emulator.snapshot;
 
 import hudson.Extension;
+import hudson.Functions;
 import hudson.model.Descriptor;
 import hudson.plugins.android_emulator.Messages;
 import hudson.tasks.Builder;
@@ -38,7 +39,7 @@ public class SnapshotLoadBuilder extends AbstractSnapshotBuilder {
 
         @Override
         public String getHelpFile() {
-            return "/plugin/android-emulator/help-snapshotLoad.html";
+            return Functions.getResourcePath() + "/plugin/android-emulator/help-snapshotLoad.html";
         }
 
         @Override

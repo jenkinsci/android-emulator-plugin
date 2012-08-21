@@ -2,6 +2,7 @@ package hudson.plugins.android_emulator.monkey;
 
 import static hudson.plugins.android_emulator.AndroidEmulator.log;
 import hudson.Extension;
+import hudson.Functions;
 import hudson.Launcher;
 import hudson.Util;
 import hudson.model.AbstractBuild;
@@ -142,7 +143,7 @@ public class MonkeyBuilder extends AbstractBuilder {
 
         @Override
         public String getHelpFile() {
-            return "/plugin/android-emulator/help-runMonkey.html";
+            return Functions.getResourcePath() + "/plugin/android-emulator/help-runMonkey.html";
         }
 
         @Override

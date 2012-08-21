@@ -5,7 +5,7 @@
         <f:description>${%Path to an Android package file, within the current workspace, to be installed}</f:description>
     </f:entry>
 
-    <f:entry help="/plugin/android-emulator/help-uninstallFirst.html">
+    <f:entry help="${resURL}/plugin/android-emulator/help-uninstallFirst.html">
         <f:checkbox id="android-emulator.uninstallFirst" name="android-emulator.uninstallFirst"
           checked="${instance.shouldUninstallFirst()}" />
         <label class="attach-previous">${%Uninstall existing APK first}</label>

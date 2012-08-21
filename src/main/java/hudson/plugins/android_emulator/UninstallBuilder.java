@@ -1,6 +1,7 @@
 package hudson.plugins.android_emulator;
 
 import hudson.Extension;
+import hudson.Functions;
 import hudson.Launcher;
 import hudson.Util;
 import hudson.model.AbstractBuild;
@@ -83,7 +84,7 @@ public class UninstallBuilder extends AbstractBuilder {
 
         @Override
         public String getHelpFile() {
-            return "/plugin/android-emulator/help-uninstallPackage.html";
+            return Functions.getResourcePath() + "/plugin/android-emulator/help-uninstallPackage.html";
         }
 
         @Override

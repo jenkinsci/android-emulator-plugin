@@ -1,2 +1,6 @@
 target
 work
+.DS_Store
+/.settings
+/.project
+/.classpath
