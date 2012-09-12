@@ -46,7 +46,7 @@ import java.util.regex.Pattern;
 
 public class Utils {
 
-    private static final Pattern REVISION = Pattern.compile("(\\d+)(?:\\.\\d+){0,2}");
+    private static final Pattern REVISION = Pattern.compile("(\\d++).*");
 
     /**
      * Retrieves the configured Android SDK root directory.
