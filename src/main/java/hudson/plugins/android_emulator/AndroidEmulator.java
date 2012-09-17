@@ -257,12 +257,11 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
             final EmulatorConfig emuConfig, final HardwareProperty[] hardwareProperties)
                 throws IOException, InterruptedException {
         final PrintStream logger = listener.getLogger();
-        final boolean isUnix = launcher.isUnix();
 
         // First ensure that emulator exists
         final boolean emulatorAlreadyExists;
         try {
-            Callable<Boolean, AndroidEmulatorException> task = emuConfig.getEmulatorCreationTask(androidSdk, isUnix, listener);
+            Callable<Boolean, AndroidEmulatorException> task = emuConfig.getEmulatorCreationTask(androidSdk, listener);
             emulatorAlreadyExists = launcher.getChannel().call(task);
         } catch (EmulatorDiscoveryException ex) {
             log(logger, Messages.CANNOT_START_EMULATOR(ex.getMessage()));
@@ -276,7 +275,7 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
 
         // Update emulator configuration with desired hardware properties
         if (!emuConfig.isNamedEmulator() && hardwareProperties.length != 0) {
-            Callable<Void, IOException> task = emuConfig.getEmulatorConfigTask(hardwareProperties, isUnix, listener);
+            Callable<Void, IOException> task = emuConfig.getEmulatorConfigTask(hardwareProperties, listener);
             launcher.getChannel().call(task);
         }
 
@@ -612,7 +611,7 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
         if (deleteAfterBuild) {
             try {
                 Callable<Boolean, Exception> deletionTask = emulatorConfig.getEmulatorDeletionTask(
-                		emu.launcher().isUnix(), emu.launcher().getListener());
+                        emu.launcher().getListener());
                 emu.launcher().getChannel().call(deletionTask);
             } catch (Exception ex) {
                 log(emu.logger(), Messages.FAILED_TO_DELETE_AVD(ex.getLocalizedMessage()));

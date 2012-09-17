@@ -3,6 +3,7 @@ package hudson.plugins.android_emulator.util;
 import static hudson.plugins.android_emulator.AndroidEmulator.log;
 import hudson.EnvVars;
 import hudson.FilePath;
+import hudson.Functions;
 import hudson.Launcher;
 import hudson.Proc;
 import hudson.Util;
@@ -279,16 +280,15 @@ public class Utils {
     /**
      * Locates the current user's home directory using the same scheme as the Android SDK does.
      *
-     * @param isUnix Whether the system where this command should run is sane.
      * @return A {@link File} representing the directory in which the ".android" subdirectory should go.
      */
-    public static File getHomeDirectory(String androidSdkHome, boolean isUnix) {
+    public static File getHomeDirectory(String androidSdkHome) {
         // From git://android.git.kernel.org/platform/external/qemu.git/android/utils/bufprint.c
         String homeDirPath = System.getenv("ANDROID_SDK_HOME");
         if (homeDirPath == null) {
             if (androidSdkHome != null) {
                 homeDirPath = androidSdkHome;
-            } else if (isUnix) {
+            } else if (!Functions.isWindows()) {
                 homeDirPath = System.getenv("HOME");
                 if (homeDirPath == null) {
                     homeDirPath = "/tmp";
