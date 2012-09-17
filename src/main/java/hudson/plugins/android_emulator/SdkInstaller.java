@@ -3,7 +3,6 @@ package hudson.plugins.android_emulator;
 import static hudson.plugins.android_emulator.AndroidEmulator.log;
 import hudson.FilePath;
 import hudson.FilePath.FileCallable;
-import hudson.Functions;
 import hudson.Launcher;
 import hudson.model.BuildListener;
 import hudson.model.Computer;
@@ -72,7 +71,7 @@ public class SdkInstaller {
         // Install the SDK if required
         String androidHome;
         try {
-            androidHome = installBasicSdk(listener, node, launcher.isUnix()).getRemote();
+            androidHome = installBasicSdk(listener, node).getRemote();
         } catch (IOException e) {
             throw new SdkInstallationException(Messages.SDK_DOWNLOAD_FAILED(), e);
         } catch (SdkUnavailableException e) {
@@ -101,12 +100,12 @@ public class SdkInstaller {
     /**
      * Downloads and extracts the basic Android SDK on a given Node, if it hasn't already been done.
      *
+     *
      * @param node Node to install the SDK on.
-     * @param isUnix Whether the node is sane.
      * @return Path where the SDK is installed, regardless of whether it was installed right now.
      * @throws SdkUnavailableException If the Android SDK is not available on this platform.
      */
-    private static FilePath installBasicSdk(final BuildListener listener, Node node, boolean isUnix)
+    private static FilePath installBasicSdk(final BuildListener listener, Node node)
             throws SdkUnavailableException, IOException, InterruptedException {
         // Locate where the SDK should be installed to on this node
         final FilePath installDir = Utils.getSdkInstallDirectory(node);
@@ -146,7 +145,7 @@ public class SdkInstaller {
      *
      * @param logger Logs things.
      * @param launcher Used to launch tasks on the remote node.
-     * @param sdkRoot Root of the SDK installation to install components for.
+     * @param sdk Root of the SDK installation to install components for.
      * @param components Name of the component(s) to install.
      */
     private static void installComponent(PrintStream logger, Launcher launcher, AndroidSdk sdk,
@@ -328,7 +327,7 @@ public class SdkInstaller {
             final EmulatorConfig emuConfig) throws IOException, InterruptedException {
         return launcher.getChannel().call(new Callable<String, IOException>() {
             public String call() throws IOException {
-                File metadataFile = emuConfig.getAvdMetadataFile(!Functions.isWindows());
+                File metadataFile = emuConfig.getAvdMetadataFile();
                 Map<String, String> metadata = Utils.parseConfigFile(metadataFile);
                 return metadata.get("target");
             }
@@ -343,7 +342,7 @@ public class SdkInstaller {
      * @param listener Used to access logger.
      */
     public static void optOutOfSdkStatistics(Launcher launcher, BuildListener listener, String androidSdkHome) {
-        Callable<Void, Exception> optOutTask = new StatsOptOutTask(androidSdkHome, launcher.isUnix(), listener);
+        Callable<Void, Exception> optOutTask = new StatsOptOutTask(androidSdkHome, listener);
         try {
             launcher.getChannel().call(optOutTask);
         } catch (Exception e) {
@@ -441,14 +440,12 @@ public class SdkInstaller {
 
         private static final long serialVersionUID = 1L;
         private final String androidSdkHome;
-        private final boolean isUnix;
 
         private final BuildListener listener;
         private transient PrintStream logger;
 
-        public StatsOptOutTask(String androidSdkHome, boolean isUnix, BuildListener listener) {
+        public StatsOptOutTask(String androidSdkHome, BuildListener listener) {
             this.androidSdkHome = androidSdkHome;
-            this.isUnix = isUnix;
             this.listener = listener;
         }
 
@@ -457,7 +454,7 @@ public class SdkInstaller {
                 logger = listener.getLogger();
             }
 
-            final File homeDir = Utils.getHomeDirectory(androidSdkHome, isUnix);
+            final File homeDir = Utils.getHomeDirectory(androidSdkHome);
             final File androidDir = new File(homeDir, ".android");
             androidDir.mkdirs();
 

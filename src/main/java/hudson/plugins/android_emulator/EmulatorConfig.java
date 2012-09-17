@@ -1,6 +1,7 @@
 package hudson.plugins.android_emulator;
 
 import hudson.FilePath;
+import hudson.Functions;
 import hudson.Launcher;
 import hudson.Util;
 import hudson.model.BuildListener;
@@ -201,38 +202,36 @@ class EmulatorConfig implements Serializable {
      * Gets a task that ensures that an Android AVD exists for this instance's configuration.
      *
      * @param androidSdk  The Android SDK to use.
-     * @param isUnix  Whether the target system is sane.
      * @param listener The listener to use for logging.
      * @return A Callable that will handle the detection/creation of an appropriate AVD.
      */
     public Callable<Boolean, AndroidEmulatorException> getEmulatorCreationTask(AndroidSdk androidSdk,
-            boolean isUnix, BuildListener listener) {
-        return new EmulatorCreationTask(androidSdk, isUnix, listener);
+                                                                               BuildListener listener) {
+        return new EmulatorCreationTask(androidSdk, listener);
     }
 
     /**
      * Gets a task that updates the hardware properties of the AVD for this instance.
      *
+     *
      * @param hardwareProperties  The hardware properties to update the AVD with.
-     * @param isUnix  Whether the target system is sane.
      * @param listener The listener to use for logging.
      * @return A Callable that will update the config of the current AVD.
      */
     public Callable<Void, IOException> getEmulatorConfigTask(HardwareProperty[] hardwareProperties,
-            boolean isUnix, BuildListener listener) {
-        return new EmulatorConfigTask(hardwareProperties, isUnix, listener);
+                                                             BuildListener listener) {
+        return new EmulatorConfigTask(hardwareProperties, listener);
     }
 
     /**
      * Gets a task that deletes the AVD corresponding to this instance's configuration.
      *
-     * @param isUnix  Whether the target system is sane.
+     *
      * @param listener The listener to use for logging.
      * @return A Callable that will delete the AVD with for this configuration.
      */
-    public Callable<Boolean, Exception> getEmulatorDeletionTask(boolean isUnix,
-            TaskListener listener) {
-        return new EmulatorDeletionTask(isUnix, listener);
+    public Callable<Boolean, Exception> getEmulatorDeletionTask(TaskListener listener) {
+        return new EmulatorDeletionTask(listener);
     }
 
     private File getAvdHome(final File homeDir) {
@@ -243,8 +242,8 @@ class EmulatorConfig implements Serializable {
         return new File(getAvdHome(homeDir), getAvdName() +".avd");
     }
 
-    public File getAvdMetadataFile(boolean isUnix) {
-        final File homeDir = Utils.getHomeDirectory(androidSdkHome, isUnix);
+    public File getAvdMetadataFile() {
+        final File homeDir = Utils.getHomeDirectory(androidSdkHome);
         return new File(getAvdHome(homeDir), getAvdName() + ".ini");
     }
 
@@ -351,14 +350,12 @@ class EmulatorConfig implements Serializable {
 
         private static final long serialVersionUID = 1L;
         private final AndroidSdk androidSdk;
-        private final boolean isUnix;
 
         private final BuildListener listener;
         private transient PrintStream logger;
 
-        public EmulatorCreationTask(AndroidSdk androidSdk, boolean isUnix, BuildListener listener) {
+        public EmulatorCreationTask(AndroidSdk androidSdk, BuildListener listener) {
             this.androidSdk = androidSdk;
-            this.isUnix = isUnix;
             this.listener = listener;
         }
 
@@ -367,7 +364,7 @@ class EmulatorConfig implements Serializable {
                 logger = listener.getLogger();
             }
 
-            final File homeDir = Utils.getHomeDirectory(androidSdk.getSdkHome(), isUnix);
+            final File homeDir = Utils.getHomeDirectory(androidSdk.getSdkHome());
             final File avdDirectory = getAvdDirectory(homeDir);
             final boolean emulatorExists = getAvdConfigFile(homeDir).exists();
 
@@ -480,6 +477,7 @@ class EmulatorConfig implements Serializable {
             args.append(screenResolution.getSkinName());
             args.append(" -n ");
             args.append(getAvdName());
+            boolean isUnix = !Functions.isWindows();
             ArgumentListBuilder builder = Utils.getToolCommand(androidSdk, isUnix, Tool.ANDROID, args.toString());
 
             // Tack on quoted platform name at the end, since it can be anything
@@ -587,7 +585,7 @@ class EmulatorConfig implements Serializable {
 
         private boolean createSdCard(File homeDir) {
             // Build command: mksdcard 32M /home/foo/.android/avd/whatever.avd/sdcard.img
-            ArgumentListBuilder builder = Utils.getToolCommand(androidSdk, isUnix, Tool.MKSDCARD, null);
+            ArgumentListBuilder builder = Utils.getToolCommand(androidSdk, !Functions.isWindows(), Tool.MKSDCARD, null);
             builder.add(sdCardSize);
             builder.add(new File(getAvdDirectory(homeDir), "sdcard.img"));
 
@@ -616,15 +614,13 @@ class EmulatorConfig implements Serializable {
     private final class EmulatorConfigTask implements Callable<Void, IOException> {
 
         private static final long serialVersionUID = 1L;
-        private final boolean isUnix;
 
         private final HardwareProperty[] hardwareProperties;
         private final BuildListener listener;
         private transient PrintStream logger;
 
-        public EmulatorConfigTask(HardwareProperty[] hardwareProperties, boolean isUnix, BuildListener listener) {
+        public EmulatorConfigTask(HardwareProperty[] hardwareProperties, BuildListener listener) {
             this.hardwareProperties = hardwareProperties;
-            this.isUnix = isUnix;
             this.listener = listener;
         }
 
@@ -633,7 +629,7 @@ class EmulatorConfig implements Serializable {
                 logger = listener.getLogger();
             }
 
-            final File homeDir = Utils.getHomeDirectory(androidSdkHome, isUnix);
+            final File homeDir = Utils.getHomeDirectory(androidSdkHome);
 
             // Parse the AVD's config
             Map<String, String> configValues;
@@ -657,13 +653,11 @@ class EmulatorConfig implements Serializable {
     private final class EmulatorDeletionTask implements Callable<Boolean, Exception> {
 
         private static final long serialVersionUID = 1L;
-        private final boolean isUnix;
 
         private final TaskListener listener;
         private transient PrintStream logger;
 
-        public EmulatorDeletionTask(boolean isUnix, TaskListener listener) {
-            this.isUnix = isUnix;
+        public EmulatorDeletionTask(TaskListener listener) {
             this.listener = listener;
         }
 
@@ -673,7 +667,7 @@ class EmulatorConfig implements Serializable {
             }
 
             // Check whether the AVD exists
-            final File homeDir = Utils.getHomeDirectory(androidSdkHome, isUnix);
+            final File homeDir = Utils.getHomeDirectory(androidSdkHome);
             final File avdDirectory = getAvdDirectory(homeDir);
             final boolean emulatorExists = avdDirectory.exists();
             if (!emulatorExists) {
@@ -685,7 +679,7 @@ class EmulatorConfig implements Serializable {
             new FilePath(avdDirectory).deleteRecursive();
 
             // Delete the metadata file
-            getAvdMetadataFile(isUnix).delete();
+            getAvdMetadataFile().delete();
 
             // Success!
             return true;
