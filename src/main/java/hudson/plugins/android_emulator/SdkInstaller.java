@@ -3,6 +3,7 @@ package hudson.plugins.android_emulator;
 import static hudson.plugins.android_emulator.AndroidEmulator.log;
 import hudson.FilePath;
 import hudson.FilePath.FileCallable;
+import hudson.Functions;
 import hudson.Launcher;
 import hudson.model.BuildListener;
 import hudson.model.Computer;
@@ -323,11 +324,11 @@ public class SdkInstaller {
      * @param emuConfig The emulator whose target platform we want to determine.
      * @return The platform identifier.
      */
-    private static String getPlatformFromExistingEmulator(final Launcher launcher,
+    private static String getPlatformFromExistingEmulator(Launcher launcher,
             final EmulatorConfig emuConfig) throws IOException, InterruptedException {
         return launcher.getChannel().call(new Callable<String, IOException>() {
             public String call() throws IOException {
-                File metadataFile = emuConfig.getAvdMetadataFile(launcher.isUnix());
+                File metadataFile = emuConfig.getAvdMetadataFile(!Functions.isWindows());
                 Map<String, String> metadata = Utils.parseConfigFile(metadataFile);
                 return metadata.get("target");
             }
