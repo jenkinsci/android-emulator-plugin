@@ -150,8 +150,10 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
         String screenDensity = Utils.expandVariables(envVars, combination, this.screenDensity);
         String screenResolution = Utils.expandVariables(envVars, combination, this.screenResolution);
         String deviceLocale = Utils.expandVariables(envVars, combination, this.deviceLocale);
+        String targetAbi = Utils.expandVariables(envVars, combination, this.targetAbi);
 
-        return EmulatorConfig.getAvdName(avdName, osVersion, screenDensity, screenResolution, deviceLocale);
+        return EmulatorConfig.getAvdName(avdName, osVersion, screenDensity, screenResolution,
+                deviceLocale, targetAbi);
     }
 
     @Override
@@ -174,6 +176,7 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
         String screenResolution = Utils.expandVariables(envVars, buildVars, this.screenResolution);
         String deviceLocale = Utils.expandVariables(envVars, buildVars, this.deviceLocale);
         String sdCardSize = Utils.expandVariables(envVars, buildVars, this.sdCardSize);
+        String targetAbi = Utils.expandVariables(envVars, buildVars, this.targetAbi);
 
         // Expand macros within hardware property values
         final int propCount = hardwareProperties == null ? 0 : hardwareProperties.length;
@@ -984,13 +987,18 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
         }
 
         public FormValidation doCheckTargetAbi(@QueryParameter String value) {
-            return checkTargetAbi(value).getFormValidation();
+            return checkTargetAbi(value, true).getFormValidation();
         }
 
-        private ValidationResult checkTargetAbi(String value) {
+        private ValidationResult checkTargetAbi(String value, boolean allowVariables) {
             if (value == null || "".equals(value.trim())) {
                 return ValidationResult.ok();
             }
+
+            if (allowVariables && value.matches(Constants.REGEX_VARIABLE)) {
+                return ValidationResult.ok();
+            }
+
             for (String s : Constants.TARGET_ABIS) {
                 if (s.equals(value)) {
                     return ValidationResult.ok();

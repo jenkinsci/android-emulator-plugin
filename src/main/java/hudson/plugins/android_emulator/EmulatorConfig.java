@@ -123,10 +123,10 @@ class EmulatorConfig implements Serializable {
     }
 
     public static final String getAvdName(String avdName, String osVersion, String screenDensity,
-            String screenResolution, String deviceLocale) {
+            String screenResolution, String deviceLocale, String targetAbi) {
         try {
             return create(avdName, osVersion, screenDensity, screenResolution, deviceLocale, null,
-                    false, false, false, null, null, null).getAvdName();
+                    false, false, false, null, targetAbi, null).getAvdName();
         } catch (IllegalArgumentException e) {}
         return null;
     }
@@ -148,7 +148,11 @@ class EmulatorConfig implements Serializable {
         String density = screenDensity.toString();
         String resolution = screenResolution.toString();
         String platform = osVersion.getTargetName().replace(':', '_').replace(' ', '_');
-        return String.format("hudson_%s_%s_%s_%s", locale, density, resolution, platform);
+        String abi = "";
+        if (Util.fixEmptyAndTrim(targetAbi) != null) {
+            abi = "_" + targetAbi.replace(' ', '-');
+        }
+        return String.format("hudson_%s_%s_%s_%s%s", locale, density, resolution, platform, abi);
     }
 
     public AndroidPlatform getOsVersion() {
