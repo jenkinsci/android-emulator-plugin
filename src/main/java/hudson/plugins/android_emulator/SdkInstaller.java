@@ -187,6 +187,20 @@ public class SdkInstaller {
      */
     public static void installPlatform(PrintStream logger, Launcher launcher,
             AndroidSdk sdk, String platform) throws IOException, InterruptedException {
+        installPlatform(logger, launcher, sdk, platform, true);
+    }
+
+    /**
+     * Installs the given platform and its dependencies into the given installation, if necessary.
+     *
+     * @param logger Logs things.
+     * @param launcher Used to launch tasks on the remote node.
+     * @param sdk SDK installation to install components for.
+     * @param platform Specifies the platform to be installed.
+     * @param includeSystemImages Determines whether system images, if required, should be installed.
+     */
+    public static void installPlatform(PrintStream logger, Launcher launcher, AndroidSdk sdk,
+            String platform, boolean includeSystemImages) throws IOException, InterruptedException {
         // Check whether this platform is already installed
         if (isPlatformInstalled(logger, launcher, sdk, platform)) {
             return;
@@ -212,7 +226,7 @@ public class SdkInstaller {
         }
 
         // Determine which individual component(s) need to be installed for this platform
-        List<String> components = getSdkComponentsForPlatform(logger, platform);
+        List<String> components = getSdkComponentsForPlatform(logger, platform, includeSystemImages);
         if (components == null || components.size() == 0) {
             return;
         }
@@ -245,7 +259,8 @@ public class SdkInstaller {
         return targetList.toString().contains('"'+ platform +'"');
     }
 
-    private static List<String> getSdkComponentsForPlatform(PrintStream logger, String platform) {
+    private static List<String> getSdkComponentsForPlatform(PrintStream logger, String platform,
+            boolean includeSystemImages) {
         // Gather list of required components
         List<String> components = new ArrayList<String>();
 
@@ -267,7 +282,7 @@ public class SdkInstaller {
 
         // Add system image, if required
         // Even if a system image doesn't exist for this platform, the installer silently ignores it
-        if (dependentPlatform >= 14) {
+        if (dependentPlatform >= 14 && includeSystemImages) {
             components.add(String.format("sysimg-%s", dependentPlatform));
         }
 
