@@ -1,14 +1,18 @@
 package hudson.plugins.android_emulator.builder;
 
 import static hudson.plugins.android_emulator.AndroidEmulator.log;
+import hudson.EnvVars;
 import hudson.Extension;
-import hudson.Launcher;
 import hudson.FilePath.FileCallable;
-import hudson.model.AbstractBuild;
 import hudson.Functions;
+import hudson.Launcher;
 import hudson.model.BuildListener;
 import hudson.model.Descriptor;
+import hudson.model.EnvironmentContributingAction;
+import hudson.model.AbstractBuild;
+import hudson.model.Hudson;
 import hudson.plugins.android_emulator.Messages;
+import hudson.plugins.android_emulator.SdkInstallationException;
 import hudson.plugins.android_emulator.SdkInstaller;
 import hudson.plugins.android_emulator.sdk.AndroidSdk;
 import hudson.plugins.android_emulator.util.Utils;
@@ -49,9 +53,46 @@ public class ProjectPrerequisitesInstaller extends AbstractBuilder {
         // Discover Android SDK
         AndroidSdk androidSdk = getAndroidSdk(build, launcher, listener);
         if (androidSdk == null) {
-            log(logger, Messages.SDK_TOOLS_NOT_FOUND());
-            return false;
+            hudson.plugins.android_emulator.AndroidEmulator.DescriptorImpl descriptor = Hudson
+                    .getInstance().getDescriptorByType(
+                            hudson.plugins.android_emulator.AndroidEmulator.DescriptorImpl.class);
+            if (!descriptor.shouldInstallSdk) {
+                // Couldn't find an SDK, don't want to install it, give up
+                log(logger, Messages.SDK_TOOLS_NOT_FOUND());
+                return false;
+            }
+
+            // Ok, let's download and install the SDK
+            log(logger, Messages.INSTALLING_SDK());
+            try {
+                androidSdk = SdkInstaller.install(launcher, listener, null);
+            } catch (SdkInstallationException e) {
+                log(logger, Messages.SDK_INSTALLATION_FAILED(), e);
+                return false;
+            }
         }
+
+        // Export environment variables
+        final String sdkRoot = androidSdk.getSdkRoot();
+        build.addAction(new EnvironmentContributingAction() {
+            public void buildEnvVars(AbstractBuild<?, ?> build, EnvVars envVars) {
+                if (envVars != null) {
+                    envVars.put("ANDROID_HOME", sdkRoot);
+                }
+            }
+
+            public String getUrlName() {
+                return null;
+            }
+
+            public String getIconFileName() {
+                return null;
+            }
+
+            public String getDisplayName() {
+                return null;
+            }
+        });
 
         // Install platform(s)
         log(logger, Messages.ENSURING_PLATFORMS_INSTALLED(platforms));
@@ -66,7 +107,7 @@ public class ProjectPrerequisitesInstaller extends AbstractBuilder {
     /** FileCallable to determine Android target projects specified in a given directory. */
     private static final class ProjectPlatformFinder implements FileCallable<Collection<String>> {
 
-        private BuildListener listener;
+        private final BuildListener listener;
         private transient PrintStream logger;
 
         ProjectPlatformFinder(BuildListener listener) {
