@@ -48,6 +48,11 @@
               <f:textbox name="android-emulator.sdCardSize" value="${instance.sdCardSize}" style="width:6em"
                   checkUrl="'descriptorByName/AndroidEmulator/checkSdCardSize?value='+escape(this.value)" />
             </f:entry>
+            <f:entry title="${%Target ABI}" help="${resURL}/plugin/android-emulator/help-targetAbi.html">
+                <f:editableComboBox id="android-emulator.targetAbi" field="targetAbi"
+                                    items="${descriptor.targetAbis}"
+                                    checkUrl="'descriptorByName/AndroidEmulator/checkTargetAbi?value='+escape(this.value)" />
+            </f:entry>
 
             <f:entry title="${%Hardware}" help="${resURL}/plugin/android-emulator/help-hardware.html">
               <f:repeatable var="hw" name="hardwareProperties" items="${instance.hardwareProperties}"
@@ -72,11 +77,6 @@
               </f:repeatable>
             </f:entry>
 
-            <f:entry title="${%Target ABI}" help="${resURL}/plugin/android-emulator/help-targetAbi.html">
-                <f:editableComboBox id="android-emulator.targetAbi" field="targetAbi"
-                                    items="${descriptor.targetAbis}"
-                                    checkUrl="'descriptorByName/AndroidEmulator/checkTargetAbi?value='+escape(this.value)" />
-            </f:entry>
           </table>
         </f:block>
       </f:radioBlock>
