@@ -88,6 +88,7 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
     @Exported public final boolean deleteAfterBuild;
     @Exported public final int startupDelay;
     @Exported public final String commandLineOptions;
+    @Exported public final String executable;
 
 
     @DataBoundConstructor
@@ -95,7 +96,7 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
             String screenResolution, String deviceLocale, String sdCardSize,
             HardwareProperty[] hardwareProperties, boolean wipeData, boolean showWindow,
             boolean useSnapshots, boolean deleteAfterBuild, int startupDelay,
-            String commandLineOptions, String targetAbi) {
+            String commandLineOptions, String targetAbi, String executable) {
         this.avdName = avdName;
         this.osVersion = osVersion;
         this.screenDensity = screenDensity;
@@ -107,6 +108,7 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
         this.showWindow = showWindow;
         this.useSnapshots = useSnapshots;
         this.deleteAfterBuild = deleteAfterBuild;
+        this.executable = executable;
         this.startupDelay = Math.abs(startupDelay);
         this.commandLineOptions = commandLineOptions;
         this.targetAbi = targetAbi;
@@ -213,7 +215,7 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
         try {
             emuConfig = EmulatorConfig.create(avdName, osVersion, screenDensity,
                 screenResolution, deviceLocale, sdCardSize, wipeData, showWindow, useSnapshots,
-                commandLineOptions, targetAbi, androidSdkHome);
+                commandLineOptions, targetAbi, androidSdkHome, executable);
         } catch (IllegalArgumentException e) {
             log(logger, Messages.EMULATOR_CONFIGURATION_BAD(e.getLocalizedMessage()));
             build.setResult(Result.NOT_BUILT);
@@ -334,7 +336,7 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
         ByteArrayOutputStream emulatorOutput = new ByteArrayOutputStream();
         ForkOutputStream emulatorLogger = new ForkOutputStream(logger, emulatorOutput);
 
-        final Proc emulatorProcess = emu.getToolProcStarter(Tool.EMULATOR, emulatorArgs).stdout(emulatorLogger).start();
+        final Proc emulatorProcess = emu.getToolProcStarter(emuConfig.getExecutable(), emulatorArgs).stdout(emulatorLogger).start();
         emu.setProcess(emulatorProcess);
 
         // Give the emulator process a chance to initialise
@@ -788,6 +790,7 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
             boolean deleteAfterBuild = false;
             int startupDelay = 0;
             String commandLineOptions = null;
+            String executable = null;
 
             JSONObject emulatorData = formData.getJSONObject("useNamed");
             String useNamedValue = emulatorData.getString("value");
@@ -810,6 +813,8 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
             useSnapshots = formData.getBoolean("useSnapshots");
             deleteAfterBuild = formData.getBoolean("deleteAfterBuild");
             commandLineOptions = formData.getString("commandLineOptions");
+            executable = formData.getString("executable");
+
             try {
                 startupDelay = Integer.parseInt(formData.getString("startupDelay"));
             } catch (NumberFormatException e) {}
@@ -817,7 +822,7 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
             return new AndroidEmulator(avdName, osVersion, screenDensity, screenResolution,
                     deviceLocale, sdCardSize, hardware.toArray(new HardwareProperty[0]), wipeData,
                     showWindow, useSnapshots, deleteAfterBuild, startupDelay, commandLineOptions,
-                    targetAbi);
+                    targetAbi, executable);
         }
 
         @Override
