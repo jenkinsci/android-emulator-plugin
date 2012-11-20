@@ -42,6 +42,7 @@ class EmulatorConfig implements Serializable {
     private final boolean useSnapshots;
     private final String commandLineOptions;
     private final String androidSdkHome;
+    private final String executable;
 
     public EmulatorConfig(String avdName, boolean wipeData, boolean showWindow,
             boolean useSnapshots, String commandLineOptions) {
@@ -56,11 +57,13 @@ class EmulatorConfig implements Serializable {
         this.useSnapshots = useSnapshots;
         this.commandLineOptions = commandLineOptions;
         this.androidSdkHome = androidSdkHome;
+        this.executable = null;
     }
 
     public EmulatorConfig(String osVersion, String screenDensity, String screenResolution,
             String deviceLocale, String sdCardSize, boolean wipeData, boolean showWindow,
-            boolean useSnapshots, String commandLineOptions, String targetAbi, String androidSdkHome)
+            boolean useSnapshots, String commandLineOptions, String targetAbi, String androidSdkHome,
+            String executable)
                 throws IllegalArgumentException {
         if (osVersion == null || screenDensity == null || screenResolution == null) {
             throw new IllegalArgumentException("Valid OS version and screen properties must be supplied.");
@@ -108,15 +111,16 @@ class EmulatorConfig implements Serializable {
         this.commandLineOptions = commandLineOptions;
         this.targetAbi = targetAbi;
         this.androidSdkHome = androidSdkHome;
+        this.executable = executable;
     }
 
     public static final EmulatorConfig create(String avdName, String osVersion, String screenDensity,
             String screenResolution, String deviceLocale, String sdCardSize, boolean wipeData,
             boolean showWindow, boolean useSnapshots, String commandLineOptions, String targetAbi,
-            String androidSdkHome) {
+            String androidSdkHome, String executable) {
         if (Util.fixEmptyAndTrim(avdName) == null) {
             return new EmulatorConfig(osVersion, screenDensity, screenResolution, deviceLocale,
-                    sdCardSize, wipeData, showWindow, useSnapshots, commandLineOptions, targetAbi, androidSdkHome);
+                    sdCardSize, wipeData, showWindow, useSnapshots, commandLineOptions, targetAbi, androidSdkHome, executable);
         }
 
         return new EmulatorConfig(avdName, wipeData, showWindow, useSnapshots, commandLineOptions, androidSdkHome);
@@ -126,7 +130,7 @@ class EmulatorConfig implements Serializable {
             String screenResolution, String deviceLocale, String targetAbi) {
         try {
             return create(avdName, osVersion, screenDensity, screenResolution, deviceLocale, null,
-                    false, false, false, null, targetAbi, null).getAvdName();
+                    false, false, false, null, targetAbi, null, null).getAvdName();
         } catch (IllegalArgumentException e) {}
         return null;
     }
@@ -200,6 +204,15 @@ class EmulatorConfig implements Serializable {
 
     public boolean shouldUseSnapshots() {
         return useSnapshots;
+    }
+
+    public Tool getExecutable() {
+        for (Tool t : Tool.EMULATORS) {
+            if (t.executable.equals(executable)) {
+                return t;
+            }
+        }
+        return Tool.EMULATOR;
     }
 
     /**
@@ -337,7 +350,7 @@ class EmulatorConfig implements Serializable {
         // List available snapshots for this emulator
         ByteArrayOutputStream listOutput = new ByteArrayOutputStream();
         String args = String.format("-snapshot-list -no-window -avd %s", getAvdName());
-        Utils.runAndroidTool(launcher, listOutput, logger, androidSdk, Tool.EMULATOR, args, null);
+        Utils.runAndroidTool(launcher, listOutput, logger, androidSdk, getExecutable(), args, null);
 
         // Check whether a Jenkins snapshot was listed in the output
         return Pattern.compile(Constants.REGEX_SNAPSHOT).matcher(listOutput.toString()).find();

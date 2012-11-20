@@ -119,7 +119,13 @@
           <f:textbox name="android-emulator.commandLineOptions" value="${instance.commandLineOptions}" />
           <f:description>${%Will be given when starting the Android &lt;tt>emulator&lt;/tt> executable}</f:description>
         </f:entry>
-      </f:advanced>
+        <f:entry title="${%Emulator executable}" help="${resURL}/plugin/android-emulator/help-executable.html">
+
+            <f:editableComboBox id="android-emulator.executable" field="executable"
+                                items="${descriptor.executables}"
+                                checkUrl="'descriptorByName/AndroidEmulator/checkExecutable?value='+escape(this.value)" />
+        </f:entry>
+       </f:advanced>
     </table>
   </f:block>
 
