@@ -865,6 +865,10 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
             return Constants.TARGET_ABIS;
         }
 
+        public Tool[] getExecutables() {
+            return Tool.EMULATORS;
+        }
+
         public FormValidation doCheckAvdName(@QueryParameter String value) {
             return doCheckAvdName(value, true).getFormValidation();
         }
@@ -1011,6 +1015,19 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
             }
             return ValidationResult.error(Messages.INVALID_TARGET_ABI());
         }
+
+        public FormValidation doCheckExecutable(@QueryParameter String value) {
+            if (value == null || "".equals(value.trim())) {
+                return ValidationResult.ok().getFormValidation();
+            }
+            for (Tool t : Tool.EMULATORS) {
+                if (t.toString().equals(value)) {
+                    return ValidationResult.ok().getFormValidation();
+                }
+            }
+            return ValidationResult.error(Messages.INVALID_EXECUTABLE()).getFormValidation();
+        }
+
 
         public FormValidation doCheckSdCardSize(@QueryParameter String value) {
             return doCheckSdCardSize(value, true).getFormValidation();

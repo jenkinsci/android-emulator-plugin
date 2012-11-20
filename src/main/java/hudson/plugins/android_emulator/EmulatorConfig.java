@@ -208,7 +208,7 @@ class EmulatorConfig implements Serializable {
 
     public Tool getExecutable() {
         for (Tool t : Tool.EMULATORS) {
-            if (t.getExecutable(true).equals(executable)) {
+            if (t.executable.equals(executable)) {
                 return t;
             }
         }

@@ -18,9 +18,9 @@ public enum Tool {
            EMULATOR64_ARM, EMULATOR64_MIPS, EMULATOR64_X86
     };
 
-    final String executable;
-    final String windowsExtension;
-    final boolean isPlatformTool;
+    public final String executable;
+    public final String windowsExtension;
+    public final boolean isPlatformTool;
 
     Tool(String executable, String windowsExtension) {
         this(executable, windowsExtension, false);
@@ -54,4 +54,7 @@ public enum Tool {
         return executables;
     }
 
+    public String toString() {
+        return executable;
+    }
 }

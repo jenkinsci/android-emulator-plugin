@@ -120,53 +120,10 @@
           <f:description>${%Will be given when starting the Android &lt;tt>emulator&lt;/tt> executable}</f:description>
         </f:entry>
         <f:entry title="${%Emulator executable}" help="${resURL}/plugin/android-emulator/help-executable.html">
-            <f:radio name="android-emulator.executable"
-                     value="emulator"
-                     id="android-emulator.executable.emulator"
-                     checked="${instance.executable == null|| instance.executable == 'emulator'}"/>
-            <label class="attach-previous">emulator</label>
 
-            <f:radio name="android-emulator.executable"
-                     value="emulator-arm"
-                     id="android-emulator.executable.emulator-arm"
-                     checked="${instance.executable == 'emulator-arm'}"
-                    />
-            <label class="attach-previous">emulator-arm</label>
-
-            <f:radio name="android-emulator.executable"
-                     value="emulator-x86"
-                     id="android-emulator.executable.emulator-x86"
-                     checked="${instance.executable == 'emulator-x86'}"/>
-
-            <label class="attach-previous">emulator-x86</label>
-
-            <f:radio name="android-emulator.executable"
-                     value="emulator-mips"
-                     id="android-emulator.executable.emulator-mips"
-                     checked="${instance.executable == 'emulator-mips'}"
-                    />
-            <label class="attach-previous">emulator-mips</label>
-
-            <f:radio name="android-emulator.executable"
-                     value="emulator64-arm"
-                     id="android-emulator.executable.emulator64-arm"
-                     checked="${instance.executable == 'emulator64-arm'}"
-                    />
-            <label class="attach-previous">emulator64-arm</label>
-
-            <f:radio name="android-emulator.executable"
-                     value="emulator64-x86"
-                     id="android-emulator.executable.emulator64-x86"
-                     checked="${instance.executable == 'emulator64-x86'}"
-                    />
-            <label class="attach-previous">emulator64-x86</label>
-
-            <f:radio name="android-emulator.executable"
-                     value="emulator64-mips"
-                     id="android-emulator.executable.emulator64-mips"
-                     checked="${instance.executable == 'emulator64-mips'}"
-                    />
-            <label class="attach-previous">emulator64-mips</label>
+            <f:editableComboBox id="android-emulator.executable" field="executable"
+                                items="${descriptor.executables}"
+                                checkUrl="'descriptorByName/AndroidEmulator/checkExecutable?value='+escape(this.value)" />
         </f:entry>
        </f:advanced>
     </table>
