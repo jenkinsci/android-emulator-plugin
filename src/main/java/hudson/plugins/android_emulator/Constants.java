@@ -40,7 +40,7 @@ public interface Constants {
     static final String REGEX_VARIABLE = "\\$([A-Za-z0-9_]+|\\{[A-Za-z0-9_]+\\}|\\$)";
     static final String REGEX_AVD_NAME = "[a-zA-Z0-9._-]+";
     static final String REGEX_LOCALE = "[a-z]{2}_[A-Z]{2}";
-    static final String REGEX_SCREEN_DENSITY = "[0-9]{2,4}|(?i)(x?h|[lm])dpi";
+    static final String REGEX_SCREEN_DENSITY = "[0-9]{2,4}|(?i)(x?x?h|[lm])dpi";
     static final String REGEX_SCREEN_RESOLUTION = "[0-9]{3,4}x[0-9]{3,4}";
     static final String REGEX_SCREEN_RESOLUTION_ALIAS = "(([HQ]|F?W[SQ]?)V|WX)GA(720|800|-[LP])?";
     static final String REGEX_SCREEN_RESOLUTION_FULL = REGEX_SCREEN_RESOLUTION_ALIAS +"|"+ REGEX_SCREEN_RESOLUTION;
@@ -143,11 +143,12 @@ class ScreenDensity implements Serializable {
 
     static final ScreenDensity LOW = new ScreenDensity(120, "ldpi");
     static final ScreenDensity MEDIUM = new ScreenDensity(160, "mdpi");
+    static final ScreenDensity TV_720P = new ScreenDensity(213, "tvdpi");
     static final ScreenDensity HIGH = new ScreenDensity(240, "hdpi");
     static final ScreenDensity EXTRA_HIGH = new ScreenDensity(320, "xhdpi");
-    static final ScreenDensity TV_720P = new ScreenDensity(213, "tvdpi");
-    static final ScreenDensity[] PRESETS = new ScreenDensity[] { LOW, MEDIUM, HIGH, EXTRA_HIGH,
-                                                                 TV_720P };
+    static final ScreenDensity EXTRA_EXTRA_HIGH = new ScreenDensity(480, "xxhdpi");
+    static final ScreenDensity[] PRESETS = new ScreenDensity[] { LOW, MEDIUM, TV_720P, HIGH,
+                                                                 EXTRA_HIGH, EXTRA_EXTRA_HIGH };
 
     private final int dpi;
     private final String alias;
