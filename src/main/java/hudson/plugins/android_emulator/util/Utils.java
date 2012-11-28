@@ -246,7 +246,7 @@ public class Utils {
 
         // Search the possible tool directories to ensure the tools exist
         int toolsFound = 0;
-        int expectedToolCount = Tool.values().length;
+        int expectedToolCount = Tool.REQUIRED.length;
         if (!new File(sdkRoot, "platform-tools").exists()) {
             // aapt doesn't exist in "tools" until SDK Tools r9
             expectedToolCount--;
@@ -257,7 +257,7 @@ public class Utils {
             if (!toolsDir.isDirectory()) {
                 continue;
             }
-            for (String executable : Tool.getAllExecutableVariants()) {
+            for (String executable : Tool.getAllRequiredExecutableVariants()) {
                 File toolPath = new File(toolsDir, executable);
                 if (toolPath.exists() && toolPath.isFile()) {
                     toolsFound++;
