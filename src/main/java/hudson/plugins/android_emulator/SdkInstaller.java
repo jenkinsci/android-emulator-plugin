@@ -40,7 +40,7 @@ import org.apache.commons.lang.StringUtils;
 public class SdkInstaller {
 
     /** Recent version of the Android SDK that will be installed. */
-    private static final int SDK_VERSION = 16;
+    private static final String SDK_VERSION = "21.0.1";
 
     /** Filename to write some metadata to about our automated installation. */
     private static final String SDK_INFO_FILENAME = ".jenkins-install-info";
@@ -86,7 +86,7 @@ public class SdkInstaller {
             installComponent(logger, launcher, sdk, "platform-tool", "tool");
 
             // If we made it this far, confirm completion by writing our our metadata file
-            getInstallationInfoFilename(node).write(String.valueOf(SDK_VERSION), "UTF-8");
+            getInstallationInfoFilename(node).write(SDK_VERSION, "UTF-8");
 
             // As this SDK will not be used manually, opt out of the stats gathering;
             // this also prevents the opt-in dialog from popping up during execution
@@ -495,7 +495,7 @@ public class SdkInstaller {
         MAC_OS_X("macosx", "zip"),
         WINDOWS("windows", "zip");
 
-        private static final String PATTERN = "http://dl.google.com/android/android-sdk_r%d-%s.%s";
+        private static final String PATTERN = "http://dl.google.com/android/android-sdk_r%s-%s.%s";
         private final String platform;
         private final String extension;
 
@@ -504,7 +504,7 @@ public class SdkInstaller {
             this.extension = extension;
         }
 
-        URL getUrl(int version) {
+        URL getUrl(String version) {
             try {
                 return new URL(String.format(PATTERN, version, platform, extension));
             } catch (MalformedURLException e) {}
