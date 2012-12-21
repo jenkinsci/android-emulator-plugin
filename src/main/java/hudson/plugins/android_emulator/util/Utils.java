@@ -179,21 +179,7 @@ public class Utils {
                 }
 
                 // Create SDK instance with what we know so far
-                AndroidSdk sdk = new AndroidSdk(sdkRoot, androidSdkHome);
-
-                // Determine whether SDK has platform tools installed
-                File toolsDirectory = new File(sdkRoot, "platform-tools");
-                sdk.setUsesPlatformTools(toolsDirectory.isDirectory());
-
-                // Determine SDK tools version
-                File toolsPropFile = new File(sdkRoot, "tools/source.properties");
-                Map<String, String> toolsProperties = Utils.parseConfigFile(toolsPropFile);
-                String revisionStr = Util.fixEmptyAndTrim(toolsProperties.get("Pkg.Revision"));
-                if (revisionStr != null) {
-                    sdk.setSdkToolsVersion(parseRevisionString(revisionStr));
-                }
-
-                return sdk;
+                return new AndroidSdk(sdkRoot, androidSdkHome);
             }
             private static final long serialVersionUID = 1L;
         };
@@ -596,16 +582,15 @@ public class Utils {
         return Boolean.TRUE.equals(result);
     }
 
-    static int parseRevisionString(String revisionStr) {
+    public static int parseRevisionString(String revisionStr) {
         try {
             return Integer.parseInt(revisionStr);
         } catch (NumberFormatException e) {
             Matcher matcher = REVISION.matcher(revisionStr);
             if (matcher.matches()) {
                 return Integer.parseInt(matcher.group(1));
-            } else {
-                throw new NumberFormatException("Could not parse "+revisionStr);
             }
+            throw new NumberFormatException("Could not parse "+revisionStr);
         }
     }
 

@@ -1,6 +1,14 @@
 package hudson.plugins.android_emulator.sdk;
 
+import hudson.Util;
+import hudson.plugins.android_emulator.util.Utils;
+
+import java.io.File;
+import java.io.IOException;
 import java.io.Serializable;
+import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class AndroidSdk implements Serializable {
 
@@ -23,6 +31,28 @@ public class AndroidSdk implements Serializable {
     public AndroidSdk(String root, String home) {
         this.sdkRoot = root;
         this.sdkHome = home;
+        if (hasKnownRoot()) {
+            determineVersion();
+        }
+    }
+
+    private void determineVersion() {
+        // Determine whether SDK has platform tools installed
+        File toolsDirectory = new File(sdkRoot, "platform-tools");
+        setUsesPlatformTools(toolsDirectory.isDirectory());
+
+        // Determine SDK tools version
+        File toolsPropFile = new File(sdkRoot, "tools/source.properties");
+        Map<String, String> toolsProperties;
+        try {
+            toolsProperties = Utils.parseConfigFile(toolsPropFile);
+            String revisionStr = Util.fixEmptyAndTrim(toolsProperties.get("Pkg.Revision"));
+            if (revisionStr != null) {
+                setSdkToolsVersion(Utils.parseRevisionString(revisionStr));
+            }
+        } catch (IOException e) {
+            // TODO
+        }
     }
 
     public boolean hasKnownRoot() {
