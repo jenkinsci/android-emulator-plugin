@@ -55,7 +55,6 @@ public class InstallBuilder extends AbstractBuilder {
         // Discover Android SDK
         AndroidSdk androidSdk = getAndroidSdk(build, launcher, listener);
         if (androidSdk == null) {
-            AndroidEmulator.log(logger, Messages.SDK_TOOLS_NOT_FOUND());
             return false;
         }
 
