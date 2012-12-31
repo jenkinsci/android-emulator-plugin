@@ -5,17 +5,17 @@ import hudson.EnvVars;
 import hudson.FilePath;
 import hudson.Functions;
 import hudson.Launcher;
+import hudson.Launcher.ProcStarter;
 import hudson.Proc;
 import hudson.Util;
-import hudson.Launcher.ProcStarter;
-import hudson.model.AbstractBuild;
 import hudson.model.BuildListener;
+import hudson.model.AbstractBuild;
 import hudson.model.Computer;
 import hudson.model.Hudson;
 import hudson.model.Node;
+import hudson.plugins.android_emulator.AndroidEmulator.DescriptorImpl;
 import hudson.plugins.android_emulator.Constants;
 import hudson.plugins.android_emulator.Messages;
-import hudson.plugins.android_emulator.AndroidEmulator.DescriptorImpl;
 import hudson.plugins.android_emulator.sdk.AndroidSdk;
 import hudson.plugins.android_emulator.sdk.Tool;
 import hudson.remoting.Callable;
@@ -580,6 +580,75 @@ public class Utils {
         }
 
         return Boolean.TRUE.equals(result);
+    }
+
+    /**
+     * Determines the relative path required to get from one path to another.
+     *
+     * @param from Path to go from.
+     * @param to Path to reach.
+     * @return The relative path between the two, or {@code null} for invalid input.
+     */
+    public static String getRelativePath(String from, String to) {
+        // Check for bad input
+        if (from == null || to == null) {
+            return null;
+        }
+
+        String fromPath, toPath;
+        try {
+            fromPath = new File(from).getCanonicalPath();
+            toPath = new File(to).getCanonicalPath();
+        } catch (IOException e1) {
+            e1.printStackTrace();
+            return null;
+        }
+
+        // Nothing to do if the two are equal
+        if (fromPath.equals(toPath)) {
+            return "";
+        }
+
+        // Target directory is a subdirectory
+        if (toPath.startsWith(fromPath)) {
+            int fromLength = fromPath.length();
+            int index = fromLength == 1 ? 1 : fromLength + 1;
+            return toPath.substring(index) + File.separatorChar;
+        }
+
+        // Target directory is somewhere above our directory
+        String[] fromParts = fromPath.substring(1).split(File.separator);
+        final int fromLength = fromParts.length;
+        String[] toParts = toPath.substring(1).split(File.separator);
+        final int toLength = toParts.length;
+
+        // Find the number of common path segments
+        int commonLength = 0;
+        for (int i = 0; i < toLength; i++) {
+            if (fromParts[i].length() == 0) {
+                continue;
+            }
+            if (!fromParts[i].equals(toParts[i])) {
+                break;
+            }
+            commonLength++;
+        }
+
+        // Determine how many directories up we need to go
+        int diff = fromLength - commonLength;
+        StringBuilder rel = new StringBuilder();
+        for (int i = 0; i < diff; i++) {
+            rel.append("..");
+            rel.append(File.separatorChar);
+        }
+
+        // Add on the remaining path segments to the target
+        for (int i = commonLength; i < toLength; i++) {
+            rel.append(toParts[i]);
+            rel.append(File.separatorChar);
+        }
+
+        return rel.toString();
     }
 
     public static int parseRevisionString(String revisionStr) {

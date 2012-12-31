@@ -20,4 +20,49 @@ public class UtilsTest extends TestCase {
         } catch (NumberFormatException e) {
         }
     }
+
+    public void testRelativeSubdirectory() {
+        assertRelative("/foo/bar", "/foo/bar/baz", "baz/");
+    }
+
+    public void testRelativeSubdirectory_TrailingSlash() {
+        assertRelative("/foo/bar/", "/foo/bar/baz", "baz/");
+        assertRelative("/foo/bar", "/foo/bar/baz/", "baz/");
+        assertRelative("/foo/bar///", "/foo/bar/baz///", "baz/");
+    }
+
+    public void testRelativeParentSubdirectory() {
+        assertRelative("/foo/bar", "/foo/baz", "../baz/");
+    }
+
+    public void testRelativeParentSubdirectory_TrailingSlash() {
+        assertRelative("/foo/bar/", "/foo/baz", "../baz/");
+        assertRelative("/foo/bar", "/foo/baz/", "../baz/");
+        assertRelative("/foo/bar///", "/foo//baz//", "../baz/");
+    }
+
+    public void testRelativeParentSubdirectory_Deeper() {
+        assertRelative("/foo/bar/app", "/foo/bar/tests/unit", "../tests/unit/");
+    }
+
+    public void testRelativePathNothingInCommon() {
+        assertRelative("/a/b/c", "/tmp/foo/bar/baz", "../../../tmp/foo/bar/baz/");
+    }
+
+    public void testRelativeRoot() {
+        assertRelative("/", "/x", "x/");
+    }
+
+    public void testRelativeEquivalent() {
+        assertRelative("/tmp/foo", "//tmp//foo//", "");
+    }
+
+    public void testRelativeNull() {
+        assertRelative("/", null, null);
+    }
+
+    private static void assertRelative(String from, String to, String expectedResult) {
+        assertEquals(expectedResult, Utils.getRelativePath(from, to));
+    }
+
 }

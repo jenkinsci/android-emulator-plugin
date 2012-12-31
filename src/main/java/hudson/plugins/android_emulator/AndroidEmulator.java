@@ -9,13 +9,13 @@ import hudson.Launcher;
 import hudson.Proc;
 import hudson.Util;
 import hudson.matrix.Combination;
+import hudson.model.BuildListener;
+import hudson.model.Result;
 import hudson.model.AbstractBuild;
 import hudson.model.AbstractProject;
-import hudson.model.BuildListener;
 import hudson.model.Computer;
 import hudson.model.Hudson;
 import hudson.model.Node;
-import hudson.model.Result;
 import hudson.plugins.android_emulator.sdk.AndroidSdk;
 import hudson.plugins.android_emulator.sdk.Tool;
 import hudson.plugins.android_emulator.util.Utils;
@@ -538,7 +538,7 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
     synchronized static void log(final PrintStream logger, String message, boolean indent) {
         if (indent) {
             message = '\t' + message.replace("\n", "\n\t");
-        } else {
+        } else if (message.length() > 0) {
             logger.print("[android] ");
         }
         logger.println(message);

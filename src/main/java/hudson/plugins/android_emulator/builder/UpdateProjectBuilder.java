@@ -31,10 +31,13 @@ import java.util.Map;
 
 import javax.xml.xpath.XPath;
 import javax.xml.xpath.XPathConstants;
-import javax.xml.xpath.XPathException;
+import javax.xml.xpath.XPathExpressionException;
 import javax.xml.xpath.XPathFactory;
 
+import org.apache.commons.lang.builder.EqualsBuilder;
+import org.apache.commons.lang.builder.HashCodeBuilder;
 import org.apache.tools.ant.DirectoryScanner;
+import org.jvnet.localizer.Localizable;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.w3c.dom.NodeList;
 import org.xml.sax.InputSource;
@@ -43,7 +46,7 @@ public class UpdateProjectBuilder extends AbstractBuilder {
 
     @DataBoundConstructor
     public UpdateProjectBuilder() {
-        // Nowt to do
+        // No configuration required
     }
 
     private static final class Project {
@@ -56,10 +59,32 @@ public class UpdateProjectBuilder extends AbstractBuilder {
             this.path = path;
             this.type = type;
         }
+
+        @Override
+        public boolean equals(Object obj) {
+            return new EqualsBuilder().append(this, obj).isEquals();
+        }
+
+        @Override
+        public int hashCode() {
+            return new HashCodeBuilder().append(path).append(type).toHashCode();
+        }
+
     }
 
-    public static enum ProjectType {
-        APP, LIBRARY, TEST
+    private static enum ProjectType {
+        APP("project", Messages._PROJECT_TYPE_APP()), //
+        LIBRARY("lib-project", Messages._PROJECT_TYPE_LIBRARY()), //
+        TEST("test-project", Messages._PROJECT_TYPE_TEST());
+
+        private final String cmd;
+
+        private final Localizable name;
+
+        private ProjectType(String cmd, Localizable name) {
+            this.cmd = cmd;
+            this.name = name;
+        }
     }
 
     @Override
@@ -68,13 +93,14 @@ public class UpdateProjectBuilder extends AbstractBuilder {
         final PrintStream logger = listener.getLogger();
 
         // Gather list of projects, determined by reading Android project files in the workspace
-        log(logger, Messages.FINDING_PROJECT_PREREQUISITES()); // TODO
+        log(logger, Messages.FINDING_PROJECTS());
         List<Project> projects = build.getWorkspace().act(new ProjectFinder(listener));
         if (projects == null || projects.isEmpty()) {
             // No projects found. Odd, but that's ok
-            log(logger, Messages.NO_PROJECTS_FOUND());
+            log(logger, Messages.NO_PROJECTS_FOUND_TO_UPDATE());
             return true;
         }
+        log(logger, Messages.FOUND_PROJECTS_TO_UPDATE(projects.size()));
 
         // Ensure we have an SDK
         AndroidSdk androidSdk = getAndroidSdk(build, launcher, listener);
@@ -82,38 +108,63 @@ public class UpdateProjectBuilder extends AbstractBuilder {
             return false;
         }
 
-        // TODO: Discover list of projects, library projects and test projects
-        // Library projects have "android.library=true"
-        // Test projects have an <instrumentation> tag in the manifest...
-        // Must run android update in *each* project!
+        // Calling "update project" doesn't work unless the target platform is installed
+        new ProjectPrerequisitesInstaller().perform(build, launcher, listener);
 
-        // 2. For each library project, run 'update lib-project'
-        // 3. If there's a test project AND a parent, run 'update test-project'
-        // 4. For each non-library, non-test project, run 'update project'
-
+        // Sort the projects so we know whether there is an app
+        // project available before we process the test project(s)
         Collections.sort(projects, new Comparator<Project>() {
-
             public int compare(Project p1, Project p2) {
                 if (p1.type == ProjectType.APP) {
+                    if (p2.type == ProjectType.APP) {
+                        return p1.path.compareToIgnoreCase(p2.path);
+                    }
                     return -1;
                 }
-                return 0;
+                return 1;
             }
         });
 
+        // Run the appropriate command for each project found
         boolean haveApp = false;
+        final String workspace = getWorkspacePath(build.getWorkspace());
         for (Project project : projects) {
+            log(logger, "");
+
+            String args = String.format("update %s -p .", project.type.cmd);
+            FilePath dir = new FilePath(new File(project.path));
+
             if (project.type == ProjectType.APP) {
                 haveApp = true;
+            } else if (project.type == ProjectType.TEST) {
+                if (!haveApp) {
+                    log(logger, Messages.FOUND_TEST_PROJECT_WITHOUT_APP(project.path));
+                    continue;
+                }
+
+                // Determine relative path to the first app project from this test project
+                Project appProject = projects.get(0);
+                args += String.format(" -m %s", Utils.getRelativePath(project.path, appProject.path));
             }
 
-            if (project.type == ProjectType.LIBRARY) {
-                // just do it
-            }
+            // Run the project update command
+            String shortPath = project.path.substring(workspace.length() + 1);
+            log(logger, Messages.CREATING_BUILD_FILES(project.type.name.toString(), shortPath));
+            Utils.runAndroidTool(launcher, logger, logger, androidSdk, Tool.ANDROID, args, dir);
         }
 
         // Done!
         return true;
+    }
+
+    /** Determines the canonical path to the current build's workspace. */
+    private static String getWorkspacePath(FilePath workspace) throws IOException,
+            InterruptedException {
+        return workspace.act(new FileCallable<String>() {
+            public String invoke(File f, VirtualChannel channel) throws IOException {
+                return f.getCanonicalPath();
+            }
+        });
     }
 
     /** FileCallable to determine Android target projects specified in a given directory. */
@@ -146,7 +197,6 @@ public class UpdateProjectBuilder extends AbstractBuilder {
                 for (String filename : files) {
                     Project p = getProjectFromProjectFile(logger, new File(workspace, filename));
                     if (p != null) {
-                        log(logger, "Found project: " + p);
                         projects.add(p);
                     }
                 }
@@ -155,17 +205,14 @@ public class UpdateProjectBuilder extends AbstractBuilder {
             return new ArrayList<Project>(projects);
         }
 
-        /**
-         *
-         * @param logger
-         * @param projectFile
-         * @return
-         */
+        /** Determines the type of an Android project from its directory. */
         private static Project getProjectFromProjectFile(PrintStream logger, File projectFile) {
-            String dir = projectFile.getParent();
+            String dir;
             ProjectType type;
 
             try {
+                dir = projectFile.getParentFile().getCanonicalPath();
+
                 Map<String, String> config = Utils.parseConfigFile(projectFile);
                 boolean isLibrary = Boolean.valueOf(config.get("android.library"));
                 if (isLibrary) {
@@ -176,16 +223,15 @@ public class UpdateProjectBuilder extends AbstractBuilder {
                     type = ProjectType.APP;
                 }
             } catch (IOException e) {
-                // TODO: new message
-                log(logger, Messages.READING_PROJECT_FILE_FAILED(), e);
+                log(logger, Messages.FAILED_TO_DETERMINE_PROJECT_TYPE(projectFile), e);
                 e.printStackTrace();
                 return null;
             }
 
-            log(logger, String.format("Found project at '%s' of type %s", dir, type));
             return new Project(dir, type);
         }
 
+        /** Determines whether the given directory contains an Android test project. */
         private static boolean isTestProject(PrintStream logger, File projectDir) {
             File manifest = new File(projectDir, "AndroidManifest.xml");
             try {
@@ -195,12 +241,11 @@ public class UpdateProjectBuilder extends AbstractBuilder {
                 NodeList result = (NodeList) xPath.evaluate("//instrumentation", source,
                         XPathConstants.NODESET);
                 return result.getLength() > 0;
-            } catch (XPathException e) {
-                // TODO: more specific message
-                log(logger, Messages.READING_PROJECT_FILE_FAILED(), e);
+            } catch (XPathExpressionException e) {
+                // Not sure this could ever happen...
+                log(logger, Messages.MANIFEST_XPATH_FAILURE(manifest), e);
             } catch (IOException e) {
-                // TODO: new message
-                log(logger, Messages.READING_PROJECT_FILE_FAILED(), e);
+                log(logger, Messages.FAILED_TO_READ_MANIFEST(manifest), e);
             }
 
             // Failed to read file
@@ -226,7 +271,7 @@ public class UpdateProjectBuilder extends AbstractBuilder {
 
         @Override
         public String getDisplayName() {
-            return "Run 'android update project'";
+            return Messages.CREATE_PROJECT_BUILD_FILES();
         }
 
     }
