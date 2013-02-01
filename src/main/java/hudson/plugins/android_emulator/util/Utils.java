@@ -55,7 +55,11 @@ public class Utils {
      * @return The configured Android SDK root, if any. May include un-expanded variables.
      */
     public static String getConfiguredAndroidHome() {
-        return Hudson.getInstance().getDescriptorByType(DescriptorImpl.class).androidHome;
+        DescriptorImpl descriptor = Hudson.getInstance().getDescriptorByType(DescriptorImpl.class);
+        if (descriptor != null) {
+            return descriptor.androidHome;
+        }
+        return null;
     }
 
     /**

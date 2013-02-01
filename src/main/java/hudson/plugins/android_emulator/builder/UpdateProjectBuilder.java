@@ -49,7 +49,7 @@ public class UpdateProjectBuilder extends AbstractBuilder {
         // No configuration required
     }
 
-    private static final class Project {
+    private static final class Project implements Serializable {
 
         private final String path;
 
@@ -69,6 +69,8 @@ public class UpdateProjectBuilder extends AbstractBuilder {
         public int hashCode() {
             return new HashCodeBuilder().append(path).append(type).toHashCode();
         }
+
+        private static final long serialVersionUID = 1l;
 
     }
 
