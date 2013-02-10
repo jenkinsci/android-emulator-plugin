@@ -150,7 +150,12 @@ public class UpdateProjectBuilder extends AbstractBuilder {
             }
 
             // Run the project update command
-            String shortPath = project.path.substring(workspace.length() + 1);
+            String shortPath;
+            if (workspace.equals(project.path)) {
+                shortPath = ".";
+            } else {
+                shortPath = project.path.substring(workspace.length() + 1);
+            }
             log(logger, Messages.CREATING_BUILD_FILES(project.type.name.toString(), shortPath));
             Utils.runAndroidTool(launcher, logger, logger, androidSdk, Tool.ANDROID, args, dir);
         }
@@ -247,7 +252,7 @@ public class UpdateProjectBuilder extends AbstractBuilder {
                 // Not sure this could ever happen...
                 log(logger, Messages.MANIFEST_XPATH_FAILURE(manifest), e);
             } catch (IOException e) {
-                log(logger, Messages.FAILED_TO_READ_MANIFEST(manifest), e);
+                log(logger, Messages.FAILED_TO_READ_MANIFEST(manifest));
             }
 
             // Failed to read file
