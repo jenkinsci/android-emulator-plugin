@@ -32,8 +32,6 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.WeakHashMap;
 import java.util.concurrent.Semaphore;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 import org.apache.commons.lang.StringUtils;
 
@@ -264,18 +262,8 @@ public class SdkInstaller {
         // Gather list of required components
         List<String> components = new ArrayList<String>();
 
-        // Check for dependent platform
-        int dependentPlatform = -1;
-        Matcher matcher = Pattern.compile("[0-9]{1,2}$").matcher(platform);
-        if (matcher.find()) {
-            String end = matcher.group();
-            try {
-                dependentPlatform = Integer.parseInt(end);
-            } catch (NumberFormatException e) {
-            }
-        }
-
         // Add dependent platform
+        int dependentPlatform = Utils.getApiLevelFromPlatform(platform);
         if (dependentPlatform > 0) {
             components.add(String.format("android-%s", dependentPlatform));
         }

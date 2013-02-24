@@ -667,6 +667,30 @@ public class Utils {
         }
     }
 
+    /**
+     * Determines the API level for the given platform name.
+     *
+     * @param platform String like "android-4" or "Google:Google APIs:14".
+     * @return The detected version, or {@code -1} if not determined.
+     */
+    public static int getApiLevelFromPlatform(String platform) {
+        int apiLevel = -1;
+        platform = Util.fixEmptyAndTrim(platform);
+        if (platform == null) {
+            return apiLevel;
+        }
+
+        Matcher matcher = Pattern.compile("[-:]([0-9]{1,2})$").matcher(platform);
+        if (matcher.find()) {
+            String end = matcher.group(1);
+            try {
+                apiLevel = Integer.parseInt(end);
+            } catch (NumberFormatException e) {
+            }
+        }
+        return apiLevel;
+    }
+
     /** Task that will execute a command on the given emulator's console port, then quit. */
     private static final class EmulatorCommandTask implements Callable<Boolean, IOException> {
 

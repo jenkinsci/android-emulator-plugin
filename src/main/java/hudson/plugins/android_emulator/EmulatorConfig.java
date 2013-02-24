@@ -153,7 +153,7 @@ class EmulatorConfig implements Serializable {
         String resolution = screenResolution.toString();
         String platform = osVersion.getTargetName().replace(':', '_').replace(' ', '_');
         String abi = "";
-        if (Util.fixEmptyAndTrim(targetAbi) != null) {
+        if (Util.fixEmptyAndTrim(targetAbi) != null && osVersion.requiresAbi()) {
             abi = "_" + targetAbi.replace(' ', '-');
         }
         return String.format("hudson_%s_%s_%s_%s%s", locale, density, resolution, platform, abi);
@@ -501,7 +501,7 @@ class EmulatorConfig implements Serializable {
             builder.add("-t");
             builder.add(osVersion.getTargetName());
 
-            if (targetAbi != null) {
+            if (targetAbi != null && osVersion.requiresAbi()) {
                 builder.add("--abi");
                 builder.add(targetAbi);
             }

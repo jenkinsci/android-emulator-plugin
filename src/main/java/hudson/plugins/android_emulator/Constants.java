@@ -1,6 +1,7 @@
 package hudson.plugins.android_emulator;
 
 import hudson.Util;
+import hudson.plugins.android_emulator.util.Utils;
 
 import java.io.Serializable;
 
@@ -85,9 +86,14 @@ class AndroidPlatform implements Serializable {
 
     private final String name;
     private final int level;
+    private final boolean isAddon;
 
     private AndroidPlatform(String name, int level) {
         this.name = name;
+        this.isAddon = level <= 0;
+        if (isAddon) {
+            level = Utils.getApiLevelFromPlatform(name);
+        }
         this.level = level;
     }
 
@@ -111,7 +117,18 @@ class AndroidPlatform implements Serializable {
     }
 
     public boolean isCustomPlatform() {
-        return level == -1;
+        return isAddon;
+    }
+
+    /**
+     * @return {@code true} if this platform requires an ABI to be explicitly specified during
+     * emulator creation.
+     */
+    public boolean requiresAbi() {
+        // TODO: Could be improved...
+        // This is a relatively naive approach; e.g. addons for level <= 13 can have ABIs, though
+        // the only example seen so far is the Intel x86 level 10 image we explicitly include here..
+        return level >= 14 || Util.fixNull(name).contains("Intel Atom x86 System Image");
     }
 
     public String getTargetName() {
@@ -122,10 +139,6 @@ class AndroidPlatform implements Serializable {
         return "android-"+ level;
     }
 
-    public String getOldTargetName() {
-        return "android-"+ name;
-    }
-
     public int getSdkLevel() {
         return level;
     }
@@ -133,7 +146,7 @@ class AndroidPlatform implements Serializable {
     @Override
     public String toString() {
         return name;
-    };
+    }
 
 }
 
