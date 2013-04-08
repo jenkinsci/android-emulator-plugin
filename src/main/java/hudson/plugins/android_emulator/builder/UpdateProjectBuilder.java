@@ -113,22 +113,7 @@ public class UpdateProjectBuilder extends AbstractBuilder {
         // Calling "update project" doesn't work unless the target platform is installed
         new ProjectPrerequisitesInstaller().perform(build, launcher, listener);
 
-        // Sort the projects so we know whether there is an app
-        // project available before we process the test project(s)
-        Collections.sort(projects, new Comparator<Project>() {
-            public int compare(Project p1, Project p2) {
-                if (p1.type == ProjectType.APP) {
-                    if (p2.type == ProjectType.APP) {
-                        return p1.path.compareToIgnoreCase(p2.path);
-                    }
-                    return -1;
-                }
-                return 1;
-            }
-        });
-
         // Run the appropriate command for each project found
-        boolean haveApp = false;
         final String workspace = getWorkspacePath(build.getWorkspace());
         for (Project project : projects) {
             log(logger, "");
@@ -136,16 +121,28 @@ public class UpdateProjectBuilder extends AbstractBuilder {
             String args = String.format("update %s -p .", project.type.cmd);
             FilePath dir = new FilePath(new File(project.path));
 
-            if (project.type == ProjectType.APP) {
-                haveApp = true;
-            } else if (project.type == ProjectType.TEST) {
-                if (!haveApp) {
+            if (project.type == ProjectType.TEST) {
+                // Find the "nearest" app project
+                int minDistance = Integer.MAX_VALUE;
+                Project appProject = null;
+                for (Project p : projects) {
+                    if (p.type != ProjectType.APP) {
+                        continue;
+                    }
+                    int distance = Utils.getRelativePathDistance(project.path, p.path);
+                    if (distance < minDistance) {
+                        appProject = p;
+                        minDistance = distance;
+                    }
+                }
+
+                // We should have found something, but otherwise just log it and move on
+                if (appProject == null) {
                     log(logger, Messages.FOUND_TEST_PROJECT_WITHOUT_APP(project.path));
                     continue;
                 }
 
-                // Determine relative path to the first app project from this test project
-                Project appProject = projects.get(0);
+                // Determine relative path to the app project from this test project
                 args += String.format(" -m %s", Utils.getRelativePath(project.path, appProject.path));
             }
 

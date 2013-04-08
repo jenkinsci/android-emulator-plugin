@@ -655,6 +655,34 @@ public class Utils {
         return rel.toString();
     }
 
+    /**
+     * Determines the number of steps required to get between two paths.
+     * <p/>
+     * e.g. To get from "/foo/bar/baz" to "/foo/blah" requires making three steps:
+     * <ul>
+     * <li>"/foo/bar"</li>
+     * <li>"/foo"</li>
+     * <li>"/foo/blah"</li>
+     * </ul>
+     *
+     * @param from Path to go from.
+     * @param to Path to reach.
+     * @return The relative distance between the two, or {@code -1} for invalid input.
+     */
+    public static int getRelativePathDistance(String from, String to) {
+        final String relative = getRelativePath(from, to);
+        if (relative == null) {
+            return -1;
+        }
+
+        final String[] parts = relative.split("/");
+        final int length = parts.length;
+        if (length == 1 && parts[0].isEmpty()) {
+            return 0;
+        }
+        return parts.length;
+    }
+
     public static int parseRevisionString(String revisionStr) {
         try {
             return Integer.parseInt(revisionStr);

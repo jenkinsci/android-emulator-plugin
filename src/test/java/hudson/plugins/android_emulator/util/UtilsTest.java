@@ -2,6 +2,7 @@ package hudson.plugins.android_emulator.util;
 
 import junit.framework.TestCase;
 
+@SuppressWarnings("static-method")
 public class UtilsTest extends TestCase {
 
     public void testParseRevisionString() throws Exception {
@@ -13,11 +14,12 @@ public class UtilsTest extends TestCase {
         assertEquals(21, Utils.parseRevisionString("21 rc3"));
     }
 
-    public void testParseRevisionStringFailureCase() throws Exception {
+    public void testParseRevisionStringFailureCase() {
         try {
             Utils.parseRevisionString("foo");
             fail("expected exception");
         } catch (NumberFormatException e) {
+            // Expected
         }
     }
 
@@ -63,6 +65,18 @@ public class UtilsTest extends TestCase {
 
     private static void assertRelative(String from, String to, String expectedResult) {
         assertEquals(expectedResult, Utils.getRelativePath(from, to));
+    }
+
+    public void testRelativeDistance() {
+        assertRelativeDistance("/foo/bar", "/foo/bar", 0);
+        assertRelativeDistance("/foo/", "/foo/baz", 1);
+        assertRelativeDistance("/foo/bar", "/foo/baz", 2);
+        assertRelativeDistance("/foo/bar/app", "/foo/bar/tests/unit", 3);
+        assertRelativeDistance("/", "/x", 1);
+    }
+
+    private static void assertRelativeDistance(String from, String to, int expectedResult) {
+        assertEquals(expectedResult, Utils.getRelativePathDistance(from, to));
     }
 
     public void testGetApiLevelFromPlatform() {
