@@ -28,7 +28,7 @@ public class AndroidSdk implements Serializable {
     private boolean usesPlatformTools;
     private int sdkToolsVersion;
 
-    public AndroidSdk(String root, String home) {
+    public AndroidSdk(String root, String home) throws IOException {
         this.sdkRoot = root;
         this.sdkHome = home;
         if (hasKnownRoot()) {
@@ -36,7 +36,7 @@ public class AndroidSdk implements Serializable {
         }
     }
 
-    private void determineVersion() {
+    private void determineVersion() throws IOException {
         // Determine whether SDK has platform tools installed
         File toolsDirectory = new File(sdkRoot, "platform-tools");
         setUsesPlatformTools(toolsDirectory.isDirectory());
@@ -44,14 +44,10 @@ public class AndroidSdk implements Serializable {
         // Determine SDK tools version
         File toolsPropFile = new File(sdkRoot, "tools/source.properties");
         Map<String, String> toolsProperties;
-        try {
-            toolsProperties = Utils.parseConfigFile(toolsPropFile);
-            String revisionStr = Util.fixEmptyAndTrim(toolsProperties.get("Pkg.Revision"));
-            if (revisionStr != null) {
-                setSdkToolsVersion(Utils.parseRevisionString(revisionStr));
-            }
-        } catch (IOException e) {
-            // TODO
+        toolsProperties = Utils.parseConfigFile(toolsPropFile);
+        String revisionStr = Util.fixEmptyAndTrim(toolsProperties.get("Pkg.Revision"));
+        if (revisionStr != null) {
+            setSdkToolsVersion(Utils.parseRevisionString(revisionStr));
         }
     }
 

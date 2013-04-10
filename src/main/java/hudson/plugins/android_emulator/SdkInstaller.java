@@ -80,7 +80,7 @@ public class SdkInstaller {
         if (!isSdkInstallComplete(node, androidHome)) {
             PrintStream logger = listener.getLogger();
             log(logger, Messages.INSTALLING_REQUIRED_COMPONENTS());
-            AndroidSdk sdk = new AndroidSdk(androidHome, androidSdkHome);
+            AndroidSdk sdk = getAndroidSdkForNode(node, androidHome, androidSdkHome);
             installComponent(logger, launcher, sdk, "platform-tool", "tool");
 
             // If we made it this far, confirm completion by writing our our metadata file
@@ -93,6 +93,16 @@ public class SdkInstaller {
 
         // Create an SDK object now that all the components exist
         return Utils.getAndroidSdk(launcher, androidHome, androidSdkHome);
+    }
+
+    @SuppressWarnings("serial")
+    private static AndroidSdk getAndroidSdkForNode(Node node, final String androidHome,
+            final String androidSdkHome) throws IOException, InterruptedException {
+        return node.getChannel().call(new Callable<AndroidSdk, IOException>() {
+            public AndroidSdk call() throws IOException {
+                return new AndroidSdk(androidHome, androidSdkHome);
+            }
+        });
     }
 
     /**
