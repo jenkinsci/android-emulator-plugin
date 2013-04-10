@@ -1,0 +1,11 @@
+Creates or updates build files for the Android apps, libraries and test projects in this job's workspace.
+<p>
+This build step will search for Android projects in your workspace, ensure that the required
+platform(s) are installed, and then ensures that build files are in place by using the appropriate
+<code>android update project</code> command.
+</p>
+<p>
+Creating the build files for a test projects requires that the relative path to the respective app
+project is specified. This build step tries to do the right thing by selecting the app project which
+is nearest to the test project in the directory hierarchy.
+</p>

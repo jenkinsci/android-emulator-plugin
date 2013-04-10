@@ -270,7 +270,7 @@ public class UpdateProjectBuilder extends AbstractBuilder {
 
         @Override
         public String getHelpFile() {
-            return Functions.getResourcePath() + "/plugin/android-emulator/help-installPrerequisites.html";
+            return Functions.getResourcePath() + "/plugin/android-emulator/help-createBuildFiles.html";
         }
 
         @Override
