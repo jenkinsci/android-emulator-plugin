@@ -126,7 +126,7 @@ public class AndroidEmulatorContext {
 	 */
 	public ProcStarter getProcStarter(ArgumentListBuilder command)
 			throws IOException, InterruptedException {
-		return getProcStarter().cmds(command);
+		return getProcStarter().cmds(command).envs("LD_LIBRARY_PATH=" + sdk.getSdkRoot() + "/tools/lib");
 	}
 
         /**
