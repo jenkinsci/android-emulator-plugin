@@ -483,6 +483,7 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
                 env.put("ANDROID_AVD_USER_PORT", Integer.toString(emu.userPort()));
                 env.put("ANDROID_AVD_NAME", emuConfig.getAvdName());
                 env.put("ANDROID_ADB_SERVER_PORT", Integer.toString(emu.adbServerPort()));
+                env.put("ANDROID_TMP_LOGCAT_FILE", logcatFile.getRemote());
                 if (!emuConfig.isNamedEmulator()) {
                     env.put("ANDROID_AVD_OS", emuConfig.getOsVersion().toString());
                     env.put("ANDROID_AVD_DENSITY", emuConfig.getScreenDensity().toString());
