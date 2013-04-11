@@ -26,14 +26,22 @@ public class UninstallBuilder extends AbstractBuilder {
     /** Package ID of the APK to be uninstalled. */
     private final String packageId;
 
+    /** Whether to fail the build if uninstallation isn't successful. */
+    private final boolean failOnUninstallFailure;
+
     @DataBoundConstructor
     @SuppressWarnings("hiding")
-    public UninstallBuilder(String packageId) {
+    public UninstallBuilder(String packageId, boolean failOnUninstallFailure) {
         this.packageId = Util.fixEmptyAndTrim(packageId);
+        this.failOnUninstallFailure = failOnUninstallFailure;
     }
 
     public String getPackageId() {
         return packageId;
+    }
+
+    public boolean shouldFailBuildOnFailure() {
+        return failOnUninstallFailure;
     }
 
     @Override
@@ -59,9 +67,10 @@ public class UninstallBuilder extends AbstractBuilder {
 
         // Execute uninstallation
         String deviceIdentifier = getDeviceIdentifier(build, listener);
-        uninstallApk(build, launcher, logger, androidSdk, deviceIdentifier, expandedPackageId);
-
-        // TODO: Evaluate success/failure and fail the build (if the user said we should do so)
+        boolean success = uninstallApk(build, launcher, logger, androidSdk, deviceIdentifier, expandedPackageId);
+        if (!success && failOnUninstallFailure) {
+            return false;
+        }
         return true;
     }
 

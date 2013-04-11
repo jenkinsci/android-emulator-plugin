@@ -20,6 +20,7 @@ import hudson.plugins.android_emulator.sdk.AndroidSdk;
 import hudson.plugins.android_emulator.sdk.Tool;
 import hudson.plugins.android_emulator.util.Utils;
 import hudson.tasks.Builder;
+import hudson.util.ForkOutputStream;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -186,15 +187,16 @@ public abstract class AbstractBuilder extends Builder {
      * @param androidSdk The Android SDK to use.
      * @param deviceIdentifier The device from which the package should be removed.
      * @param apkPath The path to the APK file.
+     * @return {@code true} iff uninstallation completed successfully.
      * @throws IOException If execution failed.
      * @throws InterruptedException If execution failed.
      */
-    protected static void uninstallApk(AbstractBuild<?, ?> build, Launcher launcher,
+    protected static boolean uninstallApk(AbstractBuild<?, ?> build, Launcher launcher,
             PrintStream logger, AndroidSdk androidSdk, String deviceIdentifier, FilePath apkPath)
                 throws IOException, InterruptedException {
         // Get package ID to uninstall
         String packageId = getPackageIdForApk(build, launcher, logger, androidSdk, apkPath);
-        uninstallApk(build, launcher, logger, androidSdk, deviceIdentifier, packageId);
+        return uninstallApk(build, launcher, logger, androidSdk, deviceIdentifier, packageId);
     }
 
     /**
@@ -206,17 +208,23 @@ public abstract class AbstractBuilder extends Builder {
      * @param androidSdk The Android SDK to use.
      * @param deviceIdentifier The device from which the package should be removed.
      * @param packageId The ID of the Android package to remove from the given device.
+     * @return {@code true} iff uninstallation completed successfully.
      * @throws IOException If execution failed.
      * @throws InterruptedException If execution failed.
      */
-    protected static void uninstallApk(AbstractBuild<?, ?> build, Launcher launcher,
+    protected static boolean uninstallApk(AbstractBuild<?, ?> build, Launcher launcher,
             PrintStream logger, AndroidSdk androidSdk, String deviceIdentifier, String packageId)
                 throws IOException, InterruptedException {
-        // Execute uninstallation
         AndroidEmulator.log(logger, Messages.UNINSTALLING_APK(packageId));
+
+        ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+        ForkOutputStream forkStream = new ForkOutputStream(logger, stdout);
         String adbArgs = String.format("%s uninstall %s", deviceIdentifier, packageId);
         Utils.runAndroidTool(launcher, build.getEnvironment(TaskListener.NULL),
-                logger, logger, androidSdk, Tool.ADB, adbArgs, null);
+                forkStream, logger, androidSdk, Tool.ADB, adbArgs, null);
+
+        // The package manager simply returns "Success" or "Failure" on stdout
+        return stdout.toString().contains("Success");
     }
 
     /**
