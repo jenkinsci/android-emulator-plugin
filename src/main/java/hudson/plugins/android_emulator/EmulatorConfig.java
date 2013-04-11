@@ -84,9 +84,6 @@ class EmulatorConfig implements Serializable {
             deviceLocale = deviceLocale.substring(0, 2).toLowerCase() +"_"
                 + deviceLocale.substring(3).toUpperCase();
         }
-        if (sdCardSize != null) {
-            sdCardSize = sdCardSize.toUpperCase().replaceAll("[ B]", "");
-        }
 
         this.osVersion = AndroidPlatform.valueOf(osVersion);
         if (this.osVersion == null) {

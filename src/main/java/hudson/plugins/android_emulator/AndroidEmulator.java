@@ -178,6 +178,9 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
         String screenResolution = Utils.expandVariables(envVars, buildVars, this.screenResolution);
         String deviceLocale = Utils.expandVariables(envVars, buildVars, this.deviceLocale);
         String sdCardSize = Utils.expandVariables(envVars, buildVars, this.sdCardSize);
+        if (sdCardSize != null) {
+            sdCardSize = sdCardSize.toUpperCase().replaceAll("[ B]", "");
+        }
         String targetAbi = Utils.expandVariables(envVars, buildVars, this.targetAbi);
 
         // Expand macros within hardware property values
@@ -803,9 +806,6 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
                 screenResolution = Util.fixEmptyAndTrim(emulatorData.getString("screenResolution"));
                 deviceLocale = Util.fixEmptyAndTrim(emulatorData.getString("deviceLocale"));
                 sdCardSize = Util.fixEmptyAndTrim(emulatorData.getString("sdCardSize"));
-                if (sdCardSize != null) {
-                    sdCardSize = sdCardSize.toUpperCase().replaceAll("[ B]", "");
-                }
                 hardware = req.bindJSONToList(HardwareProperty.class, emulatorData.get("hardwareProperties"));
                 targetAbi = Util.fixEmptyAndTrim(emulatorData.getString("targetAbi"));
             }
