@@ -14,10 +14,14 @@ import hudson.plugins.android_emulator.sdk.AndroidSdk;
 import hudson.plugins.android_emulator.sdk.Tool;
 import hudson.plugins.android_emulator.util.Utils;
 import hudson.tasks.Builder;
+import hudson.util.ForkOutputStream;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.io.Serializable;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import net.sf.json.JSONObject;
 
@@ -32,11 +36,15 @@ public class InstallBuilder extends AbstractBuilder {
     /** Whether the APK should be uninstalled from the device before installation. */
     private final boolean uninstallFirst;
 
+    /** Whether to fail the build if installation isn't successful. */
+    private final boolean failOnInstallFailure;
+
     @DataBoundConstructor
     @SuppressWarnings("hiding")
-    public InstallBuilder(String apkFile, boolean uninstallFirst) {
+    public InstallBuilder(String apkFile, boolean uninstallFirst, boolean failOnInstallFailure) {
         this.apkFile = Util.fixEmptyAndTrim(apkFile);
         this.uninstallFirst = uninstallFirst;
+        this.failOnInstallFailure = failOnInstallFailure;
     }
 
     public String getApkFile() {
@@ -45,6 +53,10 @@ public class InstallBuilder extends AbstractBuilder {
 
     public boolean shouldUninstallFirst() {
         return uninstallFirst;
+    }
+
+    public boolean shouldFailBuildOnFailure() {
+        return failOnInstallFailure;
     }
 
     @Override
@@ -86,11 +98,17 @@ public class InstallBuilder extends AbstractBuilder {
 
         // Execute installation
         AndroidEmulator.log(logger, Messages.INSTALLING_APK(apkPath.getName()));
+        ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+        ForkOutputStream forkStream = new ForkOutputStream(logger, stdout);
         String args = String.format("%s install -r \"%s\"", deviceIdentifier, apkPath.getName());
-        Utils.runAndroidTool(launcher, build.getEnvironment(TaskListener.NULL), logger, logger,
+        Utils.runAndroidTool(launcher, build.getEnvironment(TaskListener.NULL), forkStream, logger,
                 androidSdk, Tool.ADB, args, apkPath.getParent());
 
-        // TODO: Evaluate success/failure and fail the build (if the user said we should do so)
+        Pattern p = Pattern.compile("^Success$", Pattern.MULTILINE);
+        boolean success = p.matcher(stdout.toString()).find();
+        if (!success && failOnInstallFailure) {
+            return false;
+        }
         return true;
     }
 
