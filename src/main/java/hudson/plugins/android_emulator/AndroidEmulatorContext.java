@@ -103,13 +103,15 @@ public class AndroidEmulatorContext {
 	 * @throws IOException
 	 * @throws InterruptedException
 	 */
-	public ProcStarter getProcStarter() throws IOException,
-			InterruptedException {
+	public ProcStarter getProcStarter() throws IOException, InterruptedException {
 		final EnvVars buildEnvironment = build.getEnvironment(TaskListener.NULL);
 		buildEnvironment.put("ANDROID_ADB_SERVER_PORT", Integer.toString(adbServerPort));
-                if (sdk.hasKnownHome()) {
-                  buildEnvironment.put("ANDROID_SDK_HOME", sdk.getSdkHome());
-                }
+		if (sdk.hasKnownHome()) {
+			buildEnvironment.put("ANDROID_SDK_HOME", sdk.getSdkHome());
+		}
+		if (launcher.isUnix()) {
+			buildEnvironment.put("LD_LIBRARY_PATH", String.format("%s/tools/lib", sdk.getSdkRoot()));
+		}
 		return launcher.launch().stdout(new NullStream()).stderr(logger()).envs(buildEnvironment);
 	}
 
@@ -126,7 +128,7 @@ public class AndroidEmulatorContext {
 	 */
 	public ProcStarter getProcStarter(ArgumentListBuilder command)
 			throws IOException, InterruptedException {
-		return getProcStarter().cmds(command).envs("LD_LIBRARY_PATH=" + sdk.getSdkRoot() + "/tools/lib");
+		return getProcStarter().cmds(command);
 	}
 
         /**
