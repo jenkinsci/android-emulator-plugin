@@ -125,10 +125,12 @@ class AndroidPlatform implements Serializable {
      * emulator creation.
      */
     public boolean requiresAbi() {
-        // TODO: Could be improved...
+        // TODO: Could be improved / this logic should ideally be moved to emulator creation time...
         // This is a relatively naive approach; e.g. addons for level <= 13 can have ABIs, though
         // the only example seen so far is the Intel x86 level 10 image we explicitly include here..
-        return level >= 14 || Util.fixNull(name).contains("Intel Atom x86 System Image");
+        // But, since the Intel x86 for SDK 10 is now hosted by Google, we can't rely on the name...
+        return level == 10 || level >= 14
+                || Util.fixNull(name).contains("Intel Atom x86 System Image");
     }
 
     public String getTargetName() {

@@ -280,7 +280,7 @@ public class SdkInstaller {
 
         // Add system image, if required
         // Even if a system image doesn't exist for this platform, the installer silently ignores it
-        if (dependentPlatform >= 14 && includeSystemImages) {
+        if (dependentPlatform >= 10 && includeSystemImages) {
             components.add(String.format("sysimg-%s", dependentPlatform));
         }
 
