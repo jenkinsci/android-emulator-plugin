@@ -34,6 +34,7 @@ import java.util.WeakHashMap;
 import java.util.concurrent.Semaphore;
 
 import org.apache.commons.lang.StringUtils;
+import org.apache.tools.ant.filters.StringInputStream;
 
 public class SdkInstaller {
 
@@ -165,7 +166,8 @@ public class SdkInstaller {
         String all = sdk.getSdkToolsVersion() < 17 ? "-o" : "-a";
         String upgradeArgs = String.format("update sdk -u %s %s -t %s", all, proxySettings, list);
 
-        Utils.runAndroidTool(launcher, logger, logger, sdk, Tool.ANDROID, upgradeArgs, null);
+        Utils.runAndroidTool(launcher, logger, logger, sdk, Tool.ANDROID,
+                upgradeArgs, null, new StringInputStream("y\n"));
     }
 
     /**
