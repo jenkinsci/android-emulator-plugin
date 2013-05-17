@@ -303,37 +303,35 @@ public class Utils {
      * @return The root directory of an Android SDK, or {@code null} if none could be determined.
      */
     private static String getSdkRootFromPath(boolean isUnix) {
-        // Get list of required tools when working from PATH
-        Tool[] tools = { Tool.ADB, Tool.EMULATOR };
+        // List of tools which should be found together in an Android SDK tools directory
+        Tool[] tools = { Tool.ANDROID, Tool.EMULATOR };
 
         // Get list of directories from the PATH environment variable
         List<String> paths = Arrays.asList(System.getenv("PATH").split(File.pathSeparator));
 
-        // Examine each directory to see whether it contains Android SDK Tools
+        // Examine each directory to see whether it contains the expected Android tools
         for (String path : paths) {
-            File toolsDirectory = new File(path);
-            if (isSdkToolsDirectory(tools, toolsDirectory, isUnix)) {
-                // Return the parent path (i.e. the SDK root)
-                return toolsDirectory.getParent();
+            File toolsDir = new File(path);
+            if (!toolsDir.exists() || !toolsDir.isDirectory()) {
+                continue;
             }
-        }
 
-        return null;
-    }
-
-    private static boolean isSdkToolsDirectory(Tool[] tools, File toolsDir, boolean isUnix) {
-        int toolCount = 0;
-        if (toolsDir.isDirectory()) {
+            int toolCount = 0;
             for (Tool tool : tools) {
                 String executable = tool.getExecutable(isUnix);
                 if (new File(toolsDir, executable).exists()) {
                     toolCount++;
                 }
             }
+
+            // If all the tools were found in this directory, we have a winner
+            if (toolCount == tools.length) {
+                // Return the parent path (i.e. the SDK root)
+                return toolsDir.getParent();
+            }
         }
 
-        // If all the tools were found in this directory, we have a winner
-        return (toolCount == tools.length);
+        return null;
     }
 
     /**
