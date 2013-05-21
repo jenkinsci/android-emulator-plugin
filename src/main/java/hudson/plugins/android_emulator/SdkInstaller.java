@@ -32,8 +32,11 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.WeakHashMap;
 import java.util.concurrent.Semaphore;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.apache.commons.lang.StringUtils;
+import org.apache.tools.ant.filters.StringInputStream;
 
 public class SdkInstaller {
 
@@ -81,8 +84,13 @@ public class SdkInstaller {
             PrintStream logger = listener.getLogger();
             log(logger, Messages.INSTALLING_REQUIRED_COMPONENTS());
             AndroidSdk sdk = getAndroidSdkForNode(node, androidHome, androidSdkHome);
+
             installComponent(logger, launcher, sdk, "platform-tool", "tool");
 
+            String buildTools = getBuildToolsPackageName(logger, launcher, sdk);
+            if (buildTools != null) {
+                installComponent(logger, launcher, sdk, buildTools);
+            }
             // If we made it this far, confirm completion by writing our our metadata file
             getInstallationInfoFilename(node).write(SDK_VERSION, "UTF-8");
 
@@ -103,6 +111,18 @@ public class SdkInstaller {
                 return new AndroidSdk(androidHome, androidSdkHome);
             }
         });
+    }
+
+    private static String getBuildToolsPackageName(PrintStream logger, Launcher launcher, AndroidSdk sdk)
+    throws IOException, InterruptedException {
+
+        ByteArrayOutputStream output = new ByteArrayOutputStream();
+        Utils.runAndroidTool(launcher, output, logger, sdk, Tool.ANDROID, "list sdk --extended", null);
+        Matcher m = Pattern.compile("(\"build-tools-.*?\")").matcher(output.toString());
+        if (!m.find()) {
+            return null;
+        }
+        return m.group(0);
     }
 
     /**
@@ -165,7 +185,8 @@ public class SdkInstaller {
         String all = sdk.getSdkToolsVersion() < 17 ? "-o" : "-a";
         String upgradeArgs = String.format("update sdk -u %s %s -t %s", all, proxySettings, list);
 
-        Utils.runAndroidTool(launcher, logger, logger, sdk, Tool.ANDROID, upgradeArgs, null);
+        Utils.runAndroidTool(launcher, logger, logger, sdk, Tool.ANDROID,
+                upgradeArgs, null, new StringInputStream("y\n"));
     }
 
     /**

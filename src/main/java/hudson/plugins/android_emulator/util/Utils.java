@@ -13,6 +13,8 @@ import hudson.model.AbstractBuild;
 import hudson.model.Computer;
 import hudson.model.Hudson;
 import hudson.model.Node;
+import hudson.plugins.android_emulator.Messages;
+import hudson.plugins.android_emulator.Constants;
 import hudson.plugins.android_emulator.AndroidEmulator.DescriptorImpl;
 import hudson.plugins.android_emulator.Constants;
 import hudson.plugins.android_emulator.Messages;
@@ -26,6 +28,7 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.PrintStream;
@@ -398,22 +401,60 @@ public class Utils {
      * @throws IOException If execution of the tool fails.
      * @throws InterruptedException If execution of the tool is interrupted.
      */
-    public static void runAndroidTool(Launcher launcher, OutputStream stdout, OutputStream stderr,
-            AndroidSdk androidSdk, Tool tool, String args, FilePath workingDirectory)
-                throws IOException, InterruptedException {
-        runAndroidTool(launcher, new EnvVars(), stdout, stderr, androidSdk, tool, args, workingDirectory);
+
+    public static void runAndroidTool(Launcher launcher, OutputStream stdout,
+            OutputStream stderr, AndroidSdk androidSdk, Tool tool, String args,
+            FilePath workingDirectory) throws IOException, InterruptedException {
+        runAndroidTool(launcher, new EnvVars(), stdout, stderr, androidSdk,
+                tool, args, workingDirectory, null);
     }
 
-    public static void runAndroidTool(Launcher launcher, EnvVars env, OutputStream stdout, OutputStream stderr,
-            AndroidSdk androidSdk, Tool tool, String args, FilePath workingDirectory)
+    /**
+     * Runs an Android tool on the remote build node and waits for completion before returning.
+     *
+     * @param launcher The launcher for the remote node.
+     * @param stdout The stream to which standard output should be redirected.
+     * @param stderr The stream to which standard error should be redirected.
+     * @param androidSdk The Android SDK to use.
+     * @param tool The Android tool to run.
+     * @param args Any extra arguments for the command.
+     * @param workingDirectory The directory to run the tool from, or {@code null} if irrelevant
+     * @param stdin The stream from which to read input to the process
+     * @throws IOException If execution of the tool fails.
+     * @throws InterruptedException If execution of the tool is interrupted.
+     */
+    public static void runAndroidTool(Launcher launcher, OutputStream stdout,
+            OutputStream stderr, AndroidSdk androidSdk, Tool tool, String args,
+            FilePath workingDirectory, InputStream stdin)
+                throws IOException, InterruptedException {
+        runAndroidTool(launcher, new EnvVars(), stdout, stderr, androidSdk,
+                tool, args, workingDirectory, stdin);
+    }
+
+    public static void runAndroidTool(Launcher launcher, EnvVars env,
+                                      OutputStream stdout, OutputStream stderr, AndroidSdk androidSdk,
+                                      Tool tool, String args, FilePath workingDirectory)
+            throws IOException, InterruptedException{
+        runAndroidTool(launcher, env, stdout, stderr, androidSdk,
+                tool, args, workingDirectory, null);
+    }
+
+    public static void runAndroidTool(Launcher launcher, EnvVars env,
+            OutputStream stdout, OutputStream stderr, AndroidSdk androidSdk,
+            Tool tool, String args, FilePath workingDirectory, InputStream stdin)
                 throws IOException, InterruptedException {
 
         ArgumentListBuilder cmd = Utils.getToolCommand(androidSdk, launcher.isUnix(), tool, args);
-        ProcStarter procStarter = launcher.launch().stdout(stdout).stderr(stderr).cmds(cmd);
+        ProcStarter procStarter = launcher.launch().stdout(stdout)
+                .stderr(stderr).cmds(cmd);
         if (androidSdk.hasKnownHome()) {
             // Copy the old one, so we don't mutate the argument.
             env = new EnvVars((env == null ? new EnvVars() : env));
             env.put("ANDROID_SDK_HOME", androidSdk.getSdkHome());
+        }
+
+        if (stdin != null) {
+            procStarter.stdin(stdin);
         }
 
         if (env != null) {
