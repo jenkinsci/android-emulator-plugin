@@ -23,8 +23,6 @@ import java.io.PrintStream;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
-import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -62,12 +60,12 @@ public class UpdateProjectBuilder extends AbstractBuilder {
 
         @Override
         public boolean equals(Object obj) {
-            return new EqualsBuilder().append(this, obj).isEquals();
+            return EqualsBuilder.reflectionEquals(this, obj);
         }
 
         @Override
         public int hashCode() {
-            return new HashCodeBuilder().append(path).append(type).toHashCode();
+            return HashCodeBuilder.reflectionHashCode(this);
         }
 
         private static final long serialVersionUID = 1l;
