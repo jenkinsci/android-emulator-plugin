@@ -1,9 +1,12 @@
 package hudson.plugins.android_emulator;
 
 import static hudson.plugins.android_emulator.AndroidEmulator.log;
+import hudson.EnvVars;
 import hudson.FilePath;
 import hudson.FilePath.FileCallable;
 import hudson.Launcher;
+import hudson.Launcher.ProcStarter;
+import hudson.Proc;
 import hudson.model.BuildListener;
 import hudson.model.Computer;
 import hudson.model.Node;
@@ -14,12 +17,15 @@ import hudson.plugins.android_emulator.util.Utils;
 import hudson.plugins.android_emulator.util.ValidationResult;
 import hudson.remoting.Callable;
 import hudson.remoting.VirtualChannel;
+import hudson.util.ArgumentListBuilder;
 
+import java.io.BufferedReader;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileFilter;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.io.PrintStream;
 import java.io.PrintWriter;
 import java.io.Serializable;
@@ -179,12 +185,30 @@ public class SdkInstaller {
             String... components) throws IOException, InterruptedException {
         String proxySettings = getProxySettings();
 
+        // Build the command to install the given component(s)
         String list = StringUtils.join(components, ',');
-        log(logger, Messages.INSTALLING_SDK_COMPONENTS(list.toString()));
+        log(logger, Messages.INSTALLING_SDK_COMPONENTS(list));
         String all = sdk.getSdkToolsVersion() < 17 ? "-o" : "-a";
         String upgradeArgs = String.format("update sdk -u %s %s -t %s", all, proxySettings, list);
+        ArgumentListBuilder cmd = Utils.getToolCommand(sdk, launcher.isUnix(), Tool.ANDROID, upgradeArgs);
+        ProcStarter procStarter = launcher.launch().stderr(logger).readStdout().writeStdin().cmds(cmd);
+        if (sdk.hasKnownHome()) {
+            EnvVars env = new EnvVars();
+            env.put("ANDROID_SDK_HOME", sdk.getSdkHome());
+            procStarter = procStarter.envs(env);
+        }
 
-        Utils.runAndroidTool(launcher, logger, logger, sdk, Tool.ANDROID, upgradeArgs, null);
+        // Run the command and accept any licence requests during installation
+        Proc proc = procStarter.start();
+        BufferedReader r = new BufferedReader(new InputStreamReader(proc.getStdout()));
+        String line;
+        while (proc.isAlive() && (line = r.readLine()) != null) {
+            logger.println(line);
+            if (line.toLowerCase(Locale.ENGLISH).startsWith("license id: ")) {
+                proc.getStdin().write("y\r\n".getBytes());
+                proc.getStdin().flush();
+            }
+        }
     }
 
     /**
