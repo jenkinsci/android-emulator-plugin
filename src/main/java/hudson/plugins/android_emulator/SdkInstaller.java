@@ -90,12 +90,24 @@ public class SdkInstaller {
             log(logger, Messages.INSTALLING_REQUIRED_COMPONENTS());
             AndroidSdk sdk = getAndroidSdkForNode(node, androidHome, androidSdkHome);
 
-            installComponent(logger, launcher, sdk, "platform-tool", "tool");
+            // Get the latest platform-tools
+            installComponent(logger, launcher, sdk, "platform-tool");
 
+            // Upgrade the tools if necessary and add the latest build-tools component
+            List<String> components = new ArrayList<String>(4);
+            components.add("tool");
             String buildTools = getBuildToolsPackageName(logger, launcher, sdk);
             if (buildTools != null) {
-                installComponent(logger, launcher, sdk, buildTools);
+                components.add(buildTools);
             }
+
+            // Add the local maven repos for Gradle
+            components.add("extra-android-m2repository");
+            components.add("extra-google-m2repository");
+
+            // Install the lot
+            installComponent(logger, launcher, sdk, components.toArray(new String[0]));
+
             // If we made it this far, confirm completion by writing our our metadata file
             getInstallationInfoFilename(node).write(SDK_VERSION, "UTF-8");
 
@@ -120,10 +132,9 @@ public class SdkInstaller {
 
     private static String getBuildToolsPackageName(PrintStream logger, Launcher launcher, AndroidSdk sdk)
     throws IOException, InterruptedException {
-
         ByteArrayOutputStream output = new ByteArrayOutputStream();
         Utils.runAndroidTool(launcher, output, logger, sdk, Tool.ANDROID, "list sdk --extended", null);
-        Matcher m = Pattern.compile("(\"build-tools-.*?\")").matcher(output.toString());
+        Matcher m = Pattern.compile("\"(build-tools-.*?)\"").matcher(output.toString());
         if (!m.find()) {
             return null;
         }
