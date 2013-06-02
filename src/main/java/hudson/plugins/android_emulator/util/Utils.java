@@ -45,6 +45,11 @@ import java.util.concurrent.TimeoutException;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.filefilter.IOFileFilter;
+import org.apache.commons.io.filefilter.NameFileFilter;
+import org.apache.commons.io.filefilter.TrueFileFilter;
+
 public class Utils {
 
     private static final Pattern REVISION = Pattern.compile("(\\d++).*");
@@ -223,9 +228,7 @@ public class Utils {
             return ValidationResult.error(Messages.INVALID_DIRECTORY());
         }
 
-        // We'll be using items from the tools and platforms directories.
-        // Ignore that "platform-tools" may also be required for newer SDKs,
-        // as we'll check for the presence of the individual tools in a moment
+        // Ensure that this at least looks like an SDK directory
         final String[] sdkDirectories = { "tools", "platforms" };
         for (String dirName : sdkDirectories) {
             File dir = new File(sdkRoot, dirName);
@@ -234,27 +237,18 @@ public class Utils {
             }
         }
 
-        // Search the possible tool directories to ensure the tools exist
+        // Search the various tool directories to ensure the basic tools exist
         int toolsFound = 0;
-        int expectedToolCount = Tool.REQUIRED.length;
-        if (!new File(sdkRoot, "platform-tools").exists()) {
-            // aapt doesn't exist in "tools" until SDK Tools r9
-            expectedToolCount--;
-        }
-        final String[] toolDirectories = { "tools", "platform-tools" };
+        final String[] toolDirectories = { "tools", "platform-tools", "build-tools" };
         for (String dir : toolDirectories) {
             File toolsDir = new File(sdkRoot, dir);
             if (!toolsDir.isDirectory()) {
                 continue;
             }
-            for (String executable : Tool.getAllRequiredExecutableVariants()) {
-                File toolPath = new File(toolsDir, executable);
-                if (toolPath.exists() && toolPath.isFile()) {
-                    toolsFound++;
-                }
-            }
+            IOFileFilter filter = new NameFileFilter(Tool.getAllExecutableVariants(Tool.REQUIRED));
+            toolsFound += FileUtils.listFiles(toolsDir, filter, TrueFileFilter.INSTANCE).size();
         }
-        if (toolsFound < expectedToolCount) {
+        if (toolsFound < Tool.REQUIRED.length) {
             return ValidationResult.errorWithMarkup(Messages.REQUIRED_SDK_TOOLS_NOT_FOUND());
         }
 

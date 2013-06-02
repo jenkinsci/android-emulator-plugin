@@ -19,7 +19,7 @@ public enum Tool {
     };
 
     public static Tool[] REQUIRED = new Tool[] {
-          AAPT, ADB, ANDROID, EMULATOR, MKSDCARD
+        AAPT, ADB, ANDROID, EMULATOR
     };
 
     public final String executable;
@@ -47,15 +47,11 @@ public enum Tool {
         return executable + windowsExtension;
     }
 
-    public static String[] getAllRequiredExecutableVariants() {
-        return getAllExecutableVariants(REQUIRED);
-    }
-
     public static String[] getAllExecutableVariants() {
         return getAllExecutableVariants(values());
     }
 
-    private static String[] getAllExecutableVariants(final Tool[] tools) {
+    public static String[] getAllExecutableVariants(final Tool[] tools) {
         String[] executables = new String[tools.length * 2];
         for (int i = 0, n = tools.length; i < n; i++) {
             executables[i*2] = tools[i].getExecutable(true);
@@ -65,6 +61,7 @@ public enum Tool {
         return executables;
     }
 
+    @Override
     public String toString() {
         return executable;
     }
