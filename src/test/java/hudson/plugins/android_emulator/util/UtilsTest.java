@@ -48,7 +48,7 @@ public class UtilsTest extends TestCase {
     }
 
     public void testRelativePathNothingInCommon() {
-        assertRelative("/a/b/c", "/tmp/foo/bar/baz", "../../../tmp/foo/bar/baz/");
+        assertRelative("/a/b/c", "/d/e/f/g", "../../../d/e/f/g/");
     }
 
     public void testRelativeRoot() {
