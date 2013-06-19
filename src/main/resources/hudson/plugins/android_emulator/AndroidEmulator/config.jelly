@@ -109,6 +109,9 @@
           <f:checkbox id="android-emulator.deleteAfterBuild" name="android-emulator.deleteAfterBuild"
               checked="${instance.deleteAfterBuild}" />
           <label class="attach-previous">${%Delete emulator after build}</label>
+          <f:checkbox id="android-emulator.deleteAfterBuildIfNotSuccess" name="android-emulator.deleteAfterBuildIfNotSuccess"
+              checked="${instance.deleteAfterBuildIfNotSuccess}" />
+          <label class="attach-previous">${%Delete emulator after build only if the build did not succeed}</label>
         </f:entry>
         <f:entry title="${%Startup delay}" help="${resURL}/plugin/android-emulator/help-startupDelay.html">
           <f:textbox name="android-emulator.startupDelay" value="${instance.startupDelay}" style="width:3em"

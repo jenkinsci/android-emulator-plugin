@@ -619,7 +619,7 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
         emu.cleanUp();
 
         // Delete the emulator, if required
-        if (deleteAfterBuild || (deleteAfterBuildIfNotSuccess && (build.getResult() != Result.SUCCESS) {
+        if (deleteAfterBuild || (deleteAfterBuildIfNotSuccess && (build.getResult() != null && build.getResult().isBetterOrEqualTo(Result.SUCCESS)) {
             try {
                 Callable<Boolean, Exception> deletionTask = emulatorConfig.getEmulatorDeletionTask(
                         emu.launcher().getListener());
