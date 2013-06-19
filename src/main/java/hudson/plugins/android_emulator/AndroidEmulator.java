@@ -794,6 +794,7 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
             boolean showWindow = true;
             boolean useSnapshots = true;
             boolean deleteAfterBuild = false;
+            boolean deleteAfterBuildIfNotSuccess = false;
             int startupDelay = 0;
             String commandLineOptions = null;
             String executable = null;
@@ -815,6 +816,7 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
             showWindow = formData.getBoolean("showWindow");
             useSnapshots = formData.getBoolean("useSnapshots");
             deleteAfterBuild = formData.getBoolean("deleteAfterBuild");
+            deleteAfterBuildIfNotSuccess = formData.getBoolean("deleteAfterBuildIfNotSuccess");
             commandLineOptions = formData.getString("commandLineOptions");
             executable = formData.getString("executable");
 
@@ -824,7 +826,7 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
 
             return new AndroidEmulator(avdName, osVersion, screenDensity, screenResolution,
                     deviceLocale, sdCardSize, hardware.toArray(new HardwareProperty[0]), wipeData,
-                    showWindow, useSnapshots, deleteAfterBuild, startupDelay, commandLineOptions,
+                    showWindow, useSnapshots, deleteAfterBuild, deleteAfterBuildIfNotSuccess, startupDelay, commandLineOptions,
                     targetAbi, executable);
         }
 
