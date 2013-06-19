@@ -86,6 +86,7 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
 
     // Advanced properties
     @Exported public final boolean deleteAfterBuild;
+    @Exported public final boolean deleteAfterBuildIfNotSuccess;
     @Exported public final int startupDelay;
     @Exported public final String commandLineOptions;
     @Exported public final String executable;
@@ -95,7 +96,7 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
     public AndroidEmulator(String avdName, String osVersion, String screenDensity,
             String screenResolution, String deviceLocale, String sdCardSize,
             HardwareProperty[] hardwareProperties, boolean wipeData, boolean showWindow,
-            boolean useSnapshots, boolean deleteAfterBuild, int startupDelay,
+            boolean useSnapshots, boolean deleteAfterBuild, boolean deleteAfterBuildIfNotSuccess, int startupDelay,
             String commandLineOptions, String targetAbi, String executable) {
         this.avdName = avdName;
         this.osVersion = osVersion;
@@ -108,6 +109,7 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
         this.showWindow = showWindow;
         this.useSnapshots = useSnapshots;
         this.deleteAfterBuild = deleteAfterBuild;
+        this.deleteAfterBuildIfNotSuccess = deleteAfterBuildIfNotSuccess;
         this.executable = executable;
         this.startupDelay = Math.abs(startupDelay);
         this.commandLineOptions = commandLineOptions;
@@ -617,7 +619,7 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
         emu.cleanUp();
 
         // Delete the emulator, if required
-        if (deleteAfterBuild) {
+        if (deleteAfterBuild || (deleteAfterBuildIfNotSuccess && (build.getResult() != Result.SUCCESS) {
             try {
                 Callable<Boolean, Exception> deletionTask = emulatorConfig.getEmulatorDeletionTask(
                         emu.launcher().getListener());
