@@ -1,8 +1,10 @@
 package hudson.plugins.android_emulator.sdk;
 
+import hudson.plugins.android_emulator.SdkInstallationException;
+
 public enum Tool {
-    AAPT("aapt", ".exe", true),
-    ADB("adb", ".exe", true),
+    AAPT("aapt", ".exe", new PlatformToolLocator()),
+    ADB("adb", ".exe", new PlatformToolLocator()),
     ANDROID("android", ".bat"),
     EMULATOR("emulator", ".exe"),
     EMULATOR_ARM("emulator-arm", ".exe"),
@@ -24,20 +26,15 @@ public enum Tool {
 
     public final String executable;
     public final String windowsExtension;
-    public final boolean isPlatformTool;
-
+    public final ToolLocator toolLocator;
     Tool(String executable, String windowsExtension) {
-        this(executable, windowsExtension, false);
+        this(executable, windowsExtension, new DefaultToolLocator());
     }
 
-    Tool(String executable, String windowsExtension, boolean isPlatformTool) {
+    Tool(String executable, String windowsExtension, ToolLocator toolLocator) {
         this.executable = executable;
         this.windowsExtension = windowsExtension;
-        this.isPlatformTool = isPlatformTool;
-    }
-
-    public boolean isPlatformTool() {
-        return isPlatformTool;
+        this.toolLocator = toolLocator;
     }
 
     public String getExecutable(boolean isUnix) {
@@ -45,6 +42,10 @@ public enum Tool {
             return executable;
         }
         return executable + windowsExtension;
+    }
+
+    public String findInSdk(AndroidSdk androidSdk) throws SdkInstallationException {
+        return toolLocator.findInSdk(androidSdk, this);
     }
 
     public static String[] getAllExecutableVariants() {

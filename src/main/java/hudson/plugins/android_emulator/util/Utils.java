@@ -18,6 +18,7 @@ import hudson.plugins.android_emulator.Constants;
 import hudson.plugins.android_emulator.Messages;
 import hudson.plugins.android_emulator.sdk.AndroidSdk;
 import hudson.plugins.android_emulator.sdk.Tool;
+import hudson.plugins.android_emulator.SdkInstallationException;
 import hudson.remoting.Callable;
 import hudson.remoting.Future;
 import hudson.util.ArgumentListBuilder;
@@ -42,6 +43,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.FutureTask;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -51,7 +53,7 @@ import org.apache.commons.io.filefilter.NameFileFilter;
 import org.apache.commons.io.filefilter.TrueFileFilter;
 
 public class Utils {
-
+    private static final Logger LOGGER = Logger.getLogger(Utils.class .getName()); 
     private static final Pattern REVISION = Pattern.compile("(\\d++).*");
 
     /**
@@ -359,13 +361,14 @@ public class Utils {
         // Determine the path to the desired tool
         String androidToolsDir;
         if (androidSdk.hasKnownRoot()) {
-            if (tool.isPlatformTool() && androidSdk.usesPlatformTools()) {
-                androidToolsDir = androidSdk.getSdkRoot() +"/platform-tools/";
-            } else {
-                androidToolsDir = androidSdk.getSdkRoot() +"/tools/";
+            try {
+                androidToolsDir = androidSdk.getSdkRoot() + tool.findInSdk(androidSdk);;
+            } catch ( SdkInstallationException e){
+                LOGGER.warning("A build-tools directory was found but there were no build-tools installed. Assuming command is on the PATH");
+                androidToolsDir = "";
             }
         } else {
-            // If SDK root is unknown, we'll assume that the tool is on the PATH
+            LOGGER.warning("SDK root not found. Assuming command is on the PATH");
             androidToolsDir = "";
         }
 
