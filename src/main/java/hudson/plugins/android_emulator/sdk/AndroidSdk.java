@@ -27,6 +27,7 @@ public class AndroidSdk implements Serializable {
     private final String sdkHome;
     private boolean usesPlatformTools;
     private int sdkToolsVersion;
+    private String sdkToolsRevision;
 
     public AndroidSdk(String root, String home) throws IOException {
         this.sdkRoot = root;
