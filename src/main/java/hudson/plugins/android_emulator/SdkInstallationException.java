@@ -2,7 +2,7 @@ package hudson.plugins.android_emulator;
 
 public final class SdkInstallationException extends AndroidEmulatorException {
 
-    SdkInstallationException(String message) {
+    public SdkInstallationException(String message) {
         super(message);
     }
 
