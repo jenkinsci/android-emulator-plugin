@@ -23,9 +23,9 @@
 
   <dependencies>
     <dependency>
-      <groupId>org.jvnet.hudson.plugins</groupId>
+      <groupId>org.jenkins-ci.plugins</groupId>
       <artifactId>port-allocator</artifactId>
-      <version>1.5</version>
+      <version>1.8</version>
       <scope>compile</scope>
     </dependency>
     <dependency>
