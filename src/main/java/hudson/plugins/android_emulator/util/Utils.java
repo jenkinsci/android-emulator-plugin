@@ -604,7 +604,6 @@ public class Utils {
         if (fromPath.equals(toPath)) {
             return "";
         }
-
         // Target directory is a subdirectory
         if (toPath.startsWith(fromPath)) {
             int fromLength = fromPath.length();
@@ -612,10 +611,13 @@ public class Utils {
             return toPath.substring(index) + File.separatorChar;
         }
 
+        // Quote separator, as String.split() takes a regex and
+        // File.separator isn't a valid regex character on Windows
+        final String separator = Pattern.quote(File.separator);
         // Target directory is somewhere above our directory
-        String[] fromParts = fromPath.substring(1).split(File.separator);
+        String[] fromParts = fromPath.substring(1).split(separator);
         final int fromLength = fromParts.length;
-        String[] toParts = toPath.substring(1).split(File.separator);
+        String[] toParts = toPath.substring(1).split(separator);
         final int toLength = toParts.length;
 
         // Find the number of common path segments
