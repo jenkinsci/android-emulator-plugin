@@ -46,7 +46,7 @@ import org.apache.commons.lang.StringUtils;
 public class SdkInstaller {
 
     /** Recent version of the Android SDK that will be installed. */
-    private static final String SDK_VERSION = "22.0.1";
+    private static final String SDK_VERSION = "22.2.1";
 
     /** Filename to write some metadata to about our automated installation. */
     private static final String SDK_INFO_FILENAME = ".jenkins-install-info";
