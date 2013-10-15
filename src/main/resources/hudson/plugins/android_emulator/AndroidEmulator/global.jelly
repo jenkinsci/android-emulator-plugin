@@ -19,6 +19,36 @@
       <f:checkbox name="android-emulator.shouldKeepInWorkspace" checked="${descriptor.shouldKeepInWorkspace}" />
       <label class="attach-previous">${%Keep emulators in the job workspace, in the .android subdirectory, to isolate them as much as possible}</label>
     </f:entry>
+
+    <f:entry>
+        <f:radioBlock name="android-emulator.useRandomPortForAdbServer"
+            title="Use a random port for the android debug bridge server"
+            value="true"
+            checked="${descriptor.useRandomPortForAdbServer}">
+	    </f:radioBlock>
+
+        <f:radioBlock name="android-emulator.useRandomPortForAdbServer"
+            title="Use following port for the android debug bridge server:"
+            value="false"
+            checked="${!descriptor.useRandomPortForAdbServer}">
+
+			<f:block>
+                <table style="margin-left:2em">
+                    <f:entry>
+                        <input class="setting-input validated" name="android-emulator.adbServerPort"
+                            value="${descriptor.adbServerPort}"
+                            checkUrl="'buildWrapper/AndroidEmulator/checkAdbServerPort?value='+escape(this.value)" />
+                        <label class="attach-previous">Default port: 5037</label>
+                    </f:entry>
+
+                    <f:entry>
+                        <f:checkbox name="android-emulator.manageAdbServer" checked="${descriptor.manageAdbServer}" />
+                        <label class="attach-previous">Manage startup and killing of the android debug bridge server although the port is fixed</label>
+                    </f:entry>
+                </table>
+            </f:block>
+        </f:radioBlock>
+    </f:entry>
   </f:section>
 
 </j:jelly>
