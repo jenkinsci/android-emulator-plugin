@@ -343,7 +343,12 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
         ByteArrayOutputStream emulatorOutput = new ByteArrayOutputStream();
         ForkOutputStream emulatorLogger = new ForkOutputStream(logger, emulatorOutput);
 
-        final Proc emulatorProcess = emu.getToolProcStarter(emuConfig.getExecutable(), emulatorArgs).stdout(emulatorLogger).start();
+        Proc emulatorProcess = null;
+        if (!descriptor.shouldKeepInWorkspace) {
+            emulatorProcess = emu.getToolProcStarter(emuConfig.getExecutable(), emulatorArgs).stdout(emulatorLogger).start();
+        } else {
+            emulatorProcess = emu.getToolProcStarter(emuConfig.getExecutable(), emulatorArgs).pwd(build.getWorkspace()).stdout(emulatorLogger).start();
+        }
         emu.setProcess(emulatorProcess);
 
         // Give the emulator process a chance to initialise
