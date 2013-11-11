@@ -92,6 +92,12 @@ public class UpdateProjectBuilder extends AbstractBuilder {
             throws InterruptedException, IOException {
         final PrintStream logger = listener.getLogger();
 
+        // Ensure we have an SDK, and export ANDROID_HOME
+        AndroidSdk androidSdk = getAndroidSdk(build, launcher, listener);
+        if (androidSdk == null) {
+            return false;
+        }
+
         // Gather list of projects, determined by reading Android project files in the workspace
         log(logger, Messages.FINDING_PROJECTS());
         List<Project> projects = build.getWorkspace().act(new ProjectFinder(listener));
@@ -101,12 +107,6 @@ public class UpdateProjectBuilder extends AbstractBuilder {
             return true;
         }
         log(logger, Messages.FOUND_PROJECTS_TO_UPDATE(projects.size()));
-
-        // Ensure we have an SDK
-        AndroidSdk androidSdk = getAndroidSdk(build, launcher, listener);
-        if (androidSdk == null) {
-            return false;
-        }
 
         // Calling "update project" doesn't work unless the target platform is installed
         new ProjectPrerequisitesInstaller().perform(build, launcher, listener);
