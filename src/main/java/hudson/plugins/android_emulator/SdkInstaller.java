@@ -530,6 +530,7 @@ public class SdkInstaller {
             try {
                 out = new PrintWriter(configFile);
                 out.println("pingOptIn=false");
+                out.println("pingId=0");
                 out.flush();
                 out.close();
             } catch (FileNotFoundException e) {
