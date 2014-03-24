@@ -35,9 +35,10 @@ public class TaskDispatcher extends QueueTaskDispatcher {
 
     @Override
     public CauseOfBlockage canTake(Node node, Task task) {
-        // If the given task doesn't use the AndroidEmulator BuildWrapper, we don't care
+        // If the given task doesn't use the AndroidEmulator BuildWrapper, or if we detect env
+    	// variables in the job config hash, we don't care
         String desiredHash = getEmulatorConfigHashForTask(node, task);
-        if (desiredHash == null) {
+        if (desiredHash == null || desiredHash.contains("$")) {
             return null;
         }
 
