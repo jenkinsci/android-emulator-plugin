@@ -27,6 +27,8 @@ public class AndroidEmulatorContext {
 	private int adbPort, userPort, adbServerPort;
 	private String serial;
 
+	private EmulatorPortConfig portManager;
+
 	private PortAllocationManager portAllocator;
 	private Proc emulatorProcess;
 
@@ -37,12 +39,13 @@ public class AndroidEmulatorContext {
 	private Launcher launcher;
 
 	public AndroidEmulatorContext(AbstractBuild<?, ?> build_,
-			Launcher launcher_, BuildListener listener_, AndroidSdk sdk_)
+			Launcher launcher_, BuildListener listener_, AndroidSdk sdk_, EmulatorPortConfig portManager_)
 			throws InterruptedException, IOException {
 		build = build_;
 		listener = listener_;
 		launcher = launcher_;
 		sdk = sdk_;
+		portManager = portManager_;
 
 		final Computer computer = Computer.currentComputer();
 
@@ -50,7 +53,11 @@ public class AndroidEmulatorContext {
 		portAllocator = PortAllocationManager.getManager(computer);
 		userPort = portAllocator.allocateRandom(build, 0);
 		adbPort = portAllocator.allocateRandom(build, 0);
-		adbServerPort = portAllocator.allocateRandom(build, 0);
+		if (portManager.useRandomAdbServerPort()) {
+		    adbServerPort = portAllocator.allocateRandom(build, 0);
+		} else {
+		    adbServerPort = portManager.adbServerPort();
+		}
 
 		serial = "localhost:" + adbPort;
 	}
@@ -59,7 +66,9 @@ public class AndroidEmulatorContext {
 		// Free up the TCP ports
 		portAllocator.free(adbPort);
 		portAllocator.free(userPort);
-		portAllocator.free(adbServerPort);
+		if (portManager.useRandomAdbServerPort()) {
+		    portAllocator.free(adbServerPort);
+		}
 	}
 
 	public int adbPort() {

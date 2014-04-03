@@ -294,7 +294,11 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
             Thread.sleep(delaySecs * 1000);
         }
 
-        final AndroidEmulatorContext emu = new AndroidEmulatorContext(build, launcher, listener, androidSdk);
+        EmulatorPortConfig portConfig = new EmulatorPortConfig(descriptor.useRandomPortForAdbServer,
+                                                                    descriptor.adbServerPort,
+                                                                    descriptor.manageAdbServer);
+        final AndroidEmulatorContext emu = new AndroidEmulatorContext(build, launcher, listener, androidSdk,
+                                                                        portConfig);
 
         // We manually start the adb-server so that later commands will not have to start it,
         // allowing them to complete faster.
@@ -339,7 +343,12 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
         ByteArrayOutputStream emulatorOutput = new ByteArrayOutputStream();
         ForkOutputStream emulatorLogger = new ForkOutputStream(logger, emulatorOutput);
 
-        final Proc emulatorProcess = emu.getToolProcStarter(emuConfig.getExecutable(), emulatorArgs).stdout(emulatorLogger).start();
+        Proc emulatorProcess = null;
+        if (!descriptor.shouldKeepInWorkspace) {
+            emulatorProcess = emu.getToolProcStarter(emuConfig.getExecutable(), emulatorArgs).stdout(emulatorLogger).start();
+        } else {
+            emulatorProcess = emu.getToolProcStarter(emuConfig.getExecutable(), emulatorArgs).pwd(build.getWorkspace()).stdout(emulatorLogger).start();
+        }
         emu.setProcess(emulatorProcess);
 
         // Give the emulator process a chance to initialise
@@ -611,8 +620,10 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
             logcatFile.delete();
         }
 
-        ArgumentListBuilder adbKillCmd = emu.getToolCommand(Tool.ADB, "kill-server");
-        emu.getProcStarter(adbKillCmd).join();
+        if (descriptor.useRandomPortForAdbServer || descriptor.manageAdbServer) {
+            ArgumentListBuilder adbKillCmd = emu.getToolCommand(Tool.ADB, "kill-server");
+            emu.getProcStarter(adbKillCmd).join();
+        }
 
         emu.cleanUp();
 
@@ -759,6 +770,13 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
         /** Whether the emulators should be kept in the workspace. */
         public boolean shouldKeepInWorkspace = false;
 
+        /** Whether a random port should be used for the adb daemon */
+        public boolean useRandomPortForAdbServer = true;
+        /** The port of adb daemon, if no random port is used */
+        public int adbServerPort = 5037;
+        /** Whether the adb daemon should still be managed by this plugin, even if the adb daemon port is fixed */
+        public boolean manageAdbServer = false;
+
         public DescriptorImpl() {
             super(AndroidEmulator.class);
             load();
@@ -774,6 +792,12 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
             androidHome = json.optString("androidHome");
             shouldInstallSdk = json.optBoolean("shouldInstallSdk", true);
             shouldKeepInWorkspace = json.optBoolean("shouldKeepInWorkspace", false);
+            useRandomPortForAdbServer = json.getJSONObject("useRandomPortForAdbServer").getBoolean("value");
+            adbServerPort = json.optInt("adbServerPort", 5037);
+            if (adbServerPort < 0 || adbServerPort > 65535) {
+                adbServerPort = 5037;
+            }
+            manageAdbServer = json.optBoolean("manageAdbServer", false);
             save();
             return true;
         }
@@ -1066,6 +1090,19 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
 
         public FormValidation doCheckAndroidHome(@QueryParameter File value) {
             return Utils.validateAndroidHome(value, true).getFormValidation();
+        }
+
+        public FormValidation doCheckAdbServerPort(@QueryParameter String value) {
+            try {
+                int port = Integer.parseInt(value);
+                if (port < 0 || port > 65535) {
+                    return ValidationResult.error("Invalid port number. Needs to be between 0 and 65535. Otherwise default port is used.").getFormValidation();
+                }
+            } catch (NumberFormatException e) {
+                return ValidationResult.error("Please insert a number between 0 and 65535. Otherwise default port is used.").getFormValidation();
+            }
+
+            return ValidationResult.ok().getFormValidation();
         }
 
     }
