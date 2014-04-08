@@ -38,6 +38,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
 import java.util.concurrent.FutureTask;
@@ -431,24 +432,20 @@ public class Utils {
      * @return The key-value pairs contained in the file, ignoring any comments or blank lines.
      * @throws IOException If the file could not be read.
      */
-    public static Map<String,String> parseConfigFile(File configFile) throws IOException {
+    public static Map<String, String> parseConfigFile(File configFile) throws IOException {
         FileReader fileReader = new FileReader(configFile);
         BufferedReader reader = new BufferedReader(fileReader);
+        Properties properties = new Properties();
+        properties.load(reader);
+        reader.close();
 
-        String line;
-        Map<String,String> values = new HashMap<String,String>();
-        while ((line = reader.readLine()) != null) {
-            line = line.trim();
-            if (line.length() == 0 || line.charAt(0) == '#') {
-                continue;
-            }
-            String[] parts = line.split("=", 2);
-            values.put(parts[0], parts[1]);
+        final Map<String, String> values = new HashMap<String, String>();
+        for (final Map.Entry<Object, Object> entry : properties.entrySet()) {
+            values.put((String) entry.getKey(), (String) entry.getValue());
         }
 
         return values;
     }
-
 
     /**
      * Expands the variable in the given string to its value in the environment variables available
