@@ -52,7 +52,7 @@ public class AndroidEmulatorContext {
 		adbPort = portAllocator.allocateRandom(build, 0);
 		adbServerPort = portAllocator.allocateRandom(build, 0);
 
-		serial = "localhost:" + adbPort;
+		serial = "emulator-" + (adbPort - 1);
 	}
 
 	public void cleanUp() {
