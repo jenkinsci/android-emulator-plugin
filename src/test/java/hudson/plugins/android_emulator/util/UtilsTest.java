@@ -2,6 +2,10 @@ package hudson.plugins.android_emulator.util;
 
 import junit.framework.TestCase;
 
+import java.io.File;
+import java.io.PrintWriter;
+import java.util.Map;
+
 @SuppressWarnings("static-method")
 public class UtilsTest extends TestCase {
 
@@ -88,5 +92,15 @@ public class UtilsTest extends TestCase {
         assertEquals(-1, Utils.getApiLevelFromPlatform("jellybean"));
         assertEquals(-1, Utils.getApiLevelFromPlatform("Android 4.2"));
     }
+    
+	public void testReadProperties() throws Exception {
+        final File temp = File.createTempFile("temp", ".txt");
+        temp.deleteOnExit();
+        final PrintWriter writer = new PrintWriter(temp);
+        writer.println("key=value\\\nsplit\\\nin\\\nlines\n");
+        writer.close();
 
+        final Map<String, String> map = Utils.parseConfigFile(temp);
+        assertEquals(1, map.size());
+    }
 }
