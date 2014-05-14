@@ -86,6 +86,7 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
 
     // Advanced properties
     @Exported public final boolean deleteAfterBuild;
+    @Exported public final boolean deleteAfterBuildIfNotSuccess;
     @Exported public final int startupDelay;
     @Exported public final String commandLineOptions;
     @Exported public final String executable;
@@ -95,7 +96,7 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
     public AndroidEmulator(String avdName, String osVersion, String screenDensity,
             String screenResolution, String deviceLocale, String sdCardSize,
             HardwareProperty[] hardwareProperties, boolean wipeData, boolean showWindow,
-            boolean useSnapshots, boolean deleteAfterBuild, int startupDelay,
+            boolean useSnapshots, boolean deleteAfterBuild, boolean deleteAfterBuildIfNotSuccess, int startupDelay,
             String commandLineOptions, String targetAbi, String executable) {
         this.avdName = avdName;
         this.osVersion = osVersion;
@@ -108,6 +109,7 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
         this.showWindow = showWindow;
         this.useSnapshots = useSnapshots;
         this.deleteAfterBuild = deleteAfterBuild;
+        this.deleteAfterBuildIfNotSuccess = deleteAfterBuildIfNotSuccess;
         this.executable = executable;
         this.startupDelay = Math.abs(startupDelay);
         this.commandLineOptions = commandLineOptions;
@@ -357,7 +359,7 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
         if (!socket) {
             log(logger, Messages.EMULATOR_DID_NOT_START());
             build.setResult(Result.NOT_BUILT);
-            cleanUp(emuConfig, emu);
+            cleanUp(emuConfig, emu, build.getResult());
             return null;
         }
 
@@ -374,7 +376,7 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
         if (result != 0) { // adb currently only ever returns 0!
             log(logger, Messages.CANNOT_CONNECT_TO_EMULATOR());
             build.setResult(Result.NOT_BUILT);
-            cleanUp(emuConfig, emu);
+            cleanUp(emuConfig, emu, build.getResult());
             return null;
         }
 
@@ -392,7 +394,7 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
                 log(logger, Messages.BOOT_COMPLETION_TIMED_OUT(bootTimeout / 1000));
             }
             build.setResult(Result.NOT_BUILT);
-            cleanUp(emuConfig, emu);
+            cleanUp(emuConfig, emu, build.getResult());
             return null;
         }
 
@@ -462,7 +464,7 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
                 boolean restarted = emu.sendCommand("avd start");
                 if (!restarted) {
                     log(logger, Messages.EMULATOR_RESUME_FAILED());
-                    cleanUp(emuConfig, emu, logWriter, logcatFile, logcatStream, artifactsDir);
+                    cleanUp(emuConfig, emu,  build.getResult(), logWriter, logcatFile, logcatStream, artifactsDir);
                 }
             } else {
                 log(logger, Messages.SNAPSHOT_CREATION_FAILED());
@@ -504,7 +506,7 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
             @SuppressWarnings("rawtypes")
             public boolean tearDown(AbstractBuild build, BuildListener listener)
                     throws IOException, InterruptedException {
-                cleanUp(emuConfig, emu, logWriter, logcatFile, logcatStream, artifactsDir);
+                cleanUp(emuConfig, emu, build.getResult(), logWriter, logcatFile, logcatStream, artifactsDir);
 
                 return true;
             }
@@ -553,8 +555,8 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
      * @param emulatorConfig The emulator being run.
      * @param emu The emulator context
      */
-    private void cleanUp(EmulatorConfig emulatorConfig, AndroidEmulatorContext emu) throws IOException, InterruptedException {
-        cleanUp(emulatorConfig, emu, null, null, null, null);
+    private void cleanUp(EmulatorConfig emulatorConfig, AndroidEmulatorContext emu, Result buildResult) throws IOException, InterruptedException {
+        cleanUp(emulatorConfig, emu, buildResult, null, null, null, null);
     }
 
     /**
@@ -566,7 +568,7 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
      * @param logcatStream The stream the logcat output is being written to.
      * @param artifactsDir The directory where build artifacts should go.
      */
-    private void cleanUp(EmulatorConfig emulatorConfig, AndroidEmulatorContext emu, Proc logcatProcess,
+    private void cleanUp(EmulatorConfig emulatorConfig, AndroidEmulatorContext emu, Result buildResult, Proc logcatProcess,
             FilePath logcatFile, OutputStream logcatStream, File artifactsDir) throws IOException, InterruptedException {
         // FIXME: Sometimes on Windows neither the emulator.exe nor the adb.exe processes die.
         //        Launcher.kill(EnvVars) does not appear to help either.
@@ -617,7 +619,7 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
         emu.cleanUp();
 
         // Delete the emulator, if required
-        if (deleteAfterBuild) {
+        if (deleteAfterBuild || (deleteAfterBuildIfNotSuccess && (buildResult != null && buildResult.isBetterOrEqualTo(Result.SUCCESS)))) {
             try {
                 Callable<Boolean, Exception> deletionTask = emulatorConfig.getEmulatorDeletionTask(
                         emu.launcher().getListener());
@@ -792,6 +794,7 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
             boolean showWindow = true;
             boolean useSnapshots = true;
             boolean deleteAfterBuild = false;
+            boolean deleteAfterBuildIfNotSuccess = false;
             int startupDelay = 0;
             String commandLineOptions = null;
             String executable = null;
@@ -813,6 +816,7 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
             showWindow = formData.getBoolean("showWindow");
             useSnapshots = formData.getBoolean("useSnapshots");
             deleteAfterBuild = formData.getBoolean("deleteAfterBuild");
+            deleteAfterBuildIfNotSuccess = formData.getBoolean("deleteAfterBuildIfNotSuccess");
             commandLineOptions = formData.getString("commandLineOptions");
             executable = formData.getString("executable");
 
@@ -822,7 +826,7 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
 
             return new AndroidEmulator(avdName, osVersion, screenDensity, screenResolution,
                     deviceLocale, sdCardSize, hardware.toArray(new HardwareProperty[0]), wipeData,
-                    showWindow, useSnapshots, deleteAfterBuild, startupDelay, commandLineOptions,
+                    showWindow, useSnapshots, deleteAfterBuild, deleteAfterBuildIfNotSuccess, startupDelay, commandLineOptions,
                     targetAbi, executable);
         }
 
