@@ -89,7 +89,7 @@
         </f:entry>
         <f:entry help="${resURL}/plugin/android-emulator/help-showWindow.html">
           <f:checkbox id="android-emulator.showWindow" name="android-emulator.showWindow"
-              checked="${h.defaultToTrue(instance.showWindow)}" />
+              checked="${instance.showWindow}" />
           <label class="attach-previous">${%Show emulator window}</label>
         </f:entry>
         <f:entry help="${resURL}/plugin/android-emulator/help-useSnapshots.html">
