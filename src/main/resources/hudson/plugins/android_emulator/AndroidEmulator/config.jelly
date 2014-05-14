@@ -94,7 +94,7 @@
         </f:entry>
         <f:entry help="${resURL}/plugin/android-emulator/help-useSnapshots.html">
           <f:checkbox id="android-emulator.useSnapshots" name="android-emulator.useSnapshots"
-              checked="${h.defaultToTrue(instance.useSnapshots)}" />
+              checked="${instance.useSnapshots}" />
           <label class="attach-previous">${%Use emulator snapshots}</label>
         </f:entry>
       </f:section>
