@@ -1,6 +1,5 @@
 package hudson.plugins.android_emulator;
 
-import static hudson.plugins.android_emulator.AndroidEmulator.log;
 import hudson.EnvVars;
 import hudson.FilePath;
 import hudson.FilePath.FileCallable;
@@ -18,6 +17,7 @@ import hudson.plugins.android_emulator.util.ValidationResult;
 import hudson.remoting.Callable;
 import hudson.remoting.VirtualChannel;
 import hudson.util.ArgumentListBuilder;
+import org.apache.commons.lang.StringUtils;
 
 import java.io.BufferedReader;
 import java.io.ByteArrayOutputStream;
@@ -41,7 +41,7 @@ import java.util.concurrent.Semaphore;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import org.apache.commons.lang.StringUtils;
+import static hudson.plugins.android_emulator.AndroidEmulator.log;
 
 public class SdkInstaller {
 
@@ -264,7 +264,7 @@ public class SdkInstaller {
     public static void installPlatform(PrintStream logger, Launcher launcher, AndroidSdk sdk,
             String platform, boolean includeSystemImages) throws IOException, InterruptedException {
         // Check whether this platform is already installed
-        if (isPlatformInstalled(logger, launcher, sdk, platform)) {
+        if (isPlatformInstalled(logger, launcher, sdk, platform, includeSystemImages)) {
             return;
         }
 
@@ -298,7 +298,7 @@ public class SdkInstaller {
         if (components.size() > 1) {
             for (Iterator<String> it = components.iterator(); it.hasNext(); ) {
                 String component = it.next();
-                if (isPlatformInstalled(logger, launcher, sdk, component)) {
+                if (isPlatformInstalled(logger, launcher, sdk, component, includeSystemImages)) {
                     it.remove();
                 }
             }
@@ -314,11 +314,28 @@ public class SdkInstaller {
     }
 
     private static boolean isPlatformInstalled(PrintStream logger, Launcher launcher,
-            AndroidSdk sdk, String platform) throws IOException, InterruptedException {
+            AndroidSdk sdk, String platform, boolean includeSystemImages) throws IOException, InterruptedException {
         ByteArrayOutputStream targetList = new ByteArrayOutputStream();
-        // Preferably we'd use the "--compact" flag here, but it wasn't added until r12
+        // Preferably we'd use the "--compact" flag here, but it wasn't added until r12,
+        // nor does it give any information about which system images are installed...
         Utils.runAndroidTool(launcher, targetList, logger, sdk, Tool.ANDROID, "list target", null);
-        return targetList.toString().contains('"'+ platform +'"');
+        boolean platformInstalled = targetList.toString().contains('"'+ platform +'"');
+        if (!platformInstalled) {
+            return false;
+        }
+
+        if (includeSystemImages) {
+            // Check that the given platform does not have the "no ABIs" text (i.e. system images *are* installed)
+            Pattern regex = Pattern.compile(String.format("\"%s\".+?no ABIs", platform), Pattern.DOTALL);
+            Matcher matcher = regex.matcher(targetList.toString());
+            if (matcher.find() && !matcher.group(0).contains("---")) {
+                // We found the "no ABIs" text, within the section for the given platform
+                return false;
+            }
+        }
+
+        // Everything we wanted is installed
+        return true;
     }
 
     private static List<String> getSdkComponentsForPlatform(PrintStream logger, String platform,
