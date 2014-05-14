@@ -4,18 +4,18 @@
 
     <f:entry title="${%Android SDK root}"
         description="${%Enter the path to the root of an Android SDK installation}"
-        help="${resURL}/plugin/android-emulator/help-sdkRoot.html">
+        help="/plugin/android-emulator/help-sdkRoot.html">
       <input class="setting-input validated" name="android-emulator.androidHome"
           type="text" value="${descriptor.androidHome}"
           checkUrl="'buildWrapper/AndroidEmulator/checkAndroidHome?value='+escape(this.value)" />
     </f:entry>
 
-    <f:entry help="${resURL}/plugin/android-emulator/help-installSdk.html">
+    <f:entry help="/plugin/android-emulator/help-installSdk.html">
       <f:checkbox name="android-emulator.shouldInstallSdk" checked="${descriptor.shouldInstallSdk}" />
       <label class="attach-previous">${%Automatically install Android components when required}</label>
     </f:entry>
 
-    <f:entry help="${resURL}/plugin/android-emulator/help-keepInWorkspace.html">
+    <f:entry help="/plugin/android-emulator/help-keepInWorkspace.html">
       <f:checkbox name="android-emulator.shouldKeepInWorkspace" checked="${descriptor.shouldKeepInWorkspace}" />
       <label class="attach-previous">${%Keep emulators in the job workspace, in the .android subdirectory, to isolate them as much as possible}</label>
     </f:entry>

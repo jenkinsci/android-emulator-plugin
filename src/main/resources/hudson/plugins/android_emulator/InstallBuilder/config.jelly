@@ -5,13 +5,13 @@
         <f:description>${%Path to an Android package file, within the current workspace, to be installed}</f:description>
     </f:entry>
 
-    <f:entry help="${resURL}/plugin/android-emulator/help-uninstallFirst.html">
+    <f:entry help="/plugin/android-emulator/help-uninstallFirst.html">
         <f:checkbox id="android-emulator.uninstallFirst" name="android-emulator.uninstallFirst"
           title="${%Uninstall existing APK first}"
           checked="${instance.shouldUninstallFirst()}" />
     </f:entry>
 
-    <f:entry help="${resURL}/plugin/android-emulator/help-failOnInstallFailure.html">
+    <f:entry help="/plugin/android-emulator/help-failOnInstallFailure.html">
         <f:checkbox id="android-emulator.failOnInstallFailure" name="android-emulator.failOnInstallFailure"
           title="${%Fail the build if installation fails}"
           checked="${h.defaultToTrue(instance.shouldFailBuildOnFailure())}" />

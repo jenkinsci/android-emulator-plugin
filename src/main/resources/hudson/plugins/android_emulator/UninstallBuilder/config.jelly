@@ -5,7 +5,7 @@
         <f:description>${%ID of the Android package to be uninstalled}</f:description>
     </f:entry>
 
-    <f:entry help="${resURL}/plugin/android-emulator/help-failOnUninstallFailure.html">
+    <f:entry help="/plugin/android-emulator/help-failOnUninstallFailure.html">
         <f:checkbox id="android-emulator.failOnUninstallFailure" name="android-emulator.failOnUninstallFailure"
           title="${%Fail the build if uninstallation fails}"
           checked="${instance.shouldFailBuildOnFailure()}" />
