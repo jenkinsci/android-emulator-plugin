@@ -844,7 +844,7 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
 
         /** Used in config.jelly: Lists the OS versions available. */
         public AndroidPlatform[] getAndroidVersions() {
-            return AndroidPlatform.PRESETS;
+            return AndroidPlatform.ALL;
         }
 
         /** Used in config.jelly: Lists the screen densities available. */
