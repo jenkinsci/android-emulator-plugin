@@ -216,7 +216,8 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
 
         // Build emulator config, ensuring that variables expand to valid SDK values
         EmulatorConfig emuConfig;
-        final String androidSdkHome = (envVars != null && descriptor.shouldKeepInWorkspace ? envVars.get("WORKSPACE") : null);
+        boolean shouldKeepInWorkspace = descriptor.shouldKeepInWorkspace && Util.fixEmptyAndTrim(avdName) == null;
+        final String androidSdkHome = (envVars != null && shouldKeepInWorkspace ? envVars.get("WORKSPACE") : null);
         try {
             emuConfig = EmulatorConfig.create(avdName, osVersion, screenDensity,
                 screenResolution, deviceLocale, sdCardSize, wipeData, showWindow, useSnapshots,
@@ -758,6 +759,7 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
 
         /** Whether the SDK should be automatically installed where it's not found. */
         public boolean shouldInstallSdk = true;
+
         /** Whether the emulators should be kept in the workspace. */
         public boolean shouldKeepInWorkspace = false;
 
