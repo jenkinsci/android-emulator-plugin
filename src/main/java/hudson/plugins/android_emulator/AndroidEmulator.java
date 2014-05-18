@@ -9,13 +9,13 @@ import hudson.Launcher;
 import hudson.Proc;
 import hudson.Util;
 import hudson.matrix.Combination;
-import hudson.model.BuildListener;
-import hudson.model.Result;
 import hudson.model.AbstractBuild;
 import hudson.model.AbstractProject;
+import hudson.model.BuildListener;
 import hudson.model.Computer;
 import hudson.model.Hudson;
 import hudson.model.Node;
+import hudson.model.Result;
 import hudson.plugins.android_emulator.sdk.AndroidSdk;
 import hudson.plugins.android_emulator.sdk.Tool;
 import hudson.plugins.android_emulator.util.Utils;
@@ -27,6 +27,12 @@ import hudson.util.ArgumentListBuilder;
 import hudson.util.ForkOutputStream;
 import hudson.util.FormValidation;
 import hudson.util.NullStream;
+import net.sf.json.JSONObject;
+import org.kohsuke.stapler.DataBoundConstructor;
+import org.kohsuke.stapler.QueryParameter;
+import org.kohsuke.stapler.StaplerRequest;
+import org.kohsuke.stapler.export.Exported;
+import org.kohsuke.stapler.export.ExportedBean;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -43,14 +49,6 @@ import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-
-import net.sf.json.JSONObject;
-
-import org.kohsuke.stapler.DataBoundConstructor;
-import org.kohsuke.stapler.QueryParameter;
-import org.kohsuke.stapler.StaplerRequest;
-import org.kohsuke.stapler.export.Exported;
-import org.kohsuke.stapler.export.ExportedBean;
 
 public class AndroidEmulator extends BuildWrapper implements Serializable {
 
@@ -77,6 +75,7 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
     @Exported public final String deviceLocale;
     @Exported public final String targetAbi;
     @Exported public final String sdCardSize;
+    @Exported public final String avdNameSuffix;
     @Exported public final HardwareProperty[] hardwareProperties;
 
     // Common properties
@@ -96,7 +95,7 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
             String screenResolution, String deviceLocale, String sdCardSize,
             HardwareProperty[] hardwareProperties, boolean wipeData, boolean showWindow,
             boolean useSnapshots, boolean deleteAfterBuild, int startupDelay,
-            String commandLineOptions, String targetAbi, String executable) {
+            String commandLineOptions, String targetAbi, String executable, String avdNameSuffix) {
         this.avdName = avdName;
         this.osVersion = osVersion;
         this.screenDensity = screenDensity;
@@ -112,6 +111,7 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
         this.startupDelay = Math.abs(startupDelay);
         this.commandLineOptions = commandLineOptions;
         this.targetAbi = targetAbi;
+        this.avdNameSuffix = avdNameSuffix;
     }
 
     public boolean getUseNamedEmulator() {
@@ -153,9 +153,10 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
         String screenResolution = Utils.expandVariables(envVars, combination, this.screenResolution);
         String deviceLocale = Utils.expandVariables(envVars, combination, this.deviceLocale);
         String targetAbi = Utils.expandVariables(envVars, combination, this.targetAbi);
+        String avdNameSuffix = Utils.expandVariables(envVars, combination, this.avdNameSuffix);
 
         return EmulatorConfig.getAvdName(avdName, osVersion, screenDensity, screenResolution,
-                deviceLocale, targetAbi);
+                deviceLocale, targetAbi, avdNameSuffix);
     }
 
     @Override
@@ -182,6 +183,7 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
             sdCardSize = sdCardSize.toUpperCase().replaceAll("[ B]", "");
         }
         String targetAbi = Utils.expandVariables(envVars, buildVars, this.targetAbi);
+        String avdNameSuffix = Utils.expandVariables(envVars, buildVars, this.avdNameSuffix);
 
         // Expand macros within hardware property values
         final int propCount = hardwareProperties == null ? 0 : hardwareProperties.length;
@@ -218,7 +220,7 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
         try {
             emuConfig = EmulatorConfig.create(avdName, osVersion, screenDensity,
                 screenResolution, deviceLocale, sdCardSize, wipeData, showWindow, useSnapshots,
-                commandLineOptions, targetAbi, androidSdkHome, executable);
+                commandLineOptions, targetAbi, androidSdkHome, executable, avdNameSuffix);
         } catch (IllegalArgumentException e) {
             log(logger, Messages.EMULATOR_CONFIGURATION_BAD(e.getLocalizedMessage()));
             build.setResult(Result.NOT_BUILT);
@@ -795,6 +797,7 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
             int startupDelay = 0;
             String commandLineOptions = null;
             String executable = null;
+            String avdNameSuffix = null;
 
             JSONObject emulatorData = formData.getJSONObject("useNamed");
             String useNamedValue = emulatorData.getString("value");
@@ -808,6 +811,7 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
                 sdCardSize = Util.fixEmptyAndTrim(emulatorData.getString("sdCardSize"));
                 hardware = req.bindJSONToList(HardwareProperty.class, emulatorData.get("hardwareProperties"));
                 targetAbi = Util.fixEmptyAndTrim(emulatorData.getString("targetAbi"));
+                avdNameSuffix = Util.fixEmptyAndTrim(emulatorData.getString("avdNameSuffix"));
             }
             wipeData = formData.getBoolean("wipeData");
             showWindow = formData.getBoolean("showWindow");
@@ -823,7 +827,7 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
             return new AndroidEmulator(avdName, osVersion, screenDensity, screenResolution,
                     deviceLocale, sdCardSize, hardware.toArray(new HardwareProperty[0]), wipeData,
                     showWindow, useSnapshots, deleteAfterBuild, startupDelay, commandLineOptions,
-                    targetAbi, executable);
+                    targetAbi, executable, avdNameSuffix);
         }
 
         @Override

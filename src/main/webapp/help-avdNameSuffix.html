@@ -1,0 +1,19 @@
+Should be empty or a custom suffix for the AVD name.<br/>
+e.g. "<code>mySuffix</code>" or "<code>withPdf</code>"
+<p>
+If this field is left blank, no custom suffix will be added to the AVD name that
+this plugin generates when automatically creating an emulator.<br/>
+If a value is set, a suffix will be added to the AVD name, with any invalid characters
+replaced by a hyphen (as AVD names may only contain [a-z A-Z 0-9 . _ -]).
+</p>
+<p>
+This allows you to run multiple emulators with the same configuration in parallel on the
+same build machine.<br/>
+Normally, if you create two jobs with the same emulator configuration, only one of those
+jobs will run at a time &mdash; as the other job is using the emulator.  But by setting a
+custom suffix one on or both jobs, the emulator names will differ for the two jobs, and
+Jenkins will consider them as two completely different emulators, allowing them to run in
+parallel.
+</p>
+Note that this will cause more disk space to be used, as a new emulator will be created
+on disk for each unique suffix used.

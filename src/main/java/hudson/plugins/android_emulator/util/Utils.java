@@ -495,7 +495,7 @@ public class Utils {
         if (result != null) {
             result = Util.replaceMacro(result, vars);
         }
-        return result;
+        return Util.fixEmptyAndTrim(result);
     }
 
     /**
