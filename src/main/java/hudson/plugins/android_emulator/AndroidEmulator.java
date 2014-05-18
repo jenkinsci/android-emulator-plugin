@@ -963,23 +963,6 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
                 }
             }
 
-            // Check for shenanigans
-            ScreenResolution resolutionValue = ScreenResolution.valueOf(resolution);
-            ScreenDensity densityValue = ScreenDensity.valueOf(density);
-            if (resolutionValue != null && densityValue != null
-                    && !resolutionValue.isCustomResolution() && !densityValue.isCustomDensity()) {
-                boolean densityFound = false;
-                for (ScreenDensity okDensity : resolutionValue.getApplicableDensities()) {
-                    if (okDensity.equals(densityValue)) {
-                        densityFound = true;
-                        break;
-                    }
-                }
-                if (!densityFound) {
-                    return ValidationResult.warning(Messages.SUSPECT_RESOLUTION(resolution, densityValue));
-                }
-            }
-
             return ValidationResult.ok();
         }
 

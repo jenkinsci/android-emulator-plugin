@@ -218,26 +218,16 @@ class ScreenResolution implements Serializable {
 
     private static final long serialVersionUID = 1L;
 
-    static final ScreenResolution QVGA = new ScreenResolution(240, 320, "QVGA", "QVGA",
-            ScreenDensity.LOW);
-    static final ScreenResolution WQVGA = new ScreenResolution(240, 400, "WQVGA", "WQVGA400",
-            ScreenDensity.LOW);
-    static final ScreenResolution FWQVGA = new ScreenResolution(240, 432, "FWQVGA", "WQVGA432",
-            ScreenDensity.LOW);
-    static final ScreenResolution HVGA = new ScreenResolution(320, 480, "HVGA", "HVGA",
-            ScreenDensity.MEDIUM);
-    static final ScreenResolution WVGA = new ScreenResolution(480, 800, "WVGA", "WVGA800",
-            ScreenDensity.MEDIUM, ScreenDensity.HIGH);
-    static final ScreenResolution FWVGA = new ScreenResolution(480, 854, "FWVGA", "WVGA854",
-            ScreenDensity.MEDIUM, ScreenDensity.HIGH);
-    static final ScreenResolution WSVGA = new ScreenResolution(1024, 654, "WSVGA", "WSVGA",
-            ScreenDensity.MEDIUM, ScreenDensity.HIGH);
-    static final ScreenResolution WXGA_720 = new ScreenResolution(1280, 720, "WXGA720", "WXGA720",
-            ScreenDensity.MEDIUM);
-    static final ScreenResolution WXGA_800 = new ScreenResolution(1280, 800, "WXGA800", "WXGA800",
-            ScreenDensity.MEDIUM);
-    static final ScreenResolution WXGA = new ScreenResolution(1280, 800, "WXGA", "WXGA",
-            ScreenDensity.MEDIUM);
+    static final ScreenResolution QVGA = new ScreenResolution(240, 320, "QVGA", "QVGA");
+    static final ScreenResolution WQVGA = new ScreenResolution(240, 400, "WQVGA", "WQVGA400");
+    static final ScreenResolution FWQVGA = new ScreenResolution(240, 432, "FWQVGA", "WQVGA432");
+    static final ScreenResolution HVGA = new ScreenResolution(320, 480, "HVGA", "HVGA");
+    static final ScreenResolution WVGA = new ScreenResolution(480, 800, "WVGA", "WVGA800");
+    static final ScreenResolution FWVGA = new ScreenResolution(480, 854, "FWVGA", "WVGA854");
+    static final ScreenResolution WSVGA = new ScreenResolution(1024, 654, "WSVGA", "WSVGA");
+    static final ScreenResolution WXGA_720 = new ScreenResolution(1280, 720, "WXGA720", "WXGA720");
+    static final ScreenResolution WXGA_800 = new ScreenResolution(1280, 800, "WXGA800", "WXGA800");
+    static final ScreenResolution WXGA = new ScreenResolution(1280, 800, "WXGA", "WXGA");
     static final ScreenResolution[] PRESETS = new ScreenResolution[] { QVGA, WQVGA, FWQVGA, HVGA,
                                                                        WVGA, FWVGA, WSVGA,
                                                                        WXGA_720, WXGA_800, WXGA };
@@ -246,19 +236,16 @@ class ScreenResolution implements Serializable {
     private final int height;
     private final String alias;
     private final String skinName;
-    private final ScreenDensity[] densities;
 
-    private ScreenResolution(int width, int height, String alias, String skinName,
-            ScreenDensity... applicableDensities) {
+    private ScreenResolution(int width, int height, String alias, String skinName) {
         this.width = width;
         this.height = height;
         this.alias = alias;
         this.skinName = skinName;
-        this.densities = applicableDensities;
     }
 
     private ScreenResolution(int width, int height) {
-        this(width, height, null, null, (ScreenDensity[]) null);
+        this(width, height, null, null);
     }
 
     public static ScreenResolution valueOf(String resolution) {
@@ -309,10 +296,6 @@ class ScreenResolution implements Serializable {
         }
 
         return skinName;
-    }
-
-    public ScreenDensity[] getApplicableDensities() {
-        return densities;
     }
 
     public String getDimensionString() {
