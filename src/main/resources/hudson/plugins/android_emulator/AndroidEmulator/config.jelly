@@ -53,6 +53,9 @@
                                     items="${descriptor.targetAbis}"
                                     checkUrl="'descriptorByName/AndroidEmulator/checkTargetAbi?value='+escape(this.value)" />
             </f:entry>
+            <f:entry title="${%Emulator name suffix}" help="/plugin/android-emulator/help-customSuffix.html">
+              <f:textbox name="android-emulator.customSuffix" value="${instance.customSuffix}" style="width:6em"/>
+            </f:entry>
 
             <f:entry title="${%Hardware}" help="/plugin/android-emulator/help-hardware.html">
               <f:repeatable var="hw" name="hardwareProperties" items="${instance.hardwareProperties}"

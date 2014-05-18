@@ -77,6 +77,7 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
     @Exported public final String deviceLocale;
     @Exported public final String targetAbi;
     @Exported public final String sdCardSize;
+    @Exported public final String customSuffix;
     @Exported public final HardwareProperty[] hardwareProperties;
 
     // Common properties
@@ -96,7 +97,7 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
             String screenResolution, String deviceLocale, String sdCardSize,
             HardwareProperty[] hardwareProperties, boolean wipeData, boolean showWindow,
             boolean useSnapshots, boolean deleteAfterBuild, int startupDelay,
-            String commandLineOptions, String targetAbi, String executable) {
+            String commandLineOptions, String targetAbi, String executable, String customSuffix) {
         this.avdName = avdName;
         this.osVersion = osVersion;
         this.screenDensity = screenDensity;
@@ -112,6 +113,7 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
         this.startupDelay = Math.abs(startupDelay);
         this.commandLineOptions = commandLineOptions;
         this.targetAbi = targetAbi;
+        this.customSuffix = customSuffix;
     }
 
     public boolean getUseNamedEmulator() {
@@ -153,9 +155,10 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
         String screenResolution = Utils.expandVariables(envVars, combination, this.screenResolution);
         String deviceLocale = Utils.expandVariables(envVars, combination, this.deviceLocale);
         String targetAbi = Utils.expandVariables(envVars, combination, this.targetAbi);
+        String customSuffix = Utils.expandVariables(envVars, combination, this.customSuffix);
 
         return EmulatorConfig.getAvdName(avdName, osVersion, screenDensity, screenResolution,
-                deviceLocale, targetAbi);
+                deviceLocale, targetAbi, customSuffix);
     }
 
     @Override
@@ -182,6 +185,7 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
             sdCardSize = sdCardSize.toUpperCase().replaceAll("[ B]", "");
         }
         String targetAbi = Utils.expandVariables(envVars, buildVars, this.targetAbi);
+        String customSuffix = Utils.expandVariables(envVars, buildVars, this.customSuffix);
 
         // Expand macros within hardware property values
         final int propCount = hardwareProperties == null ? 0 : hardwareProperties.length;
@@ -218,7 +222,7 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
         try {
             emuConfig = EmulatorConfig.create(avdName, osVersion, screenDensity,
                 screenResolution, deviceLocale, sdCardSize, wipeData, showWindow, useSnapshots,
-                commandLineOptions, targetAbi, androidSdkHome, executable);
+                commandLineOptions, targetAbi, androidSdkHome, executable, customSuffix);
         } catch (IllegalArgumentException e) {
             log(logger, Messages.EMULATOR_CONFIGURATION_BAD(e.getLocalizedMessage()));
             build.setResult(Result.NOT_BUILT);
@@ -795,6 +799,7 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
             int startupDelay = 0;
             String commandLineOptions = null;
             String executable = null;
+            String customSuffix = null;
 
             JSONObject emulatorData = formData.getJSONObject("useNamed");
             String useNamedValue = emulatorData.getString("value");
@@ -808,6 +813,7 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
                 sdCardSize = Util.fixEmptyAndTrim(emulatorData.getString("sdCardSize"));
                 hardware = req.bindJSONToList(HardwareProperty.class, emulatorData.get("hardwareProperties"));
                 targetAbi = Util.fixEmptyAndTrim(emulatorData.getString("targetAbi"));
+                customSuffix = Util.fixEmptyAndTrim(emulatorData.getString("customSuffix"));
             }
             wipeData = formData.getBoolean("wipeData");
             showWindow = formData.getBoolean("showWindow");
@@ -823,7 +829,7 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
             return new AndroidEmulator(avdName, osVersion, screenDensity, screenResolution,
                     deviceLocale, sdCardSize, hardware.toArray(new HardwareProperty[0]), wipeData,
                     showWindow, useSnapshots, deleteAfterBuild, startupDelay, commandLineOptions,
-                    targetAbi, executable);
+                    targetAbi, executable, customSuffix);
         }
 
         @Override

@@ -43,14 +43,15 @@ class EmulatorConfig implements Serializable {
     private final String commandLineOptions;
     private final String androidSdkHome;
     private final String executable;
+    private String customSuffix;
 
     public EmulatorConfig(String avdName, boolean wipeData, boolean showWindow,
-            boolean useSnapshots, String commandLineOptions) {
-        this(avdName, wipeData, showWindow, useSnapshots, commandLineOptions, null);
+            boolean useSnapshots, String commandLineOptions, String customSuffix) {
+        this(avdName, wipeData, showWindow, useSnapshots, commandLineOptions, null, customSuffix);
     }
 
     public EmulatorConfig(String avdName, boolean wipeData, boolean showWindow,
-            boolean useSnapshots, String commandLineOptions, String androidSdkHome) {
+            boolean useSnapshots, String commandLineOptions, String androidSdkHome, String customSuffix) {
         this.avdName = avdName;
         this.wipeData = wipeData;
         this.showWindow = showWindow;
@@ -58,12 +59,13 @@ class EmulatorConfig implements Serializable {
         this.commandLineOptions = commandLineOptions;
         this.androidSdkHome = androidSdkHome;
         this.executable = null;
+        this.customSuffix = customSuffix;
     }
 
     public EmulatorConfig(String osVersion, String screenDensity, String screenResolution,
             String deviceLocale, String sdCardSize, boolean wipeData, boolean showWindow,
             boolean useSnapshots, String commandLineOptions, String targetAbi, String androidSdkHome,
-            String executable)
+            String executable, String customSuffix)
                 throws IllegalArgumentException {
         if (osVersion == null || screenDensity == null || screenResolution == null) {
             throw new IllegalArgumentException("Valid OS version and screen properties must be supplied.");
@@ -109,25 +111,26 @@ class EmulatorConfig implements Serializable {
         this.targetAbi = targetAbi;
         this.androidSdkHome = androidSdkHome;
         this.executable = executable;
+        this.customSuffix = customSuffix;
     }
 
     public static final EmulatorConfig create(String avdName, String osVersion, String screenDensity,
             String screenResolution, String deviceLocale, String sdCardSize, boolean wipeData,
             boolean showWindow, boolean useSnapshots, String commandLineOptions, String targetAbi,
-            String androidSdkHome, String executable) {
+            String androidSdkHome, String executable, String customSuffix) {
         if (Util.fixEmptyAndTrim(avdName) == null) {
             return new EmulatorConfig(osVersion, screenDensity, screenResolution, deviceLocale,
-                    sdCardSize, wipeData, showWindow, useSnapshots, commandLineOptions, targetAbi, androidSdkHome, executable);
+                    sdCardSize, wipeData, showWindow, useSnapshots, commandLineOptions, targetAbi, androidSdkHome, executable, customSuffix);
         }
 
-        return new EmulatorConfig(avdName, wipeData, showWindow, useSnapshots, commandLineOptions, androidSdkHome);
+        return new EmulatorConfig(avdName, wipeData, showWindow, useSnapshots, commandLineOptions, androidSdkHome, customSuffix);
     }
 
     public static final String getAvdName(String avdName, String osVersion, String screenDensity,
-            String screenResolution, String deviceLocale, String targetAbi) {
+            String screenResolution, String deviceLocale, String targetAbi, String customSuffix) {
         try {
             return create(avdName, osVersion, screenDensity, screenResolution, deviceLocale, null,
-                    false, false, false, null, targetAbi, null, null).getAvdName();
+                    false, false, false, null, targetAbi, null, null, customSuffix).getAvdName();
         } catch (IllegalArgumentException e) {}
         return null;
     }
@@ -152,6 +155,9 @@ class EmulatorConfig implements Serializable {
         String abi = "";
         if (Util.fixEmptyAndTrim(targetAbi) != null && osVersion.requiresAbi()) {
             abi = "_" + targetAbi.replace(' ', '-');
+        }
+        if ((null != customSuffix) && (customSuffix.length() != 0)) {
+            return String.format("hudson_%s_%s_%s_%s_%s_%s", locale, density, resolution, platform, abi, customSuffix);
         }
         return String.format("hudson_%s_%s_%s_%s%s", locale, density, resolution, platform, abi);
     }
