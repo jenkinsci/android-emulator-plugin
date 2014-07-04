@@ -147,7 +147,7 @@ class EmulatorConfig implements Serializable {
         String locale = getDeviceLocale().replace('_', '-');
         String density = screenDensity.toString();
         String resolution = screenResolution.toString();
-        String platform = osVersion.getTargetName().replace(':', '_').replace(' ', '_');
+        String platform = osVersion.getTargetName().replaceAll("[^a-zA-Z0-9._-]", "_");
         String abi = "";
         if (targetAbi != null && osVersion.requiresAbi()) {
             abi = "_" + targetAbi.replace(' ', '-');
