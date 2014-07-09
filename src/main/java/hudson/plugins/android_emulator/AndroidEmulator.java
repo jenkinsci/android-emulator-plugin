@@ -302,6 +302,7 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
         // We manually start the adb-server so that later commands will not have to start it,
         // allowing them to complete faster.
         Proc adbStart = emu.getToolProcStarter(Tool.ADB, "start-server").stdout(logger).start();
+        adbStart.joinWithTimeout(5L, TimeUnit.SECONDS, listener);
 
         // Determine whether we need to create the first snapshot
         final SnapshotState snapshotState;
@@ -347,7 +348,6 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
 
         // Give the emulator process a chance to initialise
         Thread.sleep(5 * 1000);
-        adbStart.joinWithTimeout(5L, TimeUnit.SECONDS, listener);
 
         // Check whether a failure was reported on stdout
         if (emulatorOutput.toString().contains("image is used by another emulator")) {
