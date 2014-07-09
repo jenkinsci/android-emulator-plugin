@@ -303,6 +303,8 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
         // allowing them to complete faster.
         Proc adbStart = emu.getToolProcStarter(Tool.ADB, "start-server").stdout(logger).start();
         adbStart.joinWithTimeout(5L, TimeUnit.SECONDS, listener);
+        Proc adbStart2 = emu.getToolProcStarter(Tool.ADB, "start-server").stdout(logger).start();
+        adbStart2.joinWithTimeout(5L, TimeUnit.SECONDS, listener);
 
         // Determine whether we need to create the first snapshot
         final SnapshotState snapshotState;
