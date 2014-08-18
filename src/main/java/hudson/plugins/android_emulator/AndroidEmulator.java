@@ -706,11 +706,17 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
 
         final String args = String.format("-s %s shell getprop dev.bootcomplete", emu.serial());
         ArgumentListBuilder bootCheckCmd = emu.getToolCommand(Tool.ADB, args);
+        ArgumentListBuilder bootDbgCmd = emu.getToolCommand(Tool.ADB, "devices -l");
 
         try {
             final long adbTimeout = timeout / 8;
             int iterations = 0;
             while (System.currentTimeMillis() < start + timeout && (ignoreProcess || emu.process().isAlive())) {
+                Proc procDbg = emu.getProcStarter(bootDbgCmd).stdout(emu.logger()).start();
+                int retValDbg = procDbg.joinWithTimeout(adbTimeout, TimeUnit.MILLISECONDS, emu.launcher().getListener());
+                if (retValDbg == 0) {
+                    log(emu.logger(), "adb devices returned " + retValDbg);
+                }
                 ByteArrayOutputStream stream = new ByteArrayOutputStream(4);
 
                 // Run "getprop", timing-out in case adb hangs
