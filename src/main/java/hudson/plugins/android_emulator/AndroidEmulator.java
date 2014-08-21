@@ -390,6 +390,16 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
             bootTimeout *= 2;
         }
         boolean bootSucceeded = waitForBootCompletion(ignoreProcess, bootTimeout, emu);
+
+        // Start dumping logcat to temporary file
+        // Note we capture even if boot failed because there may be some debug information
+        // in there!
+        final File artifactsDir = build.getArtifactsDir();
+        final FilePath logcatFile = build.getWorkspace().createTextTempFile("logcat_", ".log", "", false);
+        final OutputStream logcatStream = logcatFile.write();
+        final String logcatArgs = String.format("-s %s logcat -v time", emu.serial());
+        final Proc logWriter = emu.getToolProcStarter(Tool.ADB, logcatArgs).stdout(logcatStream).stderr(new NullStream()).start();
+
         if (!bootSucceeded) {
             if ((System.currentTimeMillis() - bootTime) < bootTimeout) {
                 log(logger, Messages.EMULATOR_STOPPED_DURING_BOOT());
@@ -397,16 +407,11 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
                 log(logger, Messages.BOOT_COMPLETION_TIMED_OUT(bootTimeout / 1000));
             }
             build.setResult(Result.NOT_BUILT);
-            cleanUp(emuConfig, emu);
+            // Give logcat some time to work its magic before cleaning up
+            Thread.sleep(3 * 1000);
+            cleanUp(emuConfig, emu, logWriter, logcatFile, logcatStream, artifactsDir);
             return null;
         }
-
-        // Start dumping logcat to temporary file
-        final File artifactsDir = build.getArtifactsDir();
-        final FilePath logcatFile = build.getWorkspace().createTextTempFile("logcat_", ".log", "", false);
-        final OutputStream logcatStream = logcatFile.write();
-        final String logcatArgs = String.format("-s %s logcat -v time", emu.serial());
-        final Proc logWriter = emu.getToolProcStarter(Tool.ADB, logcatArgs).stdout(logcatStream).stderr(new NullStream()).start();
 
         // Unlock emulator by pressing the Menu key once, if required.
         // Upon first boot (and when the data is wiped) the emulator is already unlocked
