@@ -433,10 +433,9 @@ public class Utils {
      * @throws IOException If the file could not be read.
      */
     public static Map<String, String> parseConfigFile(File configFile) throws IOException {
-        FileReader fileReader = new FileReader(configFile);
-        BufferedReader reader = new BufferedReader(fileReader);
+        String configFileContent = FileUtils.readFileToString(configFile);
         Properties properties = new Properties();
-        properties.load(reader);
+        properties.load(new StringReader(configFileContent.replace("\\","\\\\"));
         reader.close();
 
         final Map<String, String> values = new HashMap<String, String>();
