@@ -31,6 +31,7 @@ import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.PrintStream;
 import java.io.PrintWriter;
+Import java.io.StringReader;
 import java.net.Socket;
 import java.net.SocketException;
 import java.util.ArrayList;
