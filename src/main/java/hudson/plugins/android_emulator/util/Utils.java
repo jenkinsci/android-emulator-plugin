@@ -435,7 +435,7 @@ public class Utils {
     public static Map<String, String> parseConfigFile(File configFile) throws IOException {
         String configFileContent = FileUtils.readFileToString(configFile);
         Properties properties = new Properties();
-        properties.load(new StringReader(configFileContent.replace("\\","\\\\"));
+        properties.load(new StringReader(configFileContent.replace("\\","\\\\")));
         reader.close();
 
         final Map<String, String> values = new HashMap<String, String>();
