@@ -31,6 +31,7 @@ import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.PrintStream;
 import java.io.PrintWriter;
+import java.io.Reader;
 import java.io.StringReader;
 import java.net.Socket;
 import java.net.SocketException;
@@ -436,7 +437,8 @@ public class Utils {
     public static Map<String, String> parseConfigFile(File configFile) throws IOException {
         String configFileContent = FileUtils.readFileToString(configFile);
         Properties properties = new Properties();
-        properties.load(new StringReader(configFileContent.replace("\\","\\\\")));
+        Reader reader = new StringReader(configFileContent.replace("\\","\\\\"));
+        properties.load(reader);
         reader.close();
 
         final Map<String, String> values = new HashMap<String, String>();
