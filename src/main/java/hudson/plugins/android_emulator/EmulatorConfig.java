@@ -150,7 +150,7 @@ class EmulatorConfig implements Serializable {
         String platform = osVersion.getTargetName().replaceAll("[^a-zA-Z0-9._-]", "_");
         String abi = "";
         if (targetAbi != null && osVersion.requiresAbi()) {
-            abi = "_" + targetAbi.replace(' ', '-').replace('_', '-');
+            abi = "_" + targetAbi.replaceAll("[^a-zA-Z0-9._-]", "-");
         }
         String suffix = "";
         if (avdNameSuffix != null) {
