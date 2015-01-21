@@ -389,7 +389,7 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
         if (!emulatorAlreadyExists || emuConfig.shouldWipeData() || snapshotState == SnapshotState.INITIALISE) {
             bootTimeout *= 2;
         }
-        boolean bootSucceeded = waitForBootCompletion(ignoreProcess, bootTimeout, emu);
+        boolean bootSucceeded = waitForBootCompletion(ignoreProcess, bootTimeout, emuConfig, emu);
         if (!bootSucceeded) {
             if ((System.currentTimeMillis() - bootTime) < bootTimeout) {
                 log(logger, Messages.EMULATOR_STOPPED_DURING_BOOT());
@@ -674,18 +674,26 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
      * @return <code>true</code> if the emulator has booted, <code>false</code> if we timed-out.
      */
     private boolean waitForBootCompletion(final boolean ignoreProcess,
-            final int timeout, AndroidEmulatorContext emu) {
+            final int timeout, EmulatorConfig config, AndroidEmulatorContext emu) {
         long start = System.currentTimeMillis();
         int sleep = timeout / (int) (Math.sqrt(timeout / 1000) * 2);
 
-        final String args = String.format("-s %s shell getprop dev.bootcomplete", emu.serial());
+        int apiLevel = 0;
+        if (!config.isNamedEmulator()) {
+            apiLevel = config.getOsVersion().getSdkLevel();
+        }
+        // Other tools use the "bootanim" variant, which supposedly signifies the system has booted a bit further;
+        // though this doesn't appear to be available on Android 1.5, while it should work fine on Android 1.6+
+        final boolean isOldApi = apiLevel > 0 && apiLevel < 4;
+        final String cmd = isOldApi ? "dev.bootcomplete" : "init.svc.bootanim";
+        final String expectedAnswer = isOldApi ? "1" :"stopped";
+        final String args = String.format("-s %s shell getprop %s", emu.serial(), cmd);
         ArgumentListBuilder bootCheckCmd = emu.getToolCommand(Tool.ADB, args);
 
         try {
             final long adbTimeout = timeout / 8;
-            int iterations = 0;
             while (System.currentTimeMillis() < start + timeout && (ignoreProcess || emu.process().isAlive())) {
-                ByteArrayOutputStream stream = new ByteArrayOutputStream(4);
+                ByteArrayOutputStream stream = new ByteArrayOutputStream(16);
 
                 // Run "getprop", timing-out in case adb hangs
                 Proc proc = emu.getProcStarter(bootCheckCmd).stdout(stream).start();
@@ -693,7 +701,7 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
                 if (retVal == 0) {
                     // If boot is complete, our work here is done
                     String result = stream.toString().trim();
-                    if (result.equals("1")) {
+                    if (result.equals(expectedAnswer)) {
                         return true;
                     }
                 }
