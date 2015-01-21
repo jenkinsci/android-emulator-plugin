@@ -46,14 +46,15 @@ class EmulatorConfig implements Serializable {
     private final String avdNameSuffix;
 
     private EmulatorConfig(String avdName, boolean wipeData, boolean showWindow,
-            boolean useSnapshots, String commandLineOptions, String androidSdkHome, String avdNameSuffix) {
+            boolean useSnapshots, String commandLineOptions, String androidSdkHome, String executable, String
+            avdNameSuffix) {
         this.avdName = avdName;
         this.wipeData = wipeData;
         this.showWindow = showWindow;
         this.useSnapshots = useSnapshots;
         this.commandLineOptions = commandLineOptions;
         this.androidSdkHome = androidSdkHome;
-        this.executable = null;
+        this.executable = executable;
         this.avdNameSuffix = avdNameSuffix;
     }
 
@@ -121,7 +122,7 @@ class EmulatorConfig implements Serializable {
                     showWindow, useSnapshots, commandLineOptions, targetAbi, androidSdkHome, executable, avdNameSuffix);
         }
 
-        return new EmulatorConfig(avdName, wipeData, showWindow, useSnapshots, commandLineOptions, androidSdkHome,
+        return new EmulatorConfig(avdName, wipeData, showWindow, useSnapshots, commandLineOptions, androidSdkHome, executable,
                 avdNameSuffix);
     }
 
