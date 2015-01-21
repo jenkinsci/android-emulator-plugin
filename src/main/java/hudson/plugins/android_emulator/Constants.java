@@ -29,7 +29,7 @@ public interface Constants {
         "hw.touchScreen", "hw.trackBall", "vm.heapSize"
     };
 
-    /** Possible abis */
+    /** Common ABIs. */
     static final String[] TARGET_ABIS = {
         "armeabi", "armeabi-v7a", "mips", "x86", "x86_64"
     };

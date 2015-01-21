@@ -7,8 +7,6 @@ import java.io.File;
 import java.io.IOException;
 import java.io.Serializable;
 import java.util.Map;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 public class AndroidSdk implements Serializable {
 
@@ -21,7 +19,10 @@ public class AndroidSdk implements Serializable {
     private static final int SDK_AUTO_INSTALL = 14;
 
     /** First version in which we can programmatically install system images. */
-    private static final int SDK_INSTALL_SYSTEM_IMAGE = 17;
+    private static final int SDK_SYSTEM_IMAGE_INSTALL = 17;
+
+    /** First version that recognises the "sys-img-[arch]-[tag]-[api]" format. */
+    private static final int SDK_SYSTEM_IMAGE_NEW_FORMAT = 23;
 
     private final String sdkRoot;
     private final String sdkHome;
@@ -80,6 +81,7 @@ public class AndroidSdk implements Serializable {
         this.sdkToolsVersion = version;
     }
 
+    /** @return The major version number of the SDK tools being used. */
     public int getSdkToolsVersion() {
         return this.sdkToolsVersion;
     }
@@ -93,7 +95,11 @@ public class AndroidSdk implements Serializable {
     }
 
     public boolean supportsSystemImageInstallation() {
-        return sdkToolsVersion >= SDK_INSTALL_SYSTEM_IMAGE;
+        return sdkToolsVersion >= SDK_SYSTEM_IMAGE_INSTALL;
+    }
+
+    public boolean supportsSystemImageNewFormat() {
+        return sdkToolsVersion >= SDK_SYSTEM_IMAGE_NEW_FORMAT;
     }
 
 }

@@ -103,6 +103,9 @@ class EmulatorConfig implements Serializable {
         this.showWindow = showWindow;
         this.useSnapshots = useSnapshots;
         this.commandLineOptions = commandLineOptions;
+        if (targetAbi != null && targetAbi.startsWith("default/")) {
+            targetAbi = targetAbi.replace("default/", "");
+        }
         this.targetAbi = targetAbi;
         this.androidSdkHome = androidSdkHome;
         this.executable = executable;
@@ -163,6 +166,8 @@ class EmulatorConfig implements Serializable {
     public AndroidPlatform getOsVersion() {
         return osVersion;
     }
+
+    public String getTargetAbi() { return targetAbi; }
 
     public ScreenDensity getScreenDensity() {
         return screenDensity;

@@ -678,6 +678,13 @@ public class Utils {
         return parts.length;
     }
 
+    /**
+     * Attempts to parse an SDK revision string.
+     *
+     * @param revisionStr Version string.
+     * @return The major version (i.e. "26.0.2" returns 26).
+     * @throws java.lang.NumberFormatException If no number could be determined.
+     */
     public static int parseRevisionString(String revisionStr) {
         try {
             return Integer.parseInt(revisionStr);

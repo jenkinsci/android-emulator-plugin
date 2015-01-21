@@ -832,7 +832,7 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
             return Constants.HARDWARE_PROPERTIES;
         }
 
-        /** Used in config.jelly: Lists common abis that can be set. */
+        /** Used in config.jelly: Lists common ABIs that can be set. */
         public String[] getTargetAbis() {
             return Constants.TARGET_ABIS;
         }
@@ -964,7 +964,7 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
             }
 
             for (String s : Constants.TARGET_ABIS) {
-                if (s.equals(value)) {
+                if (s.equals(value) || (value.contains("/") && value.endsWith(s))) {
                     return ValidationResult.ok();
                 }
             }

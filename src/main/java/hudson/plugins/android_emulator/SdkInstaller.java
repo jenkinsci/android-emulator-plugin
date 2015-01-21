@@ -236,7 +236,9 @@ public class SdkInstaller {
         String platform = getPlatformForEmulator(launcher, emuConfig);
 
         // Install platform and any dependencies it may have
-        installPlatform(logger, launcher, sdk, platform);
+        boolean requiresAbi = !emuConfig.isNamedEmulator() && emuConfig.getOsVersion().requiresAbi();
+        String abi = requiresAbi ? emuConfig.getTargetAbi() : null;
+        installPlatform(logger, launcher, sdk, platform, abi);
     }
 
     /**
@@ -246,25 +248,12 @@ public class SdkInstaller {
      * @param launcher Used to launch tasks on the remote node.
      * @param sdk SDK installation to install components for.
      * @param platform Specifies the platform to be installed.
-     */
-    public static void installPlatform(PrintStream logger, Launcher launcher,
-            AndroidSdk sdk, String platform) throws IOException, InterruptedException {
-        installPlatform(logger, launcher, sdk, platform, true);
-    }
-
-    /**
-     * Installs the given platform and its dependencies into the given installation, if necessary.
-     *
-     * @param logger Logs things.
-     * @param launcher Used to launch tasks on the remote node.
-     * @param sdk SDK installation to install components for.
-     * @param platform Specifies the platform to be installed.
-     * @param includeSystemImages Determines whether system images, if required, should be installed.
+     * @param abi Specifies the ABI to be installed; may be {@code null}.
      */
     public static void installPlatform(PrintStream logger, Launcher launcher, AndroidSdk sdk,
-            String platform, boolean includeSystemImages) throws IOException, InterruptedException {
+            String platform, String abi) throws IOException, InterruptedException {
         // Check whether this platform is already installed
-        if (isPlatformInstalled(logger, launcher, sdk, platform, includeSystemImages)) {
+        if (isPlatformInstalled(logger, launcher, sdk, platform, abi)) {
             return;
         }
 
@@ -288,7 +277,7 @@ public class SdkInstaller {
         }
 
         // Determine which individual component(s) need to be installed for this platform
-        List<String> components = getSdkComponentsForPlatform(logger, platform, includeSystemImages);
+        List<String> components = getSdkComponentsForPlatform(logger, sdk, platform, abi);
         if (components == null || components.size() == 0) {
             return;
         }
@@ -298,7 +287,7 @@ public class SdkInstaller {
         if (components.size() > 1) {
             for (Iterator<String> it = components.iterator(); it.hasNext(); ) {
                 String component = it.next();
-                if (isPlatformInstalled(logger, launcher, sdk, component, includeSystemImages)) {
+                if (isPlatformInstalled(logger, launcher, sdk, component, null)) {
                     it.remove();
                 }
             }
@@ -314,7 +303,7 @@ public class SdkInstaller {
     }
 
     private static boolean isPlatformInstalled(PrintStream logger, Launcher launcher,
-            AndroidSdk sdk, String platform, boolean includeSystemImages) throws IOException, InterruptedException {
+            AndroidSdk sdk, String platform, String abi) throws IOException, InterruptedException {
         ByteArrayOutputStream targetList = new ByteArrayOutputStream();
         // Preferably we'd use the "--compact" flag here, but it wasn't added until r12,
         // nor does it give any information about which system images are installed...
@@ -324,12 +313,12 @@ public class SdkInstaller {
             return false;
         }
 
-        if (includeSystemImages) {
-            // Check that the given platform does not have the "no ABIs" text (i.e. system images *are* installed)
-            Pattern regex = Pattern.compile(String.format("\"%s\".+?no ABIs", platform), Pattern.DOTALL);
+        if (abi != null) {
+            // Check whether the desired ABI is included in the output
+            Pattern regex = Pattern.compile(String.format("\"%s\".+?%s", platform, abi), Pattern.DOTALL);
             Matcher matcher = regex.matcher(targetList.toString());
-            if (matcher.find() && !matcher.group(0).contains("---")) {
-                // We found the "no ABIs" text, within the section for the given platform
+            if (!matcher.find() || matcher.group(0).contains("---")) {
+                // We did not find the desired ABI within the section for the given platform
                 return false;
             }
         }
@@ -338,8 +327,8 @@ public class SdkInstaller {
         return true;
     }
 
-    private static List<String> getSdkComponentsForPlatform(PrintStream logger, String platform,
-            boolean includeSystemImages) {
+    private static List<String> getSdkComponentsForPlatform(PrintStream logger, AndroidSdk sdk, String platform,
+            String abi) {
         // Gather list of required components
         List<String> components = new ArrayList<String>();
 
@@ -351,8 +340,18 @@ public class SdkInstaller {
 
         // Add system image, if required
         // Even if a system image doesn't exist for this platform, the installer silently ignores it
-        if (dependentPlatform >= 10 && includeSystemImages) {
-            components.add(String.format("sysimg-%s", dependentPlatform));
+        if (dependentPlatform >= 10 && abi != null) {
+            if (sdk.supportsSystemImageNewFormat()) {
+                String tag = "android";
+                int slash = abi.indexOf('/');
+                if (slash > 0 && slash < abi.length() - 1) {
+                    tag = abi.substring(0, slash);
+                    abi = abi.substring(slash + 1);
+                }
+                components.add(String.format("sys-img-%s-%s-%d", abi, tag, dependentPlatform));
+            } else {
+                components.add(String.format("sysimg-%d", dependentPlatform));
+            }
         }
 
         // If it's a straightforward case like "android-10", we're done
