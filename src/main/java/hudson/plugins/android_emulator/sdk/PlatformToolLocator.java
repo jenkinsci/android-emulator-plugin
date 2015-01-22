@@ -4,7 +4,7 @@ import hudson.plugins.android_emulator.SdkInstallationException;
 import java.io.File;
 
 public class PlatformToolLocator implements ToolLocator {
-    private static final String BUILD_TOOLS_PATH = File.separator + "build-tools" + File.separator;
+    private static final String BUILD_TOOLS_PATH = "/build-tools/";
 
     public String findInSdk(AndroidSdk androidSdk, Tool tool) throws SdkInstallationException {
         if (tool == Tool.AAPT) {
@@ -15,7 +15,7 @@ public class PlatformToolLocator implements ToolLocator {
                 return getFirstInstalledBuildToolsDir(subDirs);
             }
         }
-        return File.separator + "platform-tools" + File.separator;
+        return "/platform-tools/";
 
     }
 
@@ -23,6 +23,6 @@ public class PlatformToolLocator implements ToolLocator {
         if (buildToolsDirs.length == 0) {
             throw new SdkInstallationException("Please install at least one set of build-tools.");
         }
-        return BUILD_TOOLS_PATH + buildToolsDirs[0] + File.separator;
+        return BUILD_TOOLS_PATH + buildToolsDirs[0] + "/";
     }
 }
