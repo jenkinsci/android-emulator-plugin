@@ -3,7 +3,6 @@ package hudson.plugins.android_emulator.sdk;
 import hudson.plugins.android_emulator.SdkInstallationException;
 
 public enum Tool {
-    AAPT("aapt", ".exe", new PlatformToolLocator()),
     ADB("adb", ".exe", new PlatformToolLocator()),
     ANDROID("android", ".bat"),
     EMULATOR("emulator", ".exe"),
@@ -21,12 +20,13 @@ public enum Tool {
     };
 
     public static Tool[] REQUIRED = new Tool[] {
-        AAPT, ADB, ANDROID, EMULATOR
+        ADB, ANDROID, EMULATOR
     };
 
     public final String executable;
     public final String windowsExtension;
     public final ToolLocator toolLocator;
+
     Tool(String executable, String windowsExtension) {
         this(executable, windowsExtension, new DefaultToolLocator());
     }

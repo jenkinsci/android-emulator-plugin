@@ -19,10 +19,14 @@ import hudson.plugins.android_emulator.SdkInstaller;
 import hudson.plugins.android_emulator.sdk.AndroidSdk;
 import hudson.plugins.android_emulator.sdk.Tool;
 import hudson.plugins.android_emulator.util.Utils;
+import hudson.remoting.VirtualChannel;
 import hudson.tasks.Builder;
 import hudson.util.ForkOutputStream;
+import net.dongliu.apk.parser.ApkParser;
+import net.dongliu.apk.parser.bean.ApkMeta;
 
 import java.io.ByteArrayOutputStream;
+import java.io.File;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.util.regex.Matcher;
@@ -195,7 +199,7 @@ public abstract class AbstractBuilder extends Builder {
             PrintStream logger, AndroidSdk androidSdk, String deviceIdentifier, FilePath apkPath)
                 throws IOException, InterruptedException {
         // Get package ID to uninstall
-        String packageId = getPackageIdForApk(build, launcher, logger, androidSdk, apkPath);
+        String packageId = getPackageIdForApk(apkPath);
         return uninstallApk(build, launcher, logger, androidSdk, deviceIdentifier, packageId);
     }
 
@@ -230,34 +234,27 @@ public abstract class AbstractBuilder extends Builder {
     /**
      * Determines the package ID of an APK file.
      *
-     * @param build The build for which we should uninstall the package.
-     * @param launcher The launcher for the remote node.
-     * @param logger Where log output should be redirected to.
-     * @param androidSdk The Android SDK to use.
      * @param apkPath The path to the APK file.
-     * @return The package ID for the given APK, or {@code null} if it could not be determined.
+     * @return The package ID for the given APK.
      * @throws IOException If execution failed.
      * @throws InterruptedException If execution failed.
      */
-    private static String getPackageIdForApk(AbstractBuild<?, ?> build, Launcher launcher,
-            PrintStream logger, AndroidSdk androidSdk, FilePath apkPath)
-                throws IOException, InterruptedException {
-        // Run aapt command on given APK
-        ByteArrayOutputStream aaptOutput = new ByteArrayOutputStream();
-        String args = String.format("dump badging \"%s\"", apkPath.getName());
-        Utils.runAndroidTool(launcher, aaptOutput, logger, androidSdk, Tool.AAPT, args, apkPath.getParent());
-
-        // Determine package ID from aapt output
-        String packageId = null;
-        String aaptResult = aaptOutput.toString();
-        if (aaptResult.length() > 0) {
-            Matcher matcher = Pattern.compile("package: +name='([^']+)'").matcher(aaptResult);
-            if (matcher.find()) {
-                packageId = matcher.group(1);
+    private static String getPackageIdForApk(FilePath apkPath) throws IOException, InterruptedException {
+        return apkPath.act(new FilePath.FileCallable<String>() {
+            public String invoke(File f, VirtualChannel channel) throws IOException, InterruptedException {
+                return getApkMetadata(f).getPackageName();
             }
-        }
+        });
+    }
 
-        return packageId;
+    /** @return The application metadata of the given APK file. */
+    private static ApkMeta getApkMetadata(File apk) throws IOException, InterruptedException {
+        ApkParser apkParser = new ApkParser(apk);
+        try {
+            return apkParser.getApkMeta();
+        } finally {
+            apkParser.close();
+        }
     }
 
 }

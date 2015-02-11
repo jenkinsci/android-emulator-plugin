@@ -364,8 +364,8 @@ public class Utils {
         String androidToolsDir;
         if (androidSdk.hasKnownRoot()) {
             try {
-                androidToolsDir = androidSdk.getSdkRoot() + tool.findInSdk(androidSdk);;
-            } catch ( SdkInstallationException e){
+                androidToolsDir = androidSdk.getSdkRoot() + tool.findInSdk(androidSdk);
+            } catch (SdkInstallationException e) {
                 LOGGER.warning("A build-tools directory was found but there were no build-tools installed. Assuming command is on the PATH");
                 androidToolsDir = "";
             }
