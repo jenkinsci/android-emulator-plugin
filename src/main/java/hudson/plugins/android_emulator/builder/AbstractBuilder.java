@@ -1,16 +1,15 @@
 package hudson.plugins.android_emulator.builder;
 
-import static hudson.plugins.android_emulator.AndroidEmulator.log;
 import hudson.EnvVars;
 import hudson.FilePath;
 import hudson.Launcher;
-import hudson.model.BuildListener;
-import hudson.model.EnvironmentContributingAction;
-import hudson.model.TaskListener;
 import hudson.model.AbstractBuild;
+import hudson.model.BuildListener;
 import hudson.model.Computer;
+import hudson.model.EnvironmentContributingAction;
 import hudson.model.Hudson;
 import hudson.model.Node;
+import hudson.model.TaskListener;
 import hudson.plugins.android_emulator.AndroidEmulator;
 import hudson.plugins.android_emulator.AndroidEmulator.DescriptorImpl;
 import hudson.plugins.android_emulator.Messages;
@@ -29,10 +28,13 @@ import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintStream;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
+
+import static hudson.plugins.android_emulator.AndroidEmulator.log;
 
 public abstract class AbstractBuilder extends Builder {
+
+    /** Maximum time to wait, in milliseconds, for an APK to be uninstalled. */
+    private static final int UNINSTALL_TIMEOUT = 60 * 1000;
 
     /** Environment variable set by the plugin to specify the serial of the started AVD. */
     private static final String DEVICE_SERIAL_VARIABLE = "ANDROID_AVD_DEVICE";
@@ -225,7 +227,7 @@ public abstract class AbstractBuilder extends Builder {
         ForkOutputStream forkStream = new ForkOutputStream(logger, stdout);
         String adbArgs = String.format("%s uninstall %s", deviceIdentifier, packageId);
         Utils.runAndroidTool(launcher, build.getEnvironment(TaskListener.NULL),
-                forkStream, logger, androidSdk, Tool.ADB, adbArgs, null);
+                forkStream, logger, androidSdk, Tool.ADB, adbArgs, null, UNINSTALL_TIMEOUT);
 
         // The package manager simply returns "Success" or "Failure" on stdout
         return stdout.toString().contains("Success");

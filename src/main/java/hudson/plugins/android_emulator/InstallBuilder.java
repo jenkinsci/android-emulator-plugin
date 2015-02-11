@@ -15,20 +15,20 @@ import hudson.plugins.android_emulator.sdk.Tool;
 import hudson.plugins.android_emulator.util.Utils;
 import hudson.tasks.Builder;
 import hudson.util.ForkOutputStream;
+import net.sf.json.JSONObject;
+import org.kohsuke.stapler.DataBoundConstructor;
+import org.kohsuke.stapler.StaplerRequest;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.io.Serializable;
-import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import net.sf.json.JSONObject;
-
-import org.kohsuke.stapler.DataBoundConstructor;
-import org.kohsuke.stapler.StaplerRequest;
-
 public class InstallBuilder extends AbstractBuilder {
+
+    /** Maximum time to wait, in milliseconds, for an APK to install. */
+    private static final int INSTALL_TIMEOUT = 2 * 60 * 1000;
 
     /** Path to the APK to be installed, relative to the workspace. */
     private final String apkFile;
@@ -102,7 +102,7 @@ public class InstallBuilder extends AbstractBuilder {
         ForkOutputStream forkStream = new ForkOutputStream(logger, stdout);
         String args = String.format("%s install -r \"%s\"", deviceIdentifier, apkPath.getName());
         Utils.runAndroidTool(launcher, build.getEnvironment(TaskListener.NULL), forkStream, logger,
-                androidSdk, Tool.ADB, args, apkPath.getParent());
+                androidSdk, Tool.ADB, args, apkPath.getParent(), INSTALL_TIMEOUT);
 
         Pattern p = Pattern.compile("^Success$", Pattern.MULTILINE);
         boolean success = p.matcher(stdout.toString()).find();

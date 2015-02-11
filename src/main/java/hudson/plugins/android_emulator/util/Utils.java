@@ -1,6 +1,5 @@
 package hudson.plugins.android_emulator.util;
 
-import static hudson.plugins.android_emulator.AndroidEmulator.log;
 import hudson.EnvVars;
 import hudson.FilePath;
 import hudson.Functions;
@@ -8,20 +7,24 @@ import hudson.Launcher;
 import hudson.Launcher.ProcStarter;
 import hudson.Proc;
 import hudson.Util;
-import hudson.model.BuildListener;
 import hudson.model.AbstractBuild;
+import hudson.model.BuildListener;
 import hudson.model.Computer;
 import hudson.model.Hudson;
 import hudson.model.Node;
 import hudson.plugins.android_emulator.AndroidEmulator.DescriptorImpl;
 import hudson.plugins.android_emulator.Constants;
 import hudson.plugins.android_emulator.Messages;
+import hudson.plugins.android_emulator.SdkInstallationException;
 import hudson.plugins.android_emulator.sdk.AndroidSdk;
 import hudson.plugins.android_emulator.sdk.Tool;
-import hudson.plugins.android_emulator.SdkInstallationException;
 import hudson.remoting.Callable;
 import hudson.remoting.Future;
 import hudson.util.ArgumentListBuilder;
+import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.filefilter.IOFileFilter;
+import org.apache.commons.io.filefilter.NameFileFilter;
+import org.apache.commons.io.filefilter.TrueFileFilter;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -48,10 +51,7 @@ import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import org.apache.commons.io.FileUtils;
-import org.apache.commons.io.filefilter.IOFileFilter;
-import org.apache.commons.io.filefilter.NameFileFilter;
-import org.apache.commons.io.filefilter.TrueFileFilter;
+import static hudson.plugins.android_emulator.AndroidEmulator.log;
 
 public class Utils {
 
@@ -405,6 +405,12 @@ public class Utils {
 
     public static void runAndroidTool(Launcher launcher, EnvVars env, OutputStream stdout, OutputStream stderr,
             AndroidSdk androidSdk, Tool tool, String args, FilePath workingDirectory)
+            throws IOException, InterruptedException {
+        runAndroidTool(launcher, env, stdout, stderr, androidSdk, tool, args, workingDirectory, 0);
+    }
+
+    public static void runAndroidTool(Launcher launcher, EnvVars env, OutputStream stdout, OutputStream stderr,
+            AndroidSdk androidSdk, Tool tool, String args, FilePath workingDirectory, long timeoutMs)
                 throws IOException, InterruptedException {
 
         ArgumentListBuilder cmd = Utils.getToolCommand(androidSdk, launcher.isUnix(), tool, args);
@@ -422,7 +428,14 @@ public class Utils {
         if (workingDirectory != null) {
             procStarter.pwd(workingDirectory);
         }
-        procStarter.join();
+
+        // Start the process and wait for it to end (or time out)
+        Proc proc = procStarter.start();
+        if (timeoutMs > 0) {
+            proc.joinWithTimeout(timeoutMs, TimeUnit.MILLISECONDS, launcher.getListener());
+        } else {
+            proc.join();
+        }
     }
 
     /**
