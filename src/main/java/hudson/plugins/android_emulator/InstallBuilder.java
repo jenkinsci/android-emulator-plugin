@@ -91,6 +91,14 @@ public class InstallBuilder extends AbstractBuilder {
         // Determine which device to use
         final String deviceIdentifier = getDeviceIdentifier(build, listener);
 
+        // Wait for package manager to become ready
+        AndroidEmulator.log(logger, Messages.WAITING_FOR_CORE_PROCESS());
+        boolean ready = waitForCoreProcess(build, launcher, androidSdk, deviceIdentifier);
+        if (!ready) {
+            AndroidEmulator.log(logger, Messages.CORE_PROCESS_DID_NOT_START());
+            return false;
+        }
+
         // Uninstall APK first, if requested
         if (shouldUninstallFirst()) {
             uninstallApk(build, launcher, logger, androidSdk, deviceIdentifier, apkPath);

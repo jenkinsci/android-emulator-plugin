@@ -185,6 +185,52 @@ public abstract class AbstractBuilder extends Builder {
     }
 
     /**
+     * Waits for the "android.process.acore" process to start, as this is a prerequisite for using the package manager.
+     *
+     * @return {@code true} if the process has started; {@code false} if it did not start within a reasonable timeout.
+     */
+    protected boolean waitForCoreProcess(AbstractBuild<?, ?> build, Launcher launcher,
+            AndroidSdk androidSdk, String deviceIdentifier) throws IOException, InterruptedException {
+
+        // At this point, the emulator has already supposedly started, yet we may still have to wait a while...
+        final int timeout = 120 * 1000;
+        final int adbTimeout = 5 * 1000;
+        final int sleep = timeout / (int) (Math.sqrt(timeout / 1000) * 2);
+
+        // Run the "ps" command in a loop until we find the desired process
+        final String adbArgs = String.format("%s shell ps", deviceIdentifier);
+        try {
+            long start = System.currentTimeMillis();
+            final ByteArrayOutputStream stdout = new ByteArrayOutputStream(8192);
+            while (System.currentTimeMillis() < start + timeout) {
+                // Clear out any existing stdout output
+                stdout.reset();
+
+                // Get the process list from the device
+                Utils.runAndroidTool(launcher, build.getEnvironment(TaskListener.NULL), stdout, null, androidSdk,
+                        Tool.ADB, adbArgs, null, adbTimeout);
+
+                // Check whether the core process has started
+                if (stdout.toString().contains("android.process.acore")) {
+                    return true;
+                }
+
+                // It hasn't started, so sleep and try again later
+                Thread.sleep(sleep);
+            }
+        } catch (InterruptedException ex) {
+            // TODO: Words
+            log(launcher.getListener().getLogger(), Messages.INTERRUPTED_DURING_BOOT_COMPLETION());
+        } catch (IOException ex) {
+            // TODO: Words
+            log(launcher.getListener().getLogger(), Messages.COULD_NOT_CHECK_BOOT_COMPLETION());
+            ex.printStackTrace(launcher.getListener().getLogger());
+        }
+
+        return false;
+    }
+
+    /**
      * Uninstalls the Android package corresponding to the given APK file from an Android device.
      *
      * @param build The build for which we should uninstall the package.

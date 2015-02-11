@@ -11,15 +11,13 @@ import hudson.plugins.android_emulator.builder.AbstractBuilder;
 import hudson.plugins.android_emulator.sdk.AndroidSdk;
 import hudson.plugins.android_emulator.util.Utils;
 import hudson.tasks.Builder;
+import net.sf.json.JSONObject;
+import org.kohsuke.stapler.DataBoundConstructor;
+import org.kohsuke.stapler.StaplerRequest;
 
 import java.io.IOException;
 import java.io.PrintStream;
 import java.io.Serializable;
-
-import net.sf.json.JSONObject;
-
-import org.kohsuke.stapler.DataBoundConstructor;
-import org.kohsuke.stapler.StaplerRequest;
 
 public class UninstallBuilder extends AbstractBuilder {
 
@@ -64,9 +62,17 @@ public class UninstallBuilder extends AbstractBuilder {
 
         // Expand package ID value
         String expandedPackageId = Utils.expandVariables(build, listener, packageId);
+        String deviceIdentifier = getDeviceIdentifier(build, listener);
+
+        // Wait for package manager to become ready
+        AndroidEmulator.log(logger, Messages.WAITING_FOR_CORE_PROCESS());
+        boolean ready = waitForCoreProcess(build, launcher, androidSdk, deviceIdentifier);
+        if (!ready) {
+            AndroidEmulator.log(logger, Messages.CORE_PROCESS_DID_NOT_START());
+            return false;
+        }
 
         // Execute uninstallation
-        String deviceIdentifier = getDeviceIdentifier(build, listener);
         boolean success = uninstallApk(build, launcher, logger, androidSdk, deviceIdentifier, expandedPackageId);
         if (!success && failOnUninstallFailure) {
             return false;
