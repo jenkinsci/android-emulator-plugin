@@ -493,6 +493,11 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
                 if (androidSdk.hasKnownRoot()) {
                     env.put("JENKINS_ANDROID_HOME", androidSdk.getSdkRoot());
                     env.put("ANDROID_HOME", androidSdk.getSdkRoot());
+
+                    // Prepend the commonly-used Android tools to the start of the PATH for this build
+                    env.put("PATH+SDK_TOOLS", androidSdk.getSdkRoot() + "/tools/");
+                    env.put("PATH+SDK_PLATFORM_TOOLS", androidSdk.getSdkRoot() + "/platform-tools/");
+                    // TODO: Export the newest build-tools folder as well, so aapt and friends can be used
                 }
             }
 
