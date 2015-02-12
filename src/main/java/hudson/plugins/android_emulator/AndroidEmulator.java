@@ -301,9 +301,9 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
 
         // We manually start the adb-server so that later commands will not have to start it,
         // allowing them to complete faster.
-        Proc adbStart = emu.getToolProcStarter(Tool.ADB, "start-server").stdout(logger).start();
+        Proc adbStart = emu.getToolProcStarter(Tool.ADB, "start-server").stdout(logger).stderr(logger).start();
         adbStart.joinWithTimeout(5L, TimeUnit.SECONDS, listener);
-        Proc adbStart2 = emu.getToolProcStarter(Tool.ADB, "start-server").stdout(logger).start();
+        Proc adbStart2 = emu.getToolProcStarter(Tool.ADB, "start-server").stdout(logger).stderr(logger).start();
         adbStart2.joinWithTimeout(5L, TimeUnit.SECONDS, listener);
 
         // Determine whether we need to create the first snapshot
@@ -345,7 +345,8 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
         ByteArrayOutputStream emulatorOutput = new ByteArrayOutputStream();
         ForkOutputStream emulatorLogger = new ForkOutputStream(logger, emulatorOutput);
 
-        final Proc emulatorProcess = emu.getToolProcStarter(emuConfig.getExecutable(), emulatorArgs).stdout(emulatorLogger).start();
+        final Proc emulatorProcess = emu.getToolProcStarter(emuConfig.getExecutable(), emulatorArgs)
+                .stdout(emulatorLogger).stderr(logger).start();
         emu.setProcess(emulatorProcess);
 
         // Give the emulator process a chance to initialise
@@ -374,8 +375,8 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
         // indicate that any methods wanting to check the "emulator" process state should ignore it.
         boolean ignoreProcess = !launcher.isUnix() && androidSdk.getSdkToolsMajorVersion() >= 12;
 
-        // Notify adb of our existence
-        int result = emu.getToolProcStarter(Tool.ADB, "connect " + emu.serial()).join();
+        // Notify adb of our existence (though the emulator should do this anyway)
+        int result = emu.getToolProcStarter(Tool.ADB, "connect " + emu.serial()).stdout(logger).stderr(logger).join();
         if (result != 0) { // adb currently only ever returns 0!
             log(logger, Messages.CANNOT_CONNECT_TO_EMULATOR());
             build.setResult(Result.NOT_BUILT);
@@ -406,7 +407,8 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
         final FilePath logcatFile = build.getWorkspace().createTextTempFile("logcat_", ".log", "", false);
         final OutputStream logcatStream = logcatFile.write();
         final String logcatArgs = String.format("-s %s logcat -v time", emu.serial());
-        final Proc logWriter = emu.getToolProcStarter(Tool.ADB, logcatArgs).stdout(logcatStream).stderr(new NullStream()).start();
+        final Proc logWriter = emu.getToolProcStarter(Tool.ADB, logcatArgs)
+                .stdout(logcatStream).stderr(new NullStream()).start();
 
         // Unlock emulator by pressing the Menu key once, if required.
         // Upon first boot (and when the data is wiped) the emulator is already unlocked
