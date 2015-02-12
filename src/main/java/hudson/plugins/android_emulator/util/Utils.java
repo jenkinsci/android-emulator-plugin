@@ -432,7 +432,7 @@ public class Utils {
         // Start the process and wait for it to end (or time out)
         Proc proc = procStarter.start();
         if (timeoutMs > 0) {
-            proc.joinWithTimeout(timeoutMs, TimeUnit.MILLISECONDS, launcher.getListener());
+            proc.joinWithTimeout(timeoutMs / 1000, TimeUnit.SECONDS, launcher.getListener());
         } else {
             proc.join();
         }

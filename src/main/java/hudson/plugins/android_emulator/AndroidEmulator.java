@@ -420,17 +420,20 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
             Thread.sleep(bootDuration / 4);
 
             log(logger, Messages.UNLOCKING_SCREEN());
+            final long adbTimeout = bootTimeout / 16;
             final String keyEventArgs = String.format("-s %s shell input keyevent %%d", emu.serial());
             final String menuArgs = String.format(keyEventArgs, 82);
             ArgumentListBuilder menuCmd = emu.getToolCommand(Tool.ADB, menuArgs);
-            emu.getProcStarter(menuCmd).join();
+            Proc proc = emu.getProcStarter(menuCmd).start();
+            proc.joinWithTimeout(adbTimeout, TimeUnit.MILLISECONDS, emu.launcher().getListener());
 
             // If a named emulator already existed, it may not have been booted yet, so the screen
             // wouldn't be locked.  Similarly, an non-named emulator may have already booted the
             // first time without us knowing.  In both cases, we press Back after Menu to compensate
             final String backArgs = String.format(keyEventArgs, 4);
             ArgumentListBuilder backCmd = emu.getToolCommand(Tool.ADB, backArgs);
-            emu.getProcStarter(backCmd).join();
+            proc = emu.getProcStarter(backCmd).start();
+            proc.joinWithTimeout(adbTimeout, TimeUnit.MILLISECONDS, emu.launcher().getListener());
         }
 
         // Initialise snapshot image, if required
