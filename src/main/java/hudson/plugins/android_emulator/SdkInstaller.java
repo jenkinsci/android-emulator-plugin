@@ -199,7 +199,7 @@ public class SdkInstaller {
         // Build the command to install the given component(s)
         String list = StringUtils.join(components, ',');
         log(logger, Messages.INSTALLING_SDK_COMPONENTS(list));
-        String all = sdk.getSdkToolsVersion() < 17 ? "-o" : "-a";
+        String all = sdk.getSdkToolsMajorVersion() < 17 ? "-o" : "-a";
         String upgradeArgs = String.format("update sdk -u %s %s -t %s", all, proxySettings, list);
         ArgumentListBuilder cmd = Utils.getToolCommand(sdk, launcher.isUnix(), Tool.ANDROID, upgradeArgs);
         ProcStarter procStarter = launcher.launch().stderr(logger).readStdout().writeStdin().cmds(cmd);
@@ -259,7 +259,7 @@ public class SdkInstaller {
 
         // Check whether we are capable of installing individual components
         log(logger, Messages.PLATFORM_INSTALL_REQUIRED(platform));
-        if (!launcher.isUnix() && platform.contains(":") && sdk.getSdkToolsVersion() < 16) {
+        if (!launcher.isUnix() && platform.contains(":") && sdk.getSdkToolsMajorVersion() < 16) {
             // SDK add-ons can't be installed on Windows until r16 due to http://b.android.com/18868
             log(logger, Messages.SDK_ADDON_INSTALLATION_UNSUPPORTED());
             return;

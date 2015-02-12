@@ -692,25 +692,6 @@ public class Utils {
     }
 
     /**
-     * Attempts to parse an SDK revision string.
-     *
-     * @param revisionStr Version string.
-     * @return The major version (i.e. "26.0.2" returns 26).
-     * @throws java.lang.NumberFormatException If no number could be determined.
-     */
-    public static int parseRevisionString(String revisionStr) {
-        try {
-            return Integer.parseInt(revisionStr);
-        } catch (NumberFormatException e) {
-            Matcher matcher = REVISION.matcher(revisionStr);
-            if (matcher.matches()) {
-                return Integer.parseInt(matcher.group(1));
-            }
-            throw new NumberFormatException("Could not parse "+revisionStr);
-        }
-    }
-
-    /**
      * Determines the API level for the given platform name.
      *
      * @param platform String like "android-4" or "Google:Google APIs:14".

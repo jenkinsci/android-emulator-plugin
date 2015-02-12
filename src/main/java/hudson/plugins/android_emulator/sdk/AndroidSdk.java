@@ -1,7 +1,9 @@
 package hudson.plugins.android_emulator.sdk;
 
+import com.google.common.annotations.VisibleForTesting;
 import hudson.Util;
 import hudson.plugins.android_emulator.util.Utils;
+import hudson.util.VersionNumber;
 
 import java.io.File;
 import java.io.IOException;
@@ -26,9 +28,7 @@ public class AndroidSdk implements Serializable {
 
     private final String sdkRoot;
     private final String sdkHome;
-    private boolean usesPlatformTools;
-    private int sdkToolsVersion;
-    private String sdkToolsRevision;
+    private String sdkToolsVersion;
 
     public AndroidSdk(String root, String home) throws IOException {
         this.sdkRoot = root;
@@ -39,18 +39,11 @@ public class AndroidSdk implements Serializable {
     }
 
     private void determineVersion() throws IOException {
-        // Determine whether SDK has platform tools installed
-        File toolsDirectory = new File(sdkRoot, "platform-tools");
-        setUsesPlatformTools(toolsDirectory.isDirectory());
-
         // Determine SDK tools version
         File toolsPropFile = new File(sdkRoot, "tools/source.properties");
         Map<String, String> toolsProperties;
         toolsProperties = Utils.parseConfigFile(toolsPropFile);
-        String revisionStr = Util.fixEmptyAndTrim(toolsProperties.get("Pkg.Revision"));
-        if (revisionStr != null) {
-            setSdkToolsVersion(Utils.parseRevisionString(revisionStr));
-        }
+        sdkToolsVersion = Util.fixEmptyAndTrim(toolsProperties.get("Pkg.Revision"));
     }
 
     public boolean hasKnownRoot() {
@@ -69,37 +62,43 @@ public class AndroidSdk implements Serializable {
         return this.sdkHome;
     }
 
-    public boolean usesPlatformTools() {
-        return this.usesPlatformTools;
+    @VisibleForTesting
+    void setSdkToolsVersion(String version) {
+        sdkToolsVersion = version;
     }
 
-    public void setUsesPlatformTools(boolean usesPlatformTools) {
-        this.usesPlatformTools = usesPlatformTools;
-    }
-
-    public void setSdkToolsVersion(int version) {
-        this.sdkToolsVersion = version;
-    }
-
-    /** @return The major version number of the SDK tools being used. */
-    public int getSdkToolsVersion() {
-        return this.sdkToolsVersion;
+    /** @return The major version number of the SDK tools being used, or {@code 0} if unknown. */
+    public int getSdkToolsMajorVersion() {
+        if (sdkToolsVersion == null) {
+            return 0;
+        }
+        // We create this object on-demand rather than holding on to it, as VersionNumber is not Serializable
+        return new VersionNumber(sdkToolsVersion).digit(0);
     }
 
     public boolean supportsSnapshots() {
-        return sdkToolsVersion >= SDK_TOOLS_SNAPSHOTS;
+        return getSdkToolsMajorVersion() >= SDK_TOOLS_SNAPSHOTS;
     }
 
     public boolean supportsComponentInstallation() {
-        return sdkToolsVersion >= SDK_AUTO_INSTALL;
+        return getSdkToolsMajorVersion() >= SDK_AUTO_INSTALL;
     }
 
     public boolean supportsSystemImageInstallation() {
-        return sdkToolsVersion >= SDK_SYSTEM_IMAGE_INSTALL;
+        return getSdkToolsMajorVersion() >= SDK_SYSTEM_IMAGE_INSTALL;
     }
 
     public boolean supportsSystemImageNewFormat() {
-        return sdkToolsVersion >= SDK_SYSTEM_IMAGE_NEW_FORMAT;
+        return getSdkToolsMajorVersion() >= SDK_SYSTEM_IMAGE_NEW_FORMAT;
+    }
+
+    /** {@return true} if we should explicitly select a non-64-bit emulator executable for snapshot-related tasks. */
+    public boolean requiresAndroidBug34233Workaround() {
+        if (sdkToolsVersion == null) {
+            return true;
+        }
+        final VersionNumber sdk = new VersionNumber(sdkToolsVersion);
+        return sdk.isNewerThan(new VersionNumber("20.0.3")) && sdk.isOlderThan(new VersionNumber("22.6"));
     }
 
 }
