@@ -69,7 +69,6 @@ public class UninstallBuilder extends AbstractBuilder {
         boolean ready = waitForCoreProcess(build, launcher, androidSdk, deviceIdentifier);
         if (!ready) {
             AndroidEmulator.log(logger, Messages.CORE_PROCESS_DID_NOT_START());
-            return false;
         }
 
         // Execute uninstallation
