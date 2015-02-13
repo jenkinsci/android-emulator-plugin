@@ -46,16 +46,16 @@ public class AndroidEmulatorContext {
 
 		final Computer computer = Computer.currentComputer();
 
-		// Use the Port Allocator plugin to reserve the two ports we need
+		// Use the Port Allocator plugin to reserve the ports we need
 		portAllocator = PortAllocationManager.getManager(computer);
-		final int PORT_RANGE_START = 5560;
-		final int PORT_RANGE_END = 5900;
+		final int PORT_RANGE_START = 5554;
+		final int PORT_RANGE_END = 9999; // Make sure the port is four digits, as there are tools that rely on this
 		int[] ports = portAllocator.allocatePortRange(build, PORT_RANGE_START, PORT_RANGE_END, 3, true);
 		userPort = ports[0];
 		adbPort = ports[1];
 		adbServerPort = ports[2];
 
-		serial = "emulator-" + userPort;
+		serial = String.format("localhost:%d", adbPort);
 	}
 
 	public void cleanUp() {
