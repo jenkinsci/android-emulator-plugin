@@ -419,6 +419,9 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
             // The delay here is a function of boot time, i.e. relative to the slowness of the host
             Thread.sleep(bootDuration / 4);
 
+            // Make sure we're still connected
+            connectEmulator(emu);
+
             log(logger, Messages.UNLOCKING_SCREEN());
             final long adbTimeout = bootTimeout / 16;
             final String keyEventArgs = String.format("-s %s shell input keyevent %%d", emu.serial());
@@ -441,6 +444,9 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
             // In order to create a clean initial snapshot, give the system some more time to settle
             log(logger, Messages.WAITING_INITIAL_SNAPSHOT());
             Thread.sleep((long) (bootDuration * 0.8));
+
+            // Make sure we're still connected
+            connectEmulator(emu);
 
             // Clear main log before creating snapshot
             final String clearArgs = String.format("-s %s logcat -c", emu.serial());
@@ -472,6 +478,9 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
                 log(logger, Messages.SNAPSHOT_CREATION_FAILED());
             }
         }
+
+        // Make sure we're still connected
+        connectEmulator(emu);
 
         // Done!
         final long bootCompleteTime = System.currentTimeMillis();
@@ -516,6 +525,20 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
             }
         };
     }
+
+    private static void connectEmulator(AndroidEmulatorContext emu)
+            throws IOException, InterruptedException {
+        ArgumentListBuilder adbConnectCmd = emu.getToolCommand(Tool.ADB, "connect " + emu.serial());
+        emu.getProcStarter(adbConnectCmd).start().joinWithTimeout(5L, TimeUnit.SECONDS, emu.launcher().getListener());
+    }
+
+    private static void disconnectEmulator(AndroidEmulatorContext emu)
+            throws IOException, InterruptedException {
+        final String args = "disconnect "+ emu.serial();
+        ArgumentListBuilder adbDisconnectCmd = emu.getToolCommand(Tool.ADB, args);
+        emu.getProcStarter(adbDisconnectCmd).start().joinWithTimeout(5L, TimeUnit.SECONDS, emu.launcher().getListener());
+    }
+
 
     /** Helper method for writing to the build log in a consistent manner. */
     public synchronized static void log(final PrintStream logger, final String message) {
@@ -563,6 +586,9 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
         // FIXME: Sometimes on Windows neither the emulator.exe nor the adb.exe processes die.
         //        Launcher.kill(EnvVars) does not appear to help either.
         //        This is (a) inconsistent; (b) very annoying.
+
+        // Disconnect emulator from adb
+        disconnectEmulator(emu);
 
         // Stop emulator process
         log(emu.logger(), Messages.STOPPING_EMULATOR());
@@ -702,6 +728,7 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
 
         try {
             final long adbTimeout = timeout / 8;
+            int iterations = 0;
             while (System.currentTimeMillis() < start + timeout && (ignoreProcess || emu.process().isAlive())) {
                 ByteArrayOutputStream stream = new ByteArrayOutputStream(16);
 
@@ -716,7 +743,18 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
                     }
                 }
 
-                // "getprop" failed, so sleep and try again later
+                // Otherwise continue...
+
+                /* Ensure the emulator is connected to adb, in case it had crashed.
+                 * We also disconnect it every 3 tries, in case it's stuck in an offline state.
+                 */
+                if (++iterations % 3 == 0) {
+                    try {
+                        disconnectEmulator(emu);
+                    } catch (Exception ignore) {}
+                }
+                connectEmulator(emu);
+
                 Thread.sleep(sleep);
             }
         } catch (InterruptedException ex) {
