@@ -20,6 +20,7 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.io.PrintStream;
 import java.io.Serializable;
+import java.util.ArrayList;
 import java.util.Random;
 
 import net.sf.json.JSONObject;
@@ -78,10 +79,21 @@ public class MonkeyBuilder extends AbstractBuilder {
 
         // Set up arguments to adb
         final String deviceIdentifier = getDeviceIdentifier(build, listener);
-        final String expandedPackageId = Utils.expandVariables(build, listener, this.packageId);
+        StringBuilder packageArgs = new StringBuilder();
+        StringBuilder packageNamesLog = new StringBuilder(); // For logging
+        if(!this.packageId.equals("")) {
+        	for(String s : this.packageId.split(" ")) {
+        		// Add "-p [packagename]"
+        		packageArgs.append(" -p ");
+        		String expandedPackageId = Utils.expandVariables(build, listener, s);
+        		packageArgs.append(expandedPackageId);
+        		packageNamesLog.append(expandedPackageId);
+        	}
+        }
         final long seedValue = parseSeed(seed);
-        String args = String.format("%s shell monkey -v -v -p %s -s %d --throttle %d %d",
-                deviceIdentifier, expandedPackageId, seedValue, throttleMs, eventCount);
+        String args = String.format("%s shell monkey -v -v %s -s %d --throttle %d %d",
+                deviceIdentifier, packageArgs.toString(),
+                seedValue, throttleMs, eventCount);
 
         // Determine output filename
         String outputFile;
@@ -94,7 +106,7 @@ public class MonkeyBuilder extends AbstractBuilder {
         // Start monkeying around
         OutputStream monkeyOutput = build.getWorkspace().child(outputFile).write();
         try {
-            log(logger, Messages.STARTING_MONKEY(expandedPackageId, eventCount, seedValue));
+            log(logger, Messages.STARTING_MONKEY(packageNamesLog.toString(), eventCount, seedValue));
             Utils.runAndroidTool(launcher, build.getEnvironment(TaskListener.NULL), monkeyOutput,
                     logger, androidSdk, Tool.ADB, args, null);
         } finally {
