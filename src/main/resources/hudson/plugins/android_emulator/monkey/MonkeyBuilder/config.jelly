@@ -2,7 +2,7 @@
 
     <f:entry title="${%Package ID}">
         <f:textbox name="android-emulator.packageId" value="${instance.packageId}" />
-        <f:description>${%ID(s) of the Android package(s) to monkey around with. More packages can be separated by a space}</f:description>
+        <f:description>${%IDs of the Android packages to monkey around with. More packages can be separated by a space}</f:description>
     </f:entry>
 
     <f:entry title="${%Event count}">
