@@ -79,7 +79,6 @@ public class MonkeyBuilder extends AbstractBuilder {
 
         // Set up arguments to adb
         final String deviceIdentifier = getDeviceIdentifier(build, listener);
-        log(logger, String.format("PACKAGE ID: %s", this.packageId));
         StringBuilder packageArgs = new StringBuilder();
         StringBuilder packageNamesLog = new StringBuilder(); // For logging
         if(!this.packageId.equals("")) {
