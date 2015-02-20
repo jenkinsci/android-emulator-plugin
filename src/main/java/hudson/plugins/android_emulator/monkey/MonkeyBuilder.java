@@ -56,14 +56,20 @@ public class MonkeyBuilder extends AbstractBuilder {
     /** Seed value for the random number generator. Number, "random", or "timestamp". */
     @Exported
     public final String seed;
+    
+    /** Categories to restrict the monkey to. */
+    @Exported
+    public final String categories;
+
 
     @DataBoundConstructor
-    public MonkeyBuilder(String filename, String packageId, Integer eventCount, Integer throttleMs, String seed) {
+    public MonkeyBuilder(String filename, String packageId, Integer eventCount, Integer throttleMs, String seed, String categories) {
         this.filename = Util.fixEmptyAndTrim(filename);
         this.packageId = packageId;
         this.eventCount = eventCount == null ? DEFAULT_EVENT_COUNT : Math.abs(eventCount);
         this.throttleMs = throttleMs == null ? 0 : Math.abs(throttleMs);
         this.seed = seed == null ? "" : seed.trim().toLowerCase();
+        this.categories = categories == null ? "" : categories.trim();
     }
 
     @Override
@@ -90,9 +96,19 @@ public class MonkeyBuilder extends AbstractBuilder {
         		packageNamesLog.append(expandedPackageId);
         	}
         }
+        StringBuilder categoriesArgs = new StringBuilder();
+        if(!this.categories.equals("")) {
+        	for(String s : this.categories.split(" ")) {
+        		// Add "-c [category]"
+        		categoriesArgs.append(" -c ");
+        		String expandedCategory = Utils.expandVariables(build, listener, s);
+        		categoriesArgs.append(expandedCategory);
+        	}
+        }
         final long seedValue = parseSeed(seed);
-        String args = String.format("%s shell monkey -v -v %s -s %d --throttle %d %d",
-                deviceIdentifier, packageArgs.toString(),
+        String args = String.format("%s shell monkey -v -v %s %s -s %d --throttle %d %d",
+                deviceIdentifier, packageArgs.toString(), 
+                categoriesArgs.toString(),
                 seedValue, throttleMs, eventCount);
 
         // Determine output filename
