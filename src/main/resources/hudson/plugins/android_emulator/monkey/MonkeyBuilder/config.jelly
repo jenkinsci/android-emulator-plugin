@@ -25,5 +25,10 @@
             <f:textbox name="android-emulator.seed" value="${instance.seed}" default="0" style="width:12em" />
             <f:description>${%Seed value for the pseudo-random number generator. Enter a number, 'random' or 'timestamp'}</f:description>
         </f:entry>
+        
+        <f:entry title="${%Categories}">
+            <f:textbox name="android-emulator.categories" value="${instance.categories}" />
+            <f:description>${%Allowed categories for the monkey to visit, or unspecified which allows activities in 'Intent.CATEGORY_LAUNCHER' or 'Intent.CATEGORY_MONKEY'. Multiple categories can be separated by a space.}</f:description>
+        </f:entry>
     </f:advanced>
 </j:jelly>
