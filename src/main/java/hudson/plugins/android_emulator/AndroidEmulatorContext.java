@@ -49,7 +49,7 @@ public class AndroidEmulatorContext {
 		// Use the Port Allocator plugin to reserve the ports we need
 		portAllocator = PortAllocationManager.getManager(computer);
 		final int PORT_RANGE_START = 5554;
-		final int PORT_RANGE_END = 9999; // Make sure the port is four digits, as there are tools that rely on this
+		final int PORT_RANGE_END = 5583; // Make sure the port is four digits, as there are tools that rely on this
 		int[] ports = portAllocator.allocatePortRange(build, PORT_RANGE_START, PORT_RANGE_END, 3, true);
 		userPort = ports[0];
 		adbPort = ports[1];
@@ -99,10 +99,10 @@ public class AndroidEmulatorContext {
 	}
 
 	/**
-	 * Sets up a standard {@link ProcStarter} for the current context. 
-	 * 
+	 * Sets up a standard {@link ProcStarter} for the current context.
+	 *
 	 * @return A ready ProcStarter
-	 * 
+	 *
 	 * @throws IOException
 	 * @throws InterruptedException
 	 */
@@ -119,13 +119,13 @@ public class AndroidEmulatorContext {
 	}
 
 	/**
-	 * 
+	 *
 	 * Sets up a standard {@link ProcStarter} for the current adb environment,
 	 * ready to execute the given command.
-	 * 
+	 *
 	 * @param command What command to run
 	 * @return A ready ProcStarter
-	 * 
+	 *
 	 * @throws IOException
 	 * @throws InterruptedException
 	 */
@@ -163,18 +163,18 @@ public class AndroidEmulatorContext {
 	 * Sends a user command to the running emulator via its telnet interface.<br>
 	 * Execution will be cancelled if it takes longer than
 	 * {@link #EMULATOR_COMMAND_TIMEOUT_MS}.
-	 * 
+	 *
 	 * @param command The command to execute on the emulator's telnet interface.
 	 * @return Whether sending the command succeeded.
 	 */
 	public boolean sendCommand(final String command) {
 		return sendCommand(command, EMULATOR_COMMAND_TIMEOUT_MS);
 	}
-	
+
 	/**
 	 * Sends a user command to the running emulator via its telnet interface.<br>
 	 * Execution will be cancelled if it takes longer than timeout ms.
-	 * 
+	 *
 	 * @param command The command to execute on the emulator's telnet interface.
 	 * @param timeout The command's timeout, in ms.
 	 * @return Whether sending the command succeeded.
