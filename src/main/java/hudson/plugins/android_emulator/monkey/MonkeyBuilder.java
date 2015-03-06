@@ -20,6 +20,7 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.io.PrintStream;
 import java.io.Serializable;
+import java.util.ArrayList;
 import java.util.Random;
 
 import net.sf.json.JSONObject;
@@ -56,13 +57,19 @@ public class MonkeyBuilder extends AbstractBuilder {
     @Exported
     public final String seed;
 
+    /** Categories to restrict the monkey to. */
+    @Exported
+    public final String categories;
+
+
     @DataBoundConstructor
-    public MonkeyBuilder(String filename, String packageId, Integer eventCount, Integer throttleMs, String seed) {
+    public MonkeyBuilder(String filename, String packageId, Integer eventCount, Integer throttleMs, String seed, String categories) {
         this.filename = Util.fixEmptyAndTrim(filename);
         this.packageId = packageId;
         this.eventCount = eventCount == null ? DEFAULT_EVENT_COUNT : Math.abs(eventCount);
         this.throttleMs = throttleMs == null ? 0 : Math.abs(throttleMs);
         this.seed = seed == null ? "" : seed.trim().toLowerCase();
+        this.categories = categories == null ? "" : categories.trim();
     }
 
     @Override
@@ -78,10 +85,31 @@ public class MonkeyBuilder extends AbstractBuilder {
 
         // Set up arguments to adb
         final String deviceIdentifier = getDeviceIdentifier(build, listener);
-        final String expandedPackageId = Utils.expandVariables(build, listener, this.packageId);
+        StringBuilder packageArgs = new StringBuilder();
+        StringBuilder packageNamesLog = new StringBuilder(); // For logging
+        if(!this.packageId.equals("")) {
+        	for(String s : this.packageId.split(",")) {
+        		// Add "-p [packagename]"
+        		packageArgs.append(" -p ");
+        		String expandedPackageId = Utils.expandVariables(build, listener, s);
+        		packageArgs.append(expandedPackageId);
+        		packageNamesLog.append(expandedPackageId);
+        	}
+        }
+        StringBuilder categoriesArgs = new StringBuilder();
+        if(!this.categories.equals("")) {
+        	for(String s : this.categories.split(",")) {
+        		// Add "-c [category]"
+        		categoriesArgs.append(" -c ");
+        		String expandedCategory = Utils.expandVariables(build, listener, s);
+        		categoriesArgs.append(expandedCategory);
+        	}
+        }
         final long seedValue = parseSeed(seed);
-        String args = String.format("%s shell monkey -v -v -p %s -s %d --throttle %d %d",
-                deviceIdentifier, expandedPackageId, seedValue, throttleMs, eventCount);
+        String args = String.format("%s shell monkey -v -v %s %s -s %d --throttle %d %d",
+                deviceIdentifier, packageArgs.toString(),
+                categoriesArgs.toString(),
+                seedValue, throttleMs, eventCount);
 
         // Determine output filename
         String outputFile;
@@ -94,7 +122,7 @@ public class MonkeyBuilder extends AbstractBuilder {
         // Start monkeying around
         OutputStream monkeyOutput = build.getWorkspace().child(outputFile).write();
         try {
-            log(logger, Messages.STARTING_MONKEY(expandedPackageId, eventCount, seedValue));
+            log(logger, Messages.STARTING_MONKEY(packageNamesLog.toString(), eventCount, seedValue));
             Utils.runAndroidTool(launcher, build.getEnvironment(TaskListener.NULL), monkeyOutput,
                     logger, androidSdk, Tool.ADB, args, null);
         } finally {
