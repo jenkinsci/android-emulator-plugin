@@ -56,7 +56,7 @@ public class MonkeyBuilder extends AbstractBuilder {
     /** Seed value for the random number generator. Number, "random", or "timestamp". */
     @Exported
     public final String seed;
-    
+
     /** Categories to restrict the monkey to. */
     @Exported
     public final String categories;
@@ -88,7 +88,7 @@ public class MonkeyBuilder extends AbstractBuilder {
         StringBuilder packageArgs = new StringBuilder();
         StringBuilder packageNamesLog = new StringBuilder(); // For logging
         if(!this.packageId.equals("")) {
-        	for(String s : this.packageId.split(" ")) {
+        	for(String s : this.packageId.split(",")) {
         		// Add "-p [packagename]"
         		packageArgs.append(" -p ");
         		String expandedPackageId = Utils.expandVariables(build, listener, s);
@@ -98,7 +98,7 @@ public class MonkeyBuilder extends AbstractBuilder {
         }
         StringBuilder categoriesArgs = new StringBuilder();
         if(!this.categories.equals("")) {
-        	for(String s : this.categories.split(" ")) {
+        	for(String s : this.categories.split(",")) {
         		// Add "-c [category]"
         		categoriesArgs.append(" -c ");
         		String expandedCategory = Utils.expandVariables(build, listener, s);
@@ -107,7 +107,7 @@ public class MonkeyBuilder extends AbstractBuilder {
         }
         final long seedValue = parseSeed(seed);
         String args = String.format("%s shell monkey -v -v %s %s -s %d --throttle %d %d",
-                deviceIdentifier, packageArgs.toString(), 
+                deviceIdentifier, packageArgs.toString(),
                 categoriesArgs.toString(),
                 seedValue, throttleMs, eventCount);
 
