@@ -28,6 +28,7 @@ import java.util.Locale;
 import java.util.Random;
 
 import static hudson.Util.fixEmptyAndTrim;
+import static hudson.Util.fixNull;
 import static hudson.plugins.android_emulator.AndroidEmulator.log;
 
 public class MonkeyBuilder extends AbstractBuilder {
@@ -59,14 +60,20 @@ public class MonkeyBuilder extends AbstractBuilder {
     @Exported
     public final String categories;
 
+    /** Extra command line parameters to pass to monkey. */
+    @Exported
+    public final String extraParameters;
+
     @DataBoundConstructor
-    public MonkeyBuilder(String filename, String packageId, Integer eventCount, Integer throttleMs, String seed, String categories) {
+    public MonkeyBuilder(String filename, String packageId, Integer eventCount, Integer throttleMs, String seed,
+            String categories, String extraParameters) {
         this.filename = fixEmptyAndTrim(filename);
         this.packageId = fixEmptyAndTrim(packageId);
         this.eventCount = eventCount == null ? 0 : Math.abs(eventCount);
         this.throttleMs = throttleMs == null ? 0 : Math.abs(throttleMs);
         this.seed = fixEmptyAndTrim(seed) == null ? null : seed.trim().toLowerCase(Locale.ROOT);
         this.categories = fixEmptyAndTrim(categories);
+        this.extraParameters = fixEmptyAndTrim(extraParameters);
     }
 
     @Override
@@ -91,9 +98,10 @@ public class MonkeyBuilder extends AbstractBuilder {
         addArguments(expandedCategory, "-c", cmdArgs, categoryNamesLog);
 
         final long seedValue = parseSeed(seed);
+        final String expandedExtraParams = fixNull(Utils.expandVariables(build, listener, extraParameters));
         final String deviceIdentifier = getDeviceIdentifier(build, listener);
-        String args = String.format("%s shell monkey -v -v -s %d --throttle %d %s %d", deviceIdentifier, seedValue,
-                throttleMs, cmdArgs.toString(), eventCount);
+        String args = String.format("%s shell monkey -v -v -s %d --throttle %d %s %s %d", deviceIdentifier, seedValue,
+                throttleMs, cmdArgs.toString(), expandedExtraParams, eventCount);
 
         // Determine output filename
         String outputFile;

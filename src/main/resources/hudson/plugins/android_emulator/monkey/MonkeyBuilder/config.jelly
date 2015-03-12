@@ -30,5 +30,10 @@
             <f:textbox name="android-emulator.categories" value="${instance.categories}" />
             <f:description>${%Zero or more intent categories for the monkey to visit. If not specified, activities with "android.intent.category.LAUNCHER" or "android.intent.category.MONKEY" will be used. Multiple categories can be separated by a comma}</f:description>
         </f:entry>
+
+        <f:entry title="${%Additional parameters}">
+            <f:textbox name="android-emulator.extraParameters" value="${instance.extraParameters}" />
+            <f:description>${%A list of optional command line parameters to pass to monkey. e.g. "--ignore-native-crashes --pct-trackball 0"}</f:description>
+        </f:entry>
     </f:advanced>
 </j:jelly>
