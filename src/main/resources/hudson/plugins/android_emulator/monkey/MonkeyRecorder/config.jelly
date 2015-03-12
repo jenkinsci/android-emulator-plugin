@@ -2,7 +2,7 @@
 
     <f:entry title="${%Filename}">
         <f:textbox name="android-emulator.filename" value="${instance.filename}" />
-        <f:description>${%Optional: Name of a file within the workspace to read monkey output from}</f:description>
+        <f:description>${%Optional: Name of a file within the workspace to read monkey output from. Defaults to "monkey.txt" in the root of the workspace}</f:description>
     </f:entry>
 
     <f:entry title="${%Set build result}" field="failureOutcome">

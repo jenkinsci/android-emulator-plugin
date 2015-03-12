@@ -1,10 +1,8 @@
 package hudson.plugins.android_emulator.monkey;
 
-import static hudson.plugins.android_emulator.AndroidEmulator.log;
 import hudson.Extension;
 import hudson.Functions;
 import hudson.Launcher;
-import hudson.Util;
 import hudson.model.AbstractBuild;
 import hudson.model.BuildListener;
 import hudson.model.Descriptor;
@@ -15,27 +13,27 @@ import hudson.plugins.android_emulator.sdk.AndroidSdk;
 import hudson.plugins.android_emulator.sdk.Tool;
 import hudson.plugins.android_emulator.util.Utils;
 import hudson.tasks.Builder;
+import net.sf.json.JSONObject;
+import org.kohsuke.stapler.DataBoundConstructor;
+import org.kohsuke.stapler.StaplerRequest;
+import org.kohsuke.stapler.export.Exported;
 
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.PrintStream;
 import java.io.Serializable;
 import java.util.ArrayList;
+import java.util.List;
+import java.util.Locale;
 import java.util.Random;
 
-import net.sf.json.JSONObject;
-
-import org.kohsuke.stapler.DataBoundConstructor;
-import org.kohsuke.stapler.StaplerRequest;
-import org.kohsuke.stapler.export.Exported;
+import static hudson.Util.fixEmptyAndTrim;
+import static hudson.plugins.android_emulator.AndroidEmulator.log;
 
 public class MonkeyBuilder extends AbstractBuilder {
 
     /** File to write monkey results to if none specified. */
     private static final String DEFAULT_OUTPUT_FILENAME = "monkey.txt";
-
-    /** Number of events to execute if nothing was specified. */
-    private static final int DEFAULT_EVENT_COUNT = 100;
 
     /** File to write monkey results to. */
     @Exported
@@ -61,15 +59,14 @@ public class MonkeyBuilder extends AbstractBuilder {
     @Exported
     public final String categories;
 
-
     @DataBoundConstructor
     public MonkeyBuilder(String filename, String packageId, Integer eventCount, Integer throttleMs, String seed, String categories) {
-        this.filename = Util.fixEmptyAndTrim(filename);
-        this.packageId = packageId;
-        this.eventCount = eventCount == null ? DEFAULT_EVENT_COUNT : Math.abs(eventCount);
+        this.filename = fixEmptyAndTrim(filename);
+        this.packageId = fixEmptyAndTrim(packageId);
+        this.eventCount = eventCount == null ? 0 : Math.abs(eventCount);
         this.throttleMs = throttleMs == null ? 0 : Math.abs(throttleMs);
-        this.seed = seed == null ? "" : seed.trim().toLowerCase();
-        this.categories = categories == null ? "" : categories.trim();
+        this.seed = fixEmptyAndTrim(seed) == null ? null : seed.trim().toLowerCase(Locale.ROOT);
+        this.categories = fixEmptyAndTrim(categories);
     }
 
     @Override
@@ -83,33 +80,20 @@ public class MonkeyBuilder extends AbstractBuilder {
             return false;
         }
 
-        // Set up arguments to adb
-        final String deviceIdentifier = getDeviceIdentifier(build, listener);
-        StringBuilder packageArgs = new StringBuilder();
-        StringBuilder packageNamesLog = new StringBuilder(); // For logging
-        if(!this.packageId.equals("")) {
-        	for(String s : this.packageId.split(",")) {
-        		// Add "-p [packagename]"
-        		packageArgs.append(" -p ");
-        		String expandedPackageId = Utils.expandVariables(build, listener, s);
-        		packageArgs.append(expandedPackageId);
-        		packageNamesLog.append(expandedPackageId);
-        	}
-        }
-        StringBuilder categoriesArgs = new StringBuilder();
-        if(!this.categories.equals("")) {
-        	for(String s : this.categories.split(",")) {
-        		// Add "-c [category]"
-        		categoriesArgs.append(" -c ");
-        		String expandedCategory = Utils.expandVariables(build, listener, s);
-        		categoriesArgs.append(expandedCategory);
-        	}
-        }
+        // Build list of arguments for monkey
+        StringBuilder cmdArgs = new StringBuilder();
+        List<String> packageNamesLog = new ArrayList<String>();
+        final String expandedPackageId = Utils.expandVariables(build, listener, packageId);
+        addArguments(expandedPackageId, "-p", cmdArgs, packageNamesLog);
+
+        List<String> categoryNamesLog = new ArrayList<String>();
+        final String expandedCategory = Utils.expandVariables(build, listener, categories);
+        addArguments(expandedCategory, "-c", cmdArgs, categoryNamesLog);
+
         final long seedValue = parseSeed(seed);
-        String args = String.format("%s shell monkey -v -v %s %s -s %d --throttle %d %d",
-                deviceIdentifier, packageArgs.toString(),
-                categoriesArgs.toString(),
-                seedValue, throttleMs, eventCount);
+        final String deviceIdentifier = getDeviceIdentifier(build, listener);
+        String args = String.format("%s shell monkey -v -v -s %d --throttle %d %s %d", deviceIdentifier, seedValue,
+                throttleMs, cmdArgs.toString(), eventCount);
 
         // Determine output filename
         String outputFile;
@@ -122,7 +106,7 @@ public class MonkeyBuilder extends AbstractBuilder {
         // Start monkeying around
         OutputStream monkeyOutput = build.getWorkspace().child(outputFile).write();
         try {
-            log(logger, Messages.STARTING_MONKEY(packageNamesLog.toString(), eventCount, seedValue));
+            log(logger, Messages.STARTING_MONKEY(packageNamesLog, eventCount, seedValue, categoryNamesLog));
             Utils.runAndroidTool(launcher, build.getEnvironment(TaskListener.NULL), monkeyOutput,
                     logger, androidSdk, Tool.ADB, args, null);
         } finally {
@@ -132,6 +116,36 @@ public class MonkeyBuilder extends AbstractBuilder {
         }
 
         return true;
+    }
+
+    /**
+     * Turns a comma-separated string into a list of command line arguments.
+     *
+     * @param parameters The user-provided argument string, after variable expansion.
+     * @param flag The command line flag to insert between each valid argument.
+     * @param argsOut StringBuilder to append valid arguments to.
+     * @param names List to append valid arguments to for later logging.
+     */
+    private static void addArguments(String parameters, String flag, StringBuilder argsOut, List<String> names) {
+        // No input, nothing to do
+        if (parameters == null) {
+            return;
+        }
+
+        for (String arg : parameters.split(",")) {
+            // Ignore empty values, or variables that failed to be expanded
+            arg = fixEmptyAndTrim(arg);
+            if (arg == null || arg.contains("$")) {
+                continue;
+            }
+
+            // Append flag and the given argument to the list
+            argsOut.append(' ');
+            argsOut.append(flag);
+            argsOut.append(' ');
+            argsOut.append(arg);
+            names.add(arg);
+        }
     }
 
     private static long parseSeed(String seed) {
