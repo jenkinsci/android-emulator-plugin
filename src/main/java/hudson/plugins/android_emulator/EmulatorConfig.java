@@ -307,7 +307,6 @@ class EmulatorConfig implements Serializable {
         StringBuilder sb = new StringBuilder();
 
         // Set basics
-        sb.append("-no-boot-anim");
         sb.append(String.format(" -ports %s,%s", userPort, adbPort));
         if (!isNamedEmulator()) {
             sb.append(" -prop persist.sys.language=");
