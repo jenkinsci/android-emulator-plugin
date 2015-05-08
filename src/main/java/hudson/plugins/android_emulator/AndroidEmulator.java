@@ -28,6 +28,7 @@ import hudson.util.ForkOutputStream;
 import hudson.util.FormValidation;
 import hudson.util.NullStream;
 import net.sf.json.JSONObject;
+
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.QueryParameter;
 import org.kohsuke.stapler.StaplerRequest;
@@ -268,7 +269,7 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
             final EmulatorConfig emuConfig, final HardwareProperty[] hardwareProperties)
                 throws IOException, InterruptedException {
         final PrintStream logger = listener.getLogger();
-
+        
         // First ensure that emulator exists
         final boolean emulatorAlreadyExists;
         try {
@@ -283,7 +284,7 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
             build.setResult(Result.NOT_BUILT);
             return null;
         }
-
+        
         // Update emulator configuration with desired hardware properties
         if (!emuConfig.isNamedEmulator() && hardwareProperties.length != 0) {
             Callable<Void, IOException> task = emuConfig.getEmulatorConfigTask(hardwareProperties, listener);
@@ -305,7 +306,33 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
         adbStart.joinWithTimeout(5L, TimeUnit.SECONDS, listener);
         Proc adbStart2 = emu.getToolProcStarter(Tool.ADB, "start-server").stdout(logger).stderr(logger).start();
         adbStart2.joinWithTimeout(5L, TimeUnit.SECONDS, listener);
-
+        
+        //Check for connected devices
+        final ByteArrayOutputStream deviceList = new ByteArrayOutputStream();
+        emu.getToolProcStarter(Tool.ADB, "devices").stdout(deviceList).stderr(logger).join();
+        String deviceOutput = deviceList.toString();
+        ArrayList<String> deviceNames = getDeviceNames(deviceOutput, logger);
+        if (deviceNames == null || deviceNames.isEmpty()) {
+        	log(logger, "No deveices connected, continuing with emulator start");
+        }
+        else {
+        	log(logger, "Devices detected, skipping emulator start procedure");
+        	return new Environment() {
+                @Override
+                @SuppressWarnings("rawtypes")
+                public boolean tearDown(AbstractBuild build, BuildListener listener)
+                        throws IOException, InterruptedException {
+                	ArgumentListBuilder adbKillCmd = emu.getToolCommand(Tool.ADB, "kill-server");
+                    emu.getProcStarter(adbKillCmd).join();
+                    
+                    emu.cleanUp();
+                    return true;
+                }
+        	};
+        }
+        
+        
+        
         // Determine whether we need to create the first snapshot
         final SnapshotState snapshotState;
         if (useSnapshots && androidSdk.supportsSnapshots()) {
@@ -526,7 +553,25 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
         };
     }
 
-    private static void connectEmulator(AndroidEmulatorContext emu)
+    private ArrayList<String> getDeviceNames(String nameInput, PrintStream logger) {
+    	if (nameInput == null) {
+    		return null;
+    	}
+    	String[] splitInput = nameInput.split("\\r?\\n");
+    	ArrayList<String> names = new ArrayList<String>();
+    	for(String line : splitInput) {
+    		if (line.trim() != "") {
+    			names.add(line.trim());
+    		}
+    	}
+    	if (names.size() > 1 && names.get(0).contains("List of devices attached")) {
+    		names.remove(0);
+    		return names;
+    	}
+		return null;
+	}
+
+	private static void connectEmulator(AndroidEmulatorContext emu)
             throws IOException, InterruptedException {
         ArgumentListBuilder adbConnectCmd = emu.getToolCommand(Tool.ADB, "connect " + emu.serial());
         emu.getProcStarter(adbConnectCmd).start().joinWithTimeout(5L, TimeUnit.SECONDS, emu.launcher().getListener());
