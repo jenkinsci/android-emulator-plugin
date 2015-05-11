@@ -89,6 +89,7 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
     @Exported public final int startupDelay;
     @Exported public final String commandLineOptions;
     @Exported public final String executable;
+    @Exported public final boolean checkForDevices;
 
 
     @DataBoundConstructor
@@ -96,7 +97,7 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
             String screenResolution, String deviceLocale, String sdCardSize,
             HardwareProperty[] hardwareProperties, boolean wipeData, boolean showWindow,
             boolean useSnapshots, boolean deleteAfterBuild, int startupDelay,
-            String commandLineOptions, String targetAbi, String executable, String avdNameSuffix) {
+            String commandLineOptions, String targetAbi, String executable, String avdNameSuffix, boolean checkDevices) {
         this.avdName = avdName;
         this.osVersion = osVersion;
         this.screenDensity = screenDensity;
@@ -113,6 +114,7 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
         this.commandLineOptions = commandLineOptions;
         this.targetAbi = targetAbi;
         this.avdNameSuffix = avdNameSuffix;
+        this.checkForDevices = checkDevices;
     }
 
     public boolean getUseNamedEmulator() {
@@ -299,38 +301,36 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
         }
 
         final AndroidEmulatorContext emu = new AndroidEmulatorContext(build, launcher, listener, androidSdk);
-
+        
+        //Check for connected devices
+        if (checkForDevices == true) {
+        	AndroidEmulatorContext noContext = new AndroidEmulatorContext(build, launcher, listener, androidSdk);
+        	if (devicesConnected(emu, logger)) {
+        		log(logger, Messages.DEVICES_CONNECTED());
+            	return new Environment() {
+                    @Override
+                    @SuppressWarnings("rawtypes")
+                    public boolean tearDown(AbstractBuild build, BuildListener listener)
+                            throws IOException, InterruptedException {
+                    	ArgumentListBuilder adbKillCmd = emu.getToolCommand(Tool.ADB, "kill-server");
+                        emu.getProcStarter(adbKillCmd).join();
+                        
+                        emu.cleanUp();
+                        return true;
+                    }
+            	};
+        	}
+        	else {
+        		log(logger, Messages.NO_DEVICES_CONNECTED());
+        	}
+        }
+        
         // We manually start the adb-server so that later commands will not have to start it,
         // allowing them to complete faster.
         Proc adbStart = emu.getToolProcStarter(Tool.ADB, "start-server").stdout(logger).stderr(logger).start();
         adbStart.joinWithTimeout(5L, TimeUnit.SECONDS, listener);
         Proc adbStart2 = emu.getToolProcStarter(Tool.ADB, "start-server").stdout(logger).stderr(logger).start();
         adbStart2.joinWithTimeout(5L, TimeUnit.SECONDS, listener);
-        
-        //Check for connected devices
-        final ByteArrayOutputStream deviceList = new ByteArrayOutputStream();
-        emu.getToolProcStarter(Tool.ADB, "devices").stdout(deviceList).stderr(logger).join();
-        String deviceOutput = deviceList.toString();
-        ArrayList<String> deviceNames = getDeviceNames(deviceOutput, logger);
-        if (deviceNames == null || deviceNames.isEmpty()) {
-        	log(logger, "No deveices connected, continuing with emulator start");
-        }
-        else {
-        	log(logger, "Devices detected, skipping emulator start procedure");
-        	return new Environment() {
-                @Override
-                @SuppressWarnings("rawtypes")
-                public boolean tearDown(AbstractBuild build, BuildListener listener)
-                        throws IOException, InterruptedException {
-                	ArgumentListBuilder adbKillCmd = emu.getToolCommand(Tool.ADB, "kill-server");
-                    emu.getProcStarter(adbKillCmd).join();
-                    
-                    emu.cleanUp();
-                    return true;
-                }
-        	};
-        }
-        
         
         
         // Determine whether we need to create the first snapshot
@@ -553,7 +553,26 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
         };
     }
 
-    private ArrayList<String> getDeviceNames(String nameInput, PrintStream logger) {
+    private boolean devicesConnected(AndroidEmulatorContext emu, PrintStream logger) 
+    		throws IOException, InterruptedException {
+    	final ByteArrayOutputStream deviceList = new ByteArrayOutputStream();
+    	//temporarily change adb server port to standard port when making check
+    	int tempPort = emu.adbServerPort();
+    	emu.setAdbServerPort(5097); //Standard port
+        emu.getToolProcStarter(Tool.ADB, "devices").stdout(deviceList).stderr(logger).join();
+        emu.setAdbServerPort(tempPort);
+        String deviceOutput = deviceList.toString();
+        log(logger, deviceOutput);
+        ArrayList<String> deviceNames = getDeviceNames(deviceOutput, logger);
+        if (deviceNames == null || deviceNames.isEmpty()) {
+        	return false;
+        }
+        else {
+    		return true;
+        }
+	}
+
+	private ArrayList<String> getDeviceNames(String nameInput, PrintStream logger) {
     	if (nameInput == null) {
     		return null;
     	}
@@ -866,6 +885,7 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
             String commandLineOptions = null;
             String executable = null;
             String avdNameSuffix = null;
+            boolean checkForDevices = false;
 
             JSONObject emulatorData = formData.getJSONObject("useNamed");
             String useNamedValue = emulatorData.getString("value");
@@ -881,6 +901,7 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
                 targetAbi = Util.fixEmptyAndTrim(emulatorData.getString("targetAbi"));
                 avdNameSuffix = Util.fixEmptyAndTrim(emulatorData.getString("avdNameSuffix"));
             }
+            checkForDevices = formData.getBoolean("checkDevices");
             wipeData = formData.getBoolean("wipeData");
             showWindow = formData.getBoolean("showWindow");
             useSnapshots = formData.getBoolean("useSnapshots");
@@ -895,7 +916,7 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
             return new AndroidEmulator(avdName, osVersion, screenDensity, screenResolution,
                     deviceLocale, sdCardSize, hardware.toArray(new HardwareProperty[0]), wipeData,
                     showWindow, useSnapshots, deleteAfterBuild, startupDelay, commandLineOptions,
-                    targetAbi, executable, avdNameSuffix);
+                    targetAbi, executable, avdNameSuffix, checkForDevices);
         }
 
         @Override
