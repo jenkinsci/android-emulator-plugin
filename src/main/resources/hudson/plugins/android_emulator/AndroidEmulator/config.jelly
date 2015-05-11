@@ -101,8 +101,8 @@
           <label class="attach-previous">${%Use emulator snapshots}</label>
         </f:entry>
         <f:entry help="/plugin/android-emulator/help-checkDevices.html">
-          <f:checkbox id="android-emulator.checkdevices" name="android-emulator.checkDevices"
-              checked="${instance.checkDevices}" />
+          <f:checkbox id="android-emulator.checkForDevices" name="android-emulator.checkForDevices"
+              checked="${instance.checkForDevices}" />
           <label class="attach-previous">${%Only start emulator if no devices are attached}</label>
         </f:entry>
       </f:section>

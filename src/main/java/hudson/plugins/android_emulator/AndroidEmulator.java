@@ -97,7 +97,7 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
             String screenResolution, String deviceLocale, String sdCardSize,
             HardwareProperty[] hardwareProperties, boolean wipeData, boolean showWindow,
             boolean useSnapshots, boolean deleteAfterBuild, int startupDelay,
-            String commandLineOptions, String targetAbi, String executable, String avdNameSuffix, boolean checkDevices) {
+            String commandLineOptions, String targetAbi, String executable, String avdNameSuffix, boolean checkForDevices) {
         this.avdName = avdName;
         this.osVersion = osVersion;
         this.screenDensity = screenDensity;
@@ -114,7 +114,7 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
         this.commandLineOptions = commandLineOptions;
         this.targetAbi = targetAbi;
         this.avdNameSuffix = avdNameSuffix;
-        this.checkForDevices = checkDevices;
+        this.checkForDevices = checkForDevices;
     }
 
     public boolean getUseNamedEmulator() {
@@ -556,9 +556,10 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
     private boolean devicesConnected(AndroidEmulatorContext emu, PrintStream logger) 
     		throws IOException, InterruptedException {
     	final ByteArrayOutputStream deviceList = new ByteArrayOutputStream();
+    	
     	//temporarily change adb server port to standard port when making check
     	int tempPort = emu.adbServerPort();
-    	emu.setAdbServerPort(5097); //Standard port
+    	emu.setAdbServerPort(5037); //Standard port
         emu.getToolProcStarter(Tool.ADB, "devices").stdout(deviceList).stderr(logger).join();
         emu.setAdbServerPort(tempPort);
         String deviceOutput = deviceList.toString();
@@ -901,7 +902,7 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
                 targetAbi = Util.fixEmptyAndTrim(emulatorData.getString("targetAbi"));
                 avdNameSuffix = Util.fixEmptyAndTrim(emulatorData.getString("avdNameSuffix"));
             }
-            checkForDevices = formData.getBoolean("checkDevices");
+            checkForDevices = formData.getBoolean("checkForDevices");
             wipeData = formData.getBoolean("wipeData");
             showWindow = formData.getBoolean("showWindow");
             useSnapshots = formData.getBoolean("useSnapshots");
