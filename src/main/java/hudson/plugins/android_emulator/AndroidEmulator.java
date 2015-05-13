@@ -12,6 +12,7 @@ import hudson.matrix.Combination;
 import hudson.model.AbstractBuild;
 import hudson.model.AbstractProject;
 import hudson.model.BuildListener;
+import hudson.model.TaskListener;
 import hudson.model.Computer;
 import hudson.model.Hudson;
 import hudson.model.Node;
@@ -83,21 +84,21 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
     @Exported public final boolean wipeData;
     @Exported public final boolean showWindow;
     @Exported public final boolean useSnapshots;
+    @Exported public final int adbPort;
+    @Exported public final boolean checkForDevices;
 
     // Advanced properties
     @Exported public final boolean deleteAfterBuild;
     @Exported public final int startupDelay;
     @Exported public final String commandLineOptions;
     @Exported public final String executable;
-    @Exported public final boolean checkForDevices;
-
 
     @DataBoundConstructor
     public AndroidEmulator(String avdName, String osVersion, String screenDensity,
             String screenResolution, String deviceLocale, String sdCardSize,
             HardwareProperty[] hardwareProperties, boolean wipeData, boolean showWindow,
             boolean useSnapshots, boolean deleteAfterBuild, int startupDelay,
-            String commandLineOptions, String targetAbi, String executable, String avdNameSuffix, boolean checkForDevices) {
+            String commandLineOptions, String targetAbi, String executable, String avdNameSuffix, boolean checkForDevices, int adbServerPort) {
         this.avdName = avdName;
         this.osVersion = osVersion;
         this.screenDensity = screenDensity;
@@ -114,6 +115,7 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
         this.commandLineOptions = commandLineOptions;
         this.targetAbi = targetAbi;
         this.avdNameSuffix = avdNameSuffix;
+        this.adbPort = adbServerPort;
         this.checkForDevices = checkForDevices;
     }
 
@@ -303,11 +305,15 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
         final AndroidEmulatorContext emu = new AndroidEmulatorContext(build, launcher, listener, androidSdk);
         
         //Check for connected devices
-        if (checkForDevices == true) {
-        	AndroidEmulatorContext noContext = new AndroidEmulatorContext(build, launcher, listener, androidSdk);
-        	if (devicesConnected(emu, logger)) {
+        if (checkForDevices) {
+        	if (devicesConnected(emu, logger, adbPort, build)) {
         		log(logger, Messages.DEVICES_CONNECTED());
+        		//Devices found, return build environment with adb server port now before the emuator is started
             	return new Environment() {
+            		@Override
+            		public void buildEnvVars(Map<String, String> env) {
+            			env.put("ANDROID_ADB_SERVER_PORT", Integer.toString(adbPort));
+            		}
                     @Override
                     @SuppressWarnings("rawtypes")
                     public boolean tearDown(AbstractBuild build, BuildListener listener)
@@ -552,18 +558,36 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
             }
         };
     }
-
-    private boolean devicesConnected(AndroidEmulatorContext emu, PrintStream logger) 
+    /**
+     * Runs the adb devices command on a adb server with a specific port
+     * @param emu The emulator context
+     * @param logger Build output stream
+     * @param adbPort The adb server port
+     * @param build The wrapper
+     * @return Boolean value representing whether there are devices attached.
+     * @throws IOException
+     * @throws InterruptedException
+     */	
+    private boolean devicesConnected(AndroidEmulatorContext emu, PrintStream logger, int adbPort, AbstractBuild<?,?> build) 
     		throws IOException, InterruptedException {
     	final ByteArrayOutputStream deviceList = new ByteArrayOutputStream();
-    	
-    	//temporarily change adb server port to standard port when making check
-    	int tempPort = emu.adbServerPort();
-    	emu.setAdbServerPort(5037); //Standard port
-        emu.getToolProcStarter(Tool.ADB, "devices").stdout(deviceList).stderr(logger).join();
-        emu.setAdbServerPort(tempPort);
+    	//Check if port is negative, use default if it is.
+    	int port = adbPort;
+    	if (adbPort <= 0) {
+    		port = 5037;
+    	}
+    	//Setup a build environment to run the "adb devices" command in.
+    	final EnvVars buildEnv = build.getEnvironment(TaskListener.NULL);
+    	buildEnv.put("ANDROID_ADB_SERVER_PORT", Integer.toString(adbPort));
+    	if (emu.sdk().hasKnownHome()) {
+			buildEnv.put("ANDROID_SDK_HOME", emu.sdk().getSdkHome());
+		}
+		if (emu.launcher().isUnix()) {
+			buildEnv.put("LD_LIBRARY_PATH", String.format("%s/tools/lib", emu.sdk().getSdkRoot()));
+		}
+		//Run the command ADB -d devices
+    	Utils.runAndroidTool(emu.launcher(), buildEnv, deviceList, logger, emu.sdk(), Tool.ADB, "-d devices", null);
         String deviceOutput = deviceList.toString();
-        log(logger, deviceOutput);
         ArrayList<String> deviceNames = getDeviceNames(deviceOutput, logger);
         if (deviceNames == null || deviceNames.isEmpty()) {
         	return false;
@@ -886,9 +910,11 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
             String commandLineOptions = null;
             String executable = null;
             String avdNameSuffix = null;
+            int adbServerPort = 5037; //Standard port
             boolean checkForDevices = false;
-
+            
             JSONObject emulatorData = formData.getJSONObject("useNamed");
+            final JSONObject adbPortData = formData.getJSONObject("checkForDevices");
             String useNamedValue = emulatorData.getString("value");
             if (Boolean.parseBoolean(useNamedValue)) {
                 avdName = Util.fixEmptyAndTrim(emulatorData.getString("avdName"));
@@ -902,7 +928,12 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
                 targetAbi = Util.fixEmptyAndTrim(emulatorData.getString("targetAbi"));
                 avdNameSuffix = Util.fixEmptyAndTrim(emulatorData.getString("avdNameSuffix"));
             }
-            checkForDevices = formData.getBoolean("checkForDevices");
+            if (adbPortData != null && !adbPortData.isNullObject()) {
+            	checkForDevices = true;
+            	try {
+            		adbServerPort = Integer.parseInt(adbPortData.getString("adbPort"));
+            	} catch (NumberFormatException e) { adbServerPort = 5037; }
+            }
             wipeData = formData.getBoolean("wipeData");
             showWindow = formData.getBoolean("showWindow");
             useSnapshots = formData.getBoolean("useSnapshots");
@@ -917,7 +948,7 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
             return new AndroidEmulator(avdName, osVersion, screenDensity, screenResolution,
                     deviceLocale, sdCardSize, hardware.toArray(new HardwareProperty[0]), wipeData,
                     showWindow, useSnapshots, deleteAfterBuild, startupDelay, commandLineOptions,
-                    targetAbi, executable, avdNameSuffix, checkForDevices);
+                    targetAbi, executable, avdNameSuffix, checkForDevices, adbServerPort);
         }
 
         @Override
@@ -967,8 +998,25 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
         public FormValidation doCheckAvdName(@QueryParameter String value) {
             return doCheckAvdName(value, true).getFormValidation();
         }
+        public FormValidation doCheckAdbServerPortValue(@QueryParameter String value) {
+        	return doCheckAdbServerPortValue(value, false).getFormValidation();
+        }
+        private ValidationResult doCheckAdbServerPortValue(String adbServerPort, boolean b) {
+			if (adbServerPort == null || adbServerPort.equals("")) {
+				return ValidationResult.error(Messages.AVD_SERVER_PORT_REQUIRED());
+			}
+			try {
+				if (Integer.parseInt(adbServerPort) <= 0) {
+					return ValidationResult.error(Messages.AVD_SERVER_PORT_NEGATIVE());
+				}
+			}
+			catch (NumberFormatException e) {
+				return ValidationResult.error(Messages.AVD_SERVER_PORT_NOT_A_NUMBER(adbServerPort));
+			}
+			return ValidationResult.ok();
+		}
 
-        private ValidationResult doCheckAvdName(String avdName, boolean allowVariables) {
+		private ValidationResult doCheckAvdName(String avdName, boolean allowVariables) {
             if (avdName == null || avdName.equals("")) {
                 return ValidationResult.error(Messages.AVD_NAME_REQUIRED());
             }

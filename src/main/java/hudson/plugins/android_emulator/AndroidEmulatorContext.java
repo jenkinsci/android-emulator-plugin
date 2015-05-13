@@ -74,9 +74,6 @@ public class AndroidEmulatorContext {
 	public int adbServerPort() {
 		return adbServerPort;
 	}
-	public void setAdbServerPort(int adbServerPort) {
-		this.adbServerPort = adbServerPort;
-	}
 	public String serial() {
 		return serial;
 	}
