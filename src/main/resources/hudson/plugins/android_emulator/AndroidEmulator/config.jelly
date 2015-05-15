@@ -100,6 +100,21 @@
               checked="${instance.useSnapshots}" />
           <label class="attach-previous">${%Use emulator snapshots}</label>
         </f:entry>
+        <f:entry help="/plugin/android-emulator/help-checkDevices.html">
+          
+          	<table>
+  	    	  <f:optionalBlock title="${%Only start emulator if no devices are attached}" name="android-emulator.checkForDevices" 
+  	              id="android-emulator.checkForDevices" checked="${instance.checkForDevices}"
+  	               >
+              	<f:entry title="${%Select ADB server port. Default port: 5037}">
+          		  <f:textbox name="android-emulator.adbPort" id="android-emulator.adbPort" 
+          		      value="${instance.adbPort}" style="width:3em" default="5037"
+          		      checkUrl="'descriptorByName/AndroidEmulator/checkAdbServerPortValue?value='+escape(this.value)" />
+          		</f:entry >
+        	  </f:optionalBlock>
+            </table>
+          
+        </f:entry>
       </f:section>
 
     </table>
