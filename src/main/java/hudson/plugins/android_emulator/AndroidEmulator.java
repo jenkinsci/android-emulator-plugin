@@ -571,11 +571,6 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
     private boolean devicesConnected(AndroidEmulatorContext emu, PrintStream logger, int adbPort, AbstractBuild<?,?> build) 
     		throws IOException, InterruptedException {
     	final ByteArrayOutputStream deviceList = new ByteArrayOutputStream();
-    	//Check if port is negative, use default if it is.
-    	int port = adbPort;
-    	if (adbPort <= 0) {
-    		port = 5037;
-    	}
     	//Setup a build environment to run the "adb devices" command in.
     	final EnvVars buildEnv = build.getEnvironment(TaskListener.NULL);
     	buildEnv.put("ANDROID_ADB_SERVER_PORT", Integer.toString(adbPort));
@@ -933,6 +928,9 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
             	try {
             		adbServerPort = Integer.parseInt(adbPortData.getString("adbPort"));
             	} catch (NumberFormatException e) { adbServerPort = 5037; }
+            	if (adbServerPort <= 0 || adbServerPort >= 65536) { //Make sure port is in valid range
+            		adbServerPort = 5037;
+            	}
             }
             wipeData = formData.getBoolean("wipeData");
             showWindow = formData.getBoolean("showWindow");
