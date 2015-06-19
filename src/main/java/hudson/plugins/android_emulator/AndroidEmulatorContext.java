@@ -49,7 +49,7 @@ public class AndroidEmulatorContext {
 		// Use the Port Allocator plugin to reserve the ports we need
 		portAllocator = PortAllocationManager.getManager(computer);
 		final int PORT_RANGE_START = 5554;
-		final int PORT_RANGE_END = 9999; // Make sure the port is four digits, as there are tools that rely on this
+		final int PORT_RANGE_END = 5680; // Make sure the port is four digits, as there are tools that rely on this
 		int[] ports = portAllocator.allocatePortRange(build, PORT_RANGE_START, PORT_RANGE_END, 3, true);
 		userPort = ports[0];
 		adbPort = ports[1];
