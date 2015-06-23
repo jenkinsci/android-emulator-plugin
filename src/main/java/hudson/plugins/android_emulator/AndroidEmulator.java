@@ -28,6 +28,7 @@ import hudson.util.ForkOutputStream;
 import hudson.util.FormValidation;
 import hudson.util.NullStream;
 import net.sf.json.JSONObject;
+
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.QueryParameter;
 import org.kohsuke.stapler.StaplerRequest;
@@ -349,7 +350,7 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
                 .stdout(emulatorLogger).stderr(logger).start();
         emu.setProcess(emulatorProcess);
 
-        // Give the emulator process a chance to initialise
+        // Give the emulator process a chance to initialize
         Thread.sleep(5 * 1000);
 
         // Check whether a failure was reported on stdout
@@ -406,7 +407,7 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
         final File artifactsDir = build.getArtifactsDir();
         final FilePath logcatFile = build.getWorkspace().createTextTempFile("logcat_", ".log", "", false);
         final OutputStream logcatStream = logcatFile.write();
-        final String logcatArgs = String.format("-s %s logcat -v time", emu.serial());
+        final String logcatArgs = String.format("-s %s logcat -v time", emu.effectiveSerial());
         final Proc logWriter = emu.getToolProcStarter(Tool.ADB, logcatArgs)
                 .stdout(logcatStream).stderr(new NullStream()).start();
 
@@ -419,12 +420,14 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
             // The delay here is a function of boot time, i.e. relative to the slowness of the host
             Thread.sleep(bootDuration / 4);
 
-            // Make sure we're still connected
-            connectEmulator(emu);
+            if (emu.connectedToAdbServerPort()) {
+            	// Make sure we're still connected
+            	connectEmulator(emu);
+            }
 
             log(logger, Messages.UNLOCKING_SCREEN());
             final long adbTimeout = bootTimeout / 16;
-            final String keyEventArgs = String.format("-s %s shell input keyevent %%d", emu.serial());
+            final String keyEventArgs = String.format("-s %s shell input keyevent %%d", emu.effectiveSerial());
             final String menuArgs = String.format(keyEventArgs, 82);
             ArgumentListBuilder menuCmd = emu.getToolCommand(Tool.ADB, menuArgs);
             Proc proc = emu.getProcStarter(menuCmd).start();
@@ -446,14 +449,16 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
             Thread.sleep((long) (bootDuration * 0.8));
 
             // Make sure we're still connected
-            connectEmulator(emu);
+            if (emu.connectedToAdbServerPort()) {
+            	connectEmulator(emu);
+            }
 
             // Clear main log before creating snapshot
-            final String clearArgs = String.format("-s %s logcat -c", emu.serial());
+            final String clearArgs = String.format("-s %s logcat -c", emu.effectiveSerial());
             ArgumentListBuilder adbCmd = emu.getToolCommand(Tool.ADB, clearArgs);
             emu.getProcStarter(adbCmd).join();
             final String msg = Messages.LOG_CREATING_SNAPSHOT();
-            final String logArgs = String.format("-s %s shell log -p v -t Jenkins '%s'", emu.serial(), msg);
+            final String logArgs = String.format("-s %s shell log -p v -t Jenkins '%s'", emu.effectiveSerial(), msg);
             adbCmd = emu.getToolCommand(Tool.ADB, logArgs);
             emu.getProcStarter(adbCmd).join();
 
@@ -480,7 +485,9 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
         }
 
         // Make sure we're still connected
-        connectEmulator(emu);
+        if (emu.connectedToAdbServerPort()) {
+        	connectEmulator(emu);
+        }
 
         // Done!
         final long bootCompleteTime = System.currentTimeMillis();
@@ -490,8 +497,9 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
         return new Environment() {
             @Override
             public void buildEnvVars(Map<String, String> env) {
-                env.put("ANDROID_SERIAL", emu.serial());
-                env.put("ANDROID_AVD_DEVICE", emu.serial());
+                env.put("ANDROID_SERIAL", emu.effectiveSerial());
+                log(logger, "Publishing serial as " + emu.effectiveSerial());
+                env.put("ANDROID_AVD_DEVICE", emu.effectiveSerial());
                 env.put("ANDROID_AVD_ADB_PORT", Integer.toString(emu.adbPort()));
                 env.put("ANDROID_AVD_USER_PORT", Integer.toString(emu.userPort()));
                 env.put("ANDROID_AVD_NAME", emuConfig.getAvdName());
@@ -723,8 +731,10 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
         final boolean isOldApi = apiLevel > 0 && apiLevel < 4;
         final String cmd = isOldApi ? "dev.bootcomplete" : "init.svc.bootanim";
         final String expectedAnswer = isOldApi ? "1" :"stopped";
-        final String args = String.format("-s %s shell getprop %s", emu.serial(), cmd);
-        ArgumentListBuilder bootCheckCmd = emu.getToolCommand(Tool.ADB, args);
+        final String argsForSerial = String.format("-s %s shell getprop %s", emu.serial(), cmd);
+        ArgumentListBuilder bootCheckSerialCmd = emu.getToolCommand(Tool.ADB, argsForSerial);
+        final String argsForAdbPort = String.format("-s %s shell getprop %s", emu.emulatorSerial(), cmd);
+        ArgumentListBuilder bootCheckAdbPortCmd = emu.getToolCommand(Tool.ADB, argsForAdbPort);
 
         try {
             final long adbTimeout = timeout / 8;
@@ -733,14 +743,16 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
                 ByteArrayOutputStream stream = new ByteArrayOutputStream(16);
 
                 // Run "getprop", timing-out in case adb hangs
-                Proc proc = emu.getProcStarter(bootCheckCmd).stdout(stream).start();
-                int retVal = proc.joinWithTimeout(adbTimeout, TimeUnit.MILLISECONDS, emu.launcher().getListener());
-                if (retVal == 0) {
-                    // If boot is complete, our work here is done
-                    String result = stream.toString().trim();
-                    if (result.equals(expectedAnswer)) {
-                        return true;
-                    }
+                // Try emulator-xxx
+                if (hasBooted(emu, expectedAnswer, bootCheckAdbPortCmd, adbTimeout, stream)) {
+                	disconnectEmulator(emu);	// No longer needed
+                	return true;
+                }
+                
+                // Try localhost:xxx
+                if (hasBooted(emu, expectedAnswer, bootCheckSerialCmd, adbTimeout, stream)) {
+                	emu.setConnectedToAdbServerPort(true);
+                	return true;
                 }
 
                 // Otherwise continue...
@@ -766,6 +778,24 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
 
         return false;
     }
+
+	private boolean hasBooted(AndroidEmulatorContext emu,
+			final String expectedAnswer,
+			ArgumentListBuilder bootCheckSerialCmd, final long adbTimeout,
+			ByteArrayOutputStream stream) throws IOException,
+			InterruptedException {
+		Proc proc = emu.getProcStarter(bootCheckSerialCmd).stdout(stream).start();
+		int retVal = proc.joinWithTimeout(adbTimeout, TimeUnit.MILLISECONDS, emu.launcher().getListener());
+		if (retVal == 0) {
+		    // If boot is complete, our work here is done
+		    String result = stream.toString().trim();
+		    if (result.equals(expectedAnswer)) {
+		        return true;
+		    }
+		}
+		
+		return false;
+	}
 
     @Extension(ordinal=-100) // Negative ordinal makes us execute after other wrappers (i.e. Xvnc)
     public static final class DescriptorImpl extends BuildWrapperDescriptor implements Serializable {

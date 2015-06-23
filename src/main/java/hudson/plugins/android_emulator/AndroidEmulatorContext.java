@@ -26,6 +26,8 @@ public class AndroidEmulatorContext {
 
 	private int adbPort, userPort, adbServerPort;
 	private String serial;
+	private String emulatorSerial;
+	private boolean connectedToAdbServerPort;
 
 	private PortAllocationManager portAllocator;
 	private Proc emulatorProcess;
@@ -48,14 +50,28 @@ public class AndroidEmulatorContext {
 
 		// Use the Port Allocator plugin to reserve the ports we need
 		portAllocator = PortAllocationManager.getManager(computer);
+		
+		// This port range is the one "emulator -port" states to accept
 		final int PORT_RANGE_START = 5554;
-		final int PORT_RANGE_END = 9999; // Make sure the port is four digits, as there are tools that rely on this
-		int[] ports = portAllocator.allocatePortRange(build, PORT_RANGE_START, PORT_RANGE_END, 3, true);
-		userPort = ports[0];
-		adbPort = ports[1];
-		adbServerPort = ports[2];
+		final int PORT_RANGE_END = 5585; // Make sure the port is four digits, as there are tools that rely on this
+		
+		// Make sure userPort is even, as required by ADB's documentation
+		// See: http://developer.android.com/tools/help/adb.html
+		int[] ports = null;
+		do {
+			if (ports != null) {
+				for (int p : ports) {
+					portAllocator.free(p);
+				}
+			}
+			ports = portAllocator.allocatePortRange(build, PORT_RANGE_START, PORT_RANGE_END, 3, true);
+			userPort = ports[0];
+			adbPort = ports[1];
+			adbServerPort = ports[2];
+		} while (userPort % 2 == 1);
 
 		serial = String.format("localhost:%d", adbPort);
+		emulatorSerial = String.format("emulator-%d", userPort);
 	}
 
 	public void cleanUp() {
@@ -76,6 +92,18 @@ public class AndroidEmulatorContext {
 	}
 	public String serial() {
 		return serial;
+	}
+	public String emulatorSerial() {
+		return emulatorSerial;
+	}
+	public String effectiveSerial() {
+		return connectedToAdbServerPort ? serial : emulatorSerial;
+	}
+	public boolean connectedToAdbServerPort() {
+		return connectedToAdbServerPort;
+	}
+	public void setConnectedToAdbServerPort(boolean connectedToAdbPort) {
+		connectedToAdbServerPort = connectedToAdbPort;
 	}
 
 	public BuildListener listener() {
