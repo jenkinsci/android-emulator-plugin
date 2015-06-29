@@ -90,21 +90,28 @@ public class MonkeyRecorder extends Recorder {
 
         // Extract common data
         int totalEventCount = 0;
+        int outputCount = 0;
         Matcher matcher = Pattern.compile(":Monkey: seed=-?\\d+ count=(\\d+)").matcher(monkeyOutput);
-        if (matcher.find()) {
-            totalEventCount = Integer.parseInt(matcher.group(1));
+        while (matcher.find()) {
+            totalEventCount += Integer.parseInt(matcher.group(1));
+            outputCount++;
         }
 
         // Determine outcome
+        int finishCount = 0;
+        matcher = Pattern.compile("// Monkey finished").matcher(monkeyOutput);
+        while (matcher.find()) {
+            finishCount++;
+        }
         int eventsCompleted = 0;
-        if (monkeyOutput.contains("// Monkey finished")) {
+        if (finishCount >0 && finishCount >= outputCount) {
             result = MonkeyResult.Success;
             eventsCompleted = totalEventCount;
         } else {
             // If it didn't finish, assume failure
             matcher = Pattern.compile("Events injected: (\\d+)").matcher(monkeyOutput);
-            if (matcher.find()) {
-                eventsCompleted = Integer.parseInt(matcher.group(1));
+            while (matcher.find()) {
+                eventsCompleted += Integer.parseInt(matcher.group(1));
             }
 
             // Determine failure type

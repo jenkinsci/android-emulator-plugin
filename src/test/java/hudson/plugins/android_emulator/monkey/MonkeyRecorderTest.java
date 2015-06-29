@@ -20,6 +20,7 @@ public class MonkeyRecorderTest extends TestCase {
     private static final String MONKEY_CRASH = "// CRASH";
     private static final String MONKEY_ANR = "// NOT RESPONDING";
     private static final String MONKEY_SUCCESS = "// Monkey finished";
+    private static final String MONKEY_START_HEADER = ":Monkey: seed=0 count=1234\n";
 
     public void testNotRunForBuild_Aborted() throws InterruptedException, IOException {
         assertNoParsingForBadBuild(Result.ABORTED);
@@ -102,6 +103,26 @@ public class MonkeyRecorderTest extends TestCase {
         String output = ":Monkey: seed=0 count=1234\n";
         output += MONKEY_SUCCESS;
         parseOutputAndAssert(output, MonkeyResult.Success, 1234, 1234);
+    }
+
+    public void testPartialSuccess() {
+        String output = MONKEY_START_HEADER;
+        output += "Events injected: 1234";
+        output += MONKEY_SUCCESS;
+        output += MONKEY_START_HEADER;
+        output += "Events injected: 12";
+        output += MONKEY_CRASH;
+        parseOutputAndAssert(output, MonkeyResult.Crash, 1246, 2468);
+    }
+
+    public void testMultipleSuccess() {
+        String output = MONKEY_START_HEADER;
+        output += "Events injected: 1234";
+        output += MONKEY_SUCCESS;
+        output += MONKEY_START_HEADER;
+        output += "Events injected: 1234";
+        output += MONKEY_SUCCESS;
+        parseOutputAndAssert(output, MonkeyResult.Success, 2468, 2468);
     }
 
     private void parseOutputAndAssert(String monkeyOutput, MonkeyResult expectedResult) {
