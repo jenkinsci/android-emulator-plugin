@@ -19,10 +19,7 @@ import net.sf.json.JSONObject;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.StaplerRequest;
 
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.PrintStream;
-import java.io.Serializable;
+import java.io.*;
 import java.util.regex.Pattern;
 
 public class InstallBuilder extends AbstractBuilder {
@@ -74,6 +71,12 @@ public class InstallBuilder extends AbstractBuilder {
         final String apkFile = getApkFile();
         if (Util.fixEmptyAndTrim(apkFile) == null) {
             AndroidEmulator.log(logger, Messages.APK_NOT_SPECIFIED());
+            return false;
+        }
+
+        // Check whether a value is relative path
+        if (Util.fixEmptyAndTrim(apkFile).startsWith(File.separator)) {
+            AndroidEmulator.log(logger, Messages.APK_PATH_MUST_BE_RELATIVE());
             return false;
         }
 
