@@ -116,6 +116,9 @@ public class MonkeyRecorder extends Recorder {
                 } else if ("NOT RESPONDING".equals(reason)) {
                     result = MonkeyResult.AppNotResponding;
                 }
+              // Case for "** No activities found to run, monkey aborted."
+            } else if (monkeyOutput.contains("No activities found to run")) {
+                result = MonkeyResult.NoActivityFound;
             }
 
             // Set configured build result

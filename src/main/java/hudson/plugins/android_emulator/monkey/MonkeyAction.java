@@ -46,6 +46,9 @@ public class MonkeyAction implements Action {
         case UnrecognisedFormat:
             description = Messages.MONKEY_RESULT_UNRECOGNISED();
             break;
+        case NoActivityFound:
+            description = Messages.MONKEY_RESULT_NOACTIVITYFOUND();
+            break;
         case NothingToParse:
         default:
             description = Messages.MONKEY_RESULT_NONE();
