@@ -77,6 +77,7 @@ public class MonkeyRecorder extends Recorder {
         return true;
     }
 
+
     static MonkeyAction parseMonkeyOutput(AbstractBuild<?, ?> build, PrintStream logger,
             String monkeyOutput, BuildOutcome failureOutcome) {
         // No input, no output
