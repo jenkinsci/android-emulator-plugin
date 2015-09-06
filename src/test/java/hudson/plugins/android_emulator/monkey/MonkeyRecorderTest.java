@@ -1,17 +1,19 @@
 package hudson.plugins.android_emulator.monkey;
 
+import static org.mockito.Matchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 import hudson.Launcher;
 import hudson.model.AbstractBuild;
 import hudson.model.BuildListener;
 import hudson.model.Result;
-import junit.framework.TestCase;
 
 import java.io.IOException;
 import java.io.PrintStream;
 
-import static org.mockito.Matchers.any;
-import static org.mockito.Mockito.*;
-
+import junit.framework.TestCase;
 
 public class MonkeyRecorderTest extends TestCase {
 

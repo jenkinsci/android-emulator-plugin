@@ -139,7 +139,6 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
      */
     public String getConfigHash(Node node, Combination combination) {
         EnvVars envVars;
-
         try {
             envVars = node.toComputer().getEnvironment();
         } catch (Exception e) {

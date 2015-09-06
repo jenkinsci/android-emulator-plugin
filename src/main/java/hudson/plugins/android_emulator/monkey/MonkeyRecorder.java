@@ -1,6 +1,11 @@
 package hudson.plugins.android_emulator.monkey;
 
-import hudson.*;
+import static hudson.plugins.android_emulator.AndroidEmulator.log;
+import hudson.Extension;
+import hudson.FilePath;
+import hudson.Functions;
+import hudson.Launcher;
+import hudson.Util;
 import hudson.model.AbstractBuild;
 import hudson.model.AbstractProject;
 import hudson.model.BuildListener;
@@ -11,32 +16,25 @@ import hudson.tasks.BuildStepDescriptor;
 import hudson.tasks.BuildStepMonitor;
 import hudson.tasks.Publisher;
 import hudson.tasks.Recorder;
-import org.kohsuke.stapler.DataBoundConstructor;
-import org.kohsuke.stapler.export.Exported;
 
 import java.io.IOException;
 import java.io.PrintStream;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import static hudson.plugins.android_emulator.AndroidEmulator.log;
+import org.kohsuke.stapler.DataBoundConstructor;
+import org.kohsuke.stapler.export.Exported;
 
 public class MonkeyRecorder extends Recorder {
 
-	/**
-	 * Default file to read monkey results from.
-	 */
+    /** Default file to read monkey results from. */
 	private static final String DEFAULT_INPUT_FILENAME = "monkey.txt";
 
-	/**
-	 * File to write monkey results to.
-	 */
+    /** File to write monkey results to. */
 	@Exported
 	public final String filename;
 
-	/**
-	 * Build outcome in case we detect monkey ended prematurely.
-	 */
+    /** Build outcome in case we detect monkey ended prematurely. */
 	@Exported
 	public final BuildOutcome failureOutcome;
 
@@ -116,11 +114,13 @@ public class MonkeyRecorder extends Recorder {
 			result = MonkeyResult.Success;
 			eventsCompleted = totalEventCount;
 		} else {
+            // If it didn't finish, assume failure
 			matcher = Pattern.compile("Events injected: (\\d+)").matcher(monkeyOutput);
 			while (matcher.find()) {
 				eventsCompleted += Integer.parseInt(matcher.group(1));
 			}
 
+			// Determine failure type
 			matcher = Pattern.compile("// (CRASH|NOT RESPONDING): (.*?) \\(pid (\\d+)\\)").matcher(monkeyOutput);
 			if (matcher.find()) {
 				String reason = matcher.group(1);
