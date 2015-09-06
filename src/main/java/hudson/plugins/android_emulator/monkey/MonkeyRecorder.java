@@ -1,6 +1,7 @@
 package hudson.plugins.android_emulator.monkey;
 
 import static hudson.plugins.android_emulator.AndroidEmulator.log;
+
 import hudson.Extension;
 import hudson.FilePath;
 import hudson.Functions;
@@ -27,148 +28,154 @@ import org.kohsuke.stapler.export.Exported;
 
 public class MonkeyRecorder extends Recorder {
 
-    /** Default file to read monkey results from. */
-	private static final String DEFAULT_INPUT_FILENAME = "monkey.txt";
+    /**
+     * Default file to read monkey results from.
+     */
+    private static final String DEFAULT_INPUT_FILENAME = "monkey.txt";
 
-    /** File to write monkey results to. */
-	@Exported
-	public final String filename;
+    /**
+     * File to write monkey results to.
+     */
+    @Exported
+    public final String filename;
 
-    /** Build outcome in case we detect monkey ended prematurely. */
-	@Exported
-	public final BuildOutcome failureOutcome;
+    /**
+     * Build outcome in case we detect monkey ended prematurely.
+     */
+    @Exported
+    public final BuildOutcome failureOutcome;
 
-	@DataBoundConstructor
-	public MonkeyRecorder(String filename, BuildOutcome failureOutcome) {
-		this.filename = Util.fixEmptyAndTrim(filename);
-		this.failureOutcome = failureOutcome == null ? BuildOutcome.UNSTABLE : failureOutcome;
-	}
+    @DataBoundConstructor
+    public MonkeyRecorder(String filename, BuildOutcome failureOutcome) {
+        this.filename = Util.fixEmptyAndTrim(filename);
+        this.failureOutcome = failureOutcome == null ? BuildOutcome.UNSTABLE : failureOutcome;
+    }
 
-	@Override
-	public boolean perform(AbstractBuild<?, ?> build, Launcher launcher, BuildListener listener)
-			throws InterruptedException, IOException {
-		// Don't analyse anything if the build failed
-		if (build.getResult().isWorseThan(Result.UNSTABLE)) {
-			return true;
-		}
+    @Override
+    public boolean perform(AbstractBuild<?, ?> build, Launcher launcher, BuildListener listener)
+            throws InterruptedException, IOException {
+        // Don't analyse anything if the build failed
+        if (build.getResult().isWorseThan(Result.UNSTABLE)) {
+            return true;
+        }
 
-		// Determine input filename
-		String inputFile;
-		if (filename == null) {
-			inputFile = DEFAULT_INPUT_FILENAME;
-		} else {
-			inputFile = Utils.expandVariables(build, listener, filename);
-		}
+        // Determine input filename
+        String inputFile;
+        if (filename == null) {
+            inputFile = DEFAULT_INPUT_FILENAME;
+        } else {
+            inputFile = Utils.expandVariables(build, listener, filename);
+        }
 
-		// Read monkey results from file
-		FilePath monkeyFile = build.getWorkspace().child(inputFile);
-		String monkeyOutput = null;
-		try {
-			monkeyOutput = monkeyFile.readToString();
-		} catch (IOException e) {
-			log(listener.getLogger(), Messages.NO_MONKEY_OUTPUT(monkeyFile));
-		}
+        // Read monkey results from file
+        FilePath monkeyFile = build.getWorkspace().child(inputFile);
+        String monkeyOutput = null;
+        try {
+            monkeyOutput = monkeyFile.readToString();
+        } catch (IOException e) {
+            log(listener.getLogger(), Messages.NO_MONKEY_OUTPUT(monkeyFile));
+        }
 
-		// Parse output and apply it to the build
-		PrintStream logger = listener.getLogger();
-		MonkeyAction result = parseMonkeyOutput(build, logger, monkeyOutput, failureOutcome);
-		build.addAction(result);
+        // Parse output and apply it to the build
+        PrintStream logger = listener.getLogger();
+        MonkeyAction result = parseMonkeyOutput(build, logger, monkeyOutput, failureOutcome);
+        build.addAction(result);
 
-		return true;
-	}
+        return true;
+    }
 
-	static MonkeyAction parseMonkeyOutput(AbstractBuild<?, ?> build, PrintStream logger,
-	                                      String monkeyOutput, BuildOutcome failureOutcome) {
-		// No input, no output
-		if (monkeyOutput == null) {
-			return new MonkeyAction(MonkeyResult.NothingToParse);
-		}
+    static MonkeyAction parseMonkeyOutput(AbstractBuild<?, ?> build, PrintStream logger,
+                                          String monkeyOutput, BuildOutcome failureOutcome) {
+        // No input, no output
+        if (monkeyOutput == null) {
+            return new MonkeyAction(MonkeyResult.NothingToParse);
+        }
 
-		Matcher matcher = Pattern.compile(":AllowPackage: (.*?)").matcher(monkeyOutput);
+        Matcher matcher = Pattern.compile(":AllowPackage: (.*?)").matcher(monkeyOutput);
 
-		String packageId = "_package_";
-		if (matcher.find()) {
-			packageId = matcher.group(1);
-		}
+        String packageId = "_package_";
+        if (matcher.find()) {
+            packageId = matcher.group(1);
+        }
 
-		// If we don't recognise any outcomes, then say so
-		MonkeyResult result = MonkeyResult.UnrecognisedFormat;
+        // If we don't recognise any outcomes, then say so
+        MonkeyResult result = MonkeyResult.UnrecognisedFormat;
 
-		// Extract common data
-		int totalEventCount = 0;
-		int outputCount = 0;
-		matcher = Pattern.compile(":Monkey: seed=-?\\d+ count=(\\d+)").matcher(monkeyOutput);
-		while (matcher.find()) {
-			totalEventCount += Integer.parseInt(matcher.group(1));
-			outputCount++;
-		}
+        // Extract common data
+        int totalEventCount = 0;
+        int outputCount = 0;
+        matcher = Pattern.compile(":Monkey: seed=-?\\d+ count=(\\d+)").matcher(monkeyOutput);
+        while (matcher.find()) {
+            totalEventCount += Integer.parseInt(matcher.group(1));
+            outputCount++;
+        }
 
-		// Determine outcome
-		int finishCount = 0;
-		matcher = Pattern.compile("// Monkey finished").matcher(monkeyOutput);
-		while (matcher.find()) {
-			finishCount++;
-		}
-		int eventsCompleted = 0;
-		if (finishCount > 0 && finishCount >= outputCount) {
-			result = MonkeyResult.Success;
-			eventsCompleted = totalEventCount;
-		} else {
+        // Determine outcome
+        int finishCount = 0;
+        matcher = Pattern.compile("// Monkey finished").matcher(monkeyOutput);
+        while (matcher.find()) {
+            finishCount++;
+        }
+        int eventsCompleted = 0;
+        if (finishCount > 0 && finishCount >= outputCount) {
+            result = MonkeyResult.Success;
+            eventsCompleted = totalEventCount;
+        } else {
             // If it didn't finish, assume failure
-			matcher = Pattern.compile("Events injected: (\\d+)").matcher(monkeyOutput);
-			while (matcher.find()) {
-				eventsCompleted += Integer.parseInt(matcher.group(1));
-			}
+            matcher = Pattern.compile("Events injected: (\\d+)").matcher(monkeyOutput);
+            while (matcher.find()) {
+                eventsCompleted += Integer.parseInt(matcher.group(1));
+            }
 
-			// Determine failure type
-			matcher = Pattern.compile("// (CRASH|NOT RESPONDING): (.*?) \\(pid (\\d+)\\)").matcher(monkeyOutput);
-			if (matcher.find()) {
-				String reason = matcher.group(1);
-				if ("CRASH".equals(reason)) {
-					if (!matcher.group(2).equals(packageId)) {
-						result = MonkeyResult.Success;
-					} else {
-						result = MonkeyResult.Crash;
-					}
-				} else if ("NOT RESPONDING".equals(reason)) {
-					result = MonkeyResult.AppNotResponding;
-				}
-			}
+            // Determine failure type
+            matcher = Pattern.compile("// (CRASH|NOT RESPONDING): (.*?) \\(pid (\\d+)\\)").matcher(monkeyOutput);
+            if (matcher.find()) {
+                String reason = matcher.group(1);
+                if ("CRASH".equals(reason)) {
+                    if (!matcher.group(2).equals(packageId)) {
+                        result = MonkeyResult.Success;
+                    } else {
+                        result = MonkeyResult.Crash;
+                    }
+                } else if ("NOT RESPONDING".equals(reason)) {
+                    result = MonkeyResult.AppNotResponding;
+                }
+            }
 
-			// Set configured build result
-			if (failureOutcome == BuildOutcome.IGNORE) {
-				log(logger, Messages.MONKEY_IGNORING_RESULT());
-			} else {
-				log(logger, Messages.MONKEY_SETTING_RESULT(failureOutcome.name()));
-				build.setResult(Result.fromString(failureOutcome.name()));
-			}
-		}
+            // Set configured build result
+            if (failureOutcome == BuildOutcome.IGNORE) {
+                log(logger, Messages.MONKEY_IGNORING_RESULT());
+            } else {
+                log(logger, Messages.MONKEY_SETTING_RESULT(failureOutcome.name()));
+                build.setResult(Result.fromString(failureOutcome.name()));
+            }
+        }
 
-		return new MonkeyAction(result, eventsCompleted, totalEventCount);
-	}
+        return new MonkeyAction(result, eventsCompleted, totalEventCount);
+    }
 
-	public BuildStepMonitor getRequiredMonitorService() {
-		return BuildStepMonitor.NONE;
-	}
+    public BuildStepMonitor getRequiredMonitorService() {
+        return BuildStepMonitor.NONE;
+    }
 
-	@Extension
-	public static class DescriptorImpl extends BuildStepDescriptor<Publisher> {
+    @Extension
+    public static class DescriptorImpl extends BuildStepDescriptor<Publisher> {
 
-		@Override
-		public String getDisplayName() {
-			return Messages.PUBLISH_MONKEY_OUTPUT();
-		}
+        @Override
+        public String getDisplayName() {
+            return Messages.PUBLISH_MONKEY_OUTPUT();
+        }
 
-		@Override
-		public String getHelpFile() {
-			return Functions.getResourcePath() + "/plugin/android-emulator/help-publishMonkeyOutput.html";
-		}
+        @Override
+        public String getHelpFile() {
+            return Functions.getResourcePath() + "/plugin/android-emulator/help-publishMonkeyOutput.html";
+        }
 
-		@Override
-		public boolean isApplicable(Class<? extends AbstractProject> jobType) {
-			return true;
-		}
+        @Override
+        public boolean isApplicable(Class<? extends AbstractProject> jobType) {
+            return true;
+        }
 
-	}
+    }
 
 }
