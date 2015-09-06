@@ -5,7 +5,6 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
-
 import hudson.Launcher;
 import hudson.model.AbstractBuild;
 import hudson.model.BuildListener;
@@ -38,7 +37,7 @@ public class MonkeyRecorderTest extends TestCase {
 
     private void assertNoParsingForBadBuild(Result buildResult) throws InterruptedException, IOException {
         // Set up build with result
-        AbstractBuild<?, ?> build = mock(AbstractBuild.class);
+        AbstractBuild<?,?> build = mock(AbstractBuild.class);
         when(build.getResult()).thenReturn(buildResult);
 
         // Execute monkey recorder which would alter the build result if it runs
@@ -136,20 +135,20 @@ public class MonkeyRecorderTest extends TestCase {
     }
 
     private void parseOutputAndAssert(String monkeyOutput, MonkeyResult expectedResult,
-                                      int expectedEvents, int expectedTotalEvents) {
+            int expectedEvents, int expectedTotalEvents) {
         parseOutputAndAssert(monkeyOutput, BuildOutcome.IGNORE, null, expectedResult,
                 expectedEvents, expectedTotalEvents);
     }
 
     private void parseOutputAndAssert(String monkeyOutput, BuildOutcome desiredOutcome,
-                                      Result expectedBuildResult, MonkeyResult expectedResult) {
+            Result expectedBuildResult, MonkeyResult expectedResult) {
         parseOutputAndAssert(monkeyOutput, desiredOutcome, expectedBuildResult, expectedResult, 0, 0);
     }
 
     private void parseOutputAndAssert(String monkeyOutput, BuildOutcome desiredOutcome,
-                                      Result expectedBuildResult, MonkeyResult expectedResult, int expectedEvents,
-                                      int expectedTotalEvents) {
-        AbstractBuild<?, ?> build = mock(AbstractBuild.class);
+            Result expectedBuildResult, MonkeyResult expectedResult, int expectedEvents,
+            int expectedTotalEvents) {
+        AbstractBuild<?,?> build = mock(AbstractBuild.class);
         PrintStream logger = mock(PrintStream.class);
 
         // Parse the given output

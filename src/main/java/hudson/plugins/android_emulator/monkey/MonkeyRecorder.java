@@ -1,7 +1,6 @@
 package hudson.plugins.android_emulator.monkey;
 
 import static hudson.plugins.android_emulator.AndroidEmulator.log;
-
 import hudson.Extension;
 import hudson.FilePath;
 import hudson.Functions;
@@ -28,20 +27,14 @@ import org.kohsuke.stapler.export.Exported;
 
 public class MonkeyRecorder extends Recorder {
 
-    /**
-     * Default file to read monkey results from.
-     */
+    /** Default file to read monkey results from. */
     private static final String DEFAULT_INPUT_FILENAME = "monkey.txt";
 
-    /**
-     * File to write monkey results to.
-     */
+    /** File to write monkey results to. */
     @Exported
     public final String filename;
 
-    /**
-     * Build outcome in case we detect monkey ended prematurely.
-     */
+    /** Build outcome in case we detect monkey ended prematurely. */
     @Exported
     public final BuildOutcome failureOutcome;
 
@@ -85,7 +78,7 @@ public class MonkeyRecorder extends Recorder {
     }
 
     static MonkeyAction parseMonkeyOutput(AbstractBuild<?, ?> build, PrintStream logger,
-                                          String monkeyOutput, BuildOutcome failureOutcome) {
+            String monkeyOutput, BuildOutcome failureOutcome) {
         // No input, no output
         if (monkeyOutput == null) {
             return new MonkeyAction(MonkeyResult.NothingToParse);
