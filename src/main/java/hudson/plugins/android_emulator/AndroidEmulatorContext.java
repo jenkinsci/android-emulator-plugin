@@ -54,10 +54,10 @@ public class AndroidEmulatorContext {
 		final int PORT_RANGE_START = 5554;
 		final int PORT_RANGE_END = 5585; // Make sure the port is four digits, as there are tools that rely on this
         // Allocate 4 ports so that we start on an even every time
-		int[] ports = portAllocator.allocatePortRange(build, PORT_RANGE_START, PORT_RANGE_END, 4, true);
+		int[] ports = portAllocator.allocatePortRange(build, PORT_RANGE_START, PORT_RANGE_END, 2, true);
 		userPort = ports[0];
 		adbPort = ports[1];
-		adbServerPort = ports[2];
+		adbServerPort = 5037; // This is the standard according to the android docs
         // This is a best guess. adb get-serialno will return the actual value
 		serial = String.format("emulator-%d", userPort);
 	}
