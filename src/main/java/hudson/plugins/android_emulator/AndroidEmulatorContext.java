@@ -48,14 +48,18 @@ public class AndroidEmulatorContext {
 
 		// Use the Port Allocator plugin to reserve the ports we need
 		portAllocator = PortAllocationManager.getManager(computer);
+        // According to https://developer.android.com/tools/help/adb.html,
+        // It locates emulator/device instances by scanning odd-numbered ports in the range 5555 to 5585,
+        // the range used by emulators/devices. Ports are allocated in pairs console/adb
 		final int PORT_RANGE_START = 5554;
-		final int PORT_RANGE_END = 9999; // Make sure the port is four digits, as there are tools that rely on this
-		int[] ports = portAllocator.allocatePortRange(build, PORT_RANGE_START, PORT_RANGE_END, 3, true);
+		final int PORT_RANGE_END = 5585; // Make sure the port is four digits, as there are tools that rely on this
+        // Allocate 4 ports so that we start on an even every time
+		int[] ports = portAllocator.allocatePortRange(build, PORT_RANGE_START, PORT_RANGE_END, 4, true);
 		userPort = ports[0];
 		adbPort = ports[1];
 		adbServerPort = ports[2];
-
-		serial = String.format("localhost:%d", adbPort);
+        // This is a best guess. adb get-serialno will return the actual value
+		serial = String.format("emulator-%d", userPort);
 	}
 
 	public void cleanUp() {
@@ -74,6 +78,11 @@ public class AndroidEmulatorContext {
 	public int adbServerPort() {
 		return adbServerPort;
 	}
+
+    public String connectString() {
+        return "localhost:" + userPort;
+    }
+
 	public String serial() {
 		return serial;
 	}
