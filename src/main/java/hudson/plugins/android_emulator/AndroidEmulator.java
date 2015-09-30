@@ -375,7 +375,7 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
         // indicate that any methods wanting to check the "emulator" process state should ignore it.
         boolean ignoreProcess = !launcher.isUnix() && androidSdk.getSdkToolsMajorVersion() >= 12;
 
-        Thread.sleep(5000);
+        // Thread.sleep(5000);
 
         // Notify adb of our existence (though the emulator should do this anyway)
         int result = emu.getToolProcStarter(Tool.ADB, "connect " + emu.connectString()).stdout(logger).stderr(logger).join();
@@ -536,7 +536,8 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
 
     private static void disconnectEmulator(AndroidEmulatorContext emu)
             throws IOException, InterruptedException {
-        final String args = "disconnect "+ emu.connectString();
+        // The docs say host:port is valid, but reality is different.
+        final String args = "disconnect"; //+ emu.connectString();
         ArgumentListBuilder adbDisconnectCmd = emu.getToolCommand(Tool.ADB, args);
         emu.getProcStarter(adbDisconnectCmd).start().joinWithTimeout(5L, TimeUnit.SECONDS, emu.launcher().getListener());
     }
@@ -740,6 +741,7 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
                 if (retVal == 0) {
                     // If boot is complete, our work here is done
                     String result = stream.toString().trim();
+                    log(emu.logger(), result);
                     if (result.equals(expectedAnswer)) {
                         return true;
                     }
