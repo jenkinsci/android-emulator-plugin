@@ -375,8 +375,10 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
         // indicate that any methods wanting to check the "emulator" process state should ignore it.
         boolean ignoreProcess = !launcher.isUnix() && androidSdk.getSdkToolsMajorVersion() >= 12;
 
+        Thread.sleep(5000);
+
         // Notify adb of our existence (though the emulator should do this anyway)
-        int result = emu.getToolProcStarter(Tool.ADB, "connect " + emu.serial()).stdout(logger).stderr(logger).join();
+        int result = emu.getToolProcStarter(Tool.ADB, "connect " + emu.connectString()).stdout(logger).stderr(logger).join();
         if (result != 0) { // adb currently only ever returns 0!
             log(logger, Messages.CANNOT_CONNECT_TO_EMULATOR());
             build.setResult(Result.NOT_BUILT);
@@ -528,13 +530,13 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
 
     private static void connectEmulator(AndroidEmulatorContext emu)
             throws IOException, InterruptedException {
-        ArgumentListBuilder adbConnectCmd = emu.getToolCommand(Tool.ADB, "connect " + emu.serial());
+        ArgumentListBuilder adbConnectCmd = emu.getToolCommand(Tool.ADB, "connect " + emu.connectString());
         emu.getProcStarter(adbConnectCmd).start().joinWithTimeout(5L, TimeUnit.SECONDS, emu.launcher().getListener());
     }
 
     private static void disconnectEmulator(AndroidEmulatorContext emu)
             throws IOException, InterruptedException {
-        final String args = "disconnect "+ emu.serial();
+        final String args = "disconnect "+ emu.connectString();
         ArgumentListBuilder adbDisconnectCmd = emu.getToolCommand(Tool.ADB, args);
         emu.getProcStarter(adbDisconnectCmd).start().joinWithTimeout(5L, TimeUnit.SECONDS, emu.launcher().getListener());
     }
