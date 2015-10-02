@@ -24,7 +24,7 @@ public class AndroidEmulatorContext {
     /** Interval during which an emulator command should complete. */
     public static final int EMULATOR_COMMAND_TIMEOUT_MS = 60 * 1000;
 
-	private int adbPort, userPort, adbServerPort;
+	private int adbPort, userPort, adbServerPort, emulatorCallbackPort;
 	private String serial;
 
 	private PortAllocationManager portAllocator;
@@ -58,6 +58,7 @@ public class AndroidEmulatorContext {
 		userPort = ports[0];
 		adbPort = ports[1];
 		adbServerPort = 5037; // This is the standard according to the android docs
+        emulatorCallbackPort = portAllocator.allocateRandom(build, 49152);
         // This is a best guess. adb get-serialno will return the actual value
 		serial = String.format("emulator-%d", userPort);
 	}
@@ -78,6 +79,7 @@ public class AndroidEmulatorContext {
 	public int adbServerPort() {
 		return adbServerPort;
 	}
+    public int getEmulatorCallbackPort() { return emulatorCallbackPort; }
 
     public String connectString() {
         return "localhost:" + userPort;
