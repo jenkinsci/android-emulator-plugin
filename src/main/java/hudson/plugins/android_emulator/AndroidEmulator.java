@@ -358,14 +358,18 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
             return null;
         }
 
+        // Sitting on the socket appears to break adb. With this code enabled I pretty much
+        // always end up with device offline. If I take it out all is good. adb is now
+        // clever enough to figure out that the emulator is booting and will thus cope without this.
+
         // Wait for TCP socket to become available
-        boolean socket = waitForSocket(launcher, emu.adbPort(), ADB_CONNECT_TIMEOUT_MS);
-        if (!socket) {
-            log(logger, Messages.EMULATOR_DID_NOT_START());
-            build.setResult(Result.NOT_BUILT);
-            cleanUp(emuConfig, emu);
-            return null;
-        }
+  //      boolean socket = waitForSocket(launcher, emu.adbPort(), ADB_CONNECT_TIMEOUT_MS);
+  //      if (!socket) {
+  //          log(logger, Messages.EMULATOR_DID_NOT_START());
+  //          build.setResult(Result.NOT_BUILT);
+  //          cleanUp(emuConfig, emu);
+  //          return null;
+  //      }
 
         // As of SDK Tools r12, "emulator" is no longer the main process; it just starts a certain
         // child process depending on the AVD architecture.  Therefore on Windows, checking the
@@ -375,9 +379,10 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
         // indicate that any methods wanting to check the "emulator" process state should ignore it.
         boolean ignoreProcess = !launcher.isUnix() && androidSdk.getSdkToolsMajorVersion() >= 12;
 
-        // Thread.sleep(5000);
-
         // Notify adb of our existence (though the emulator should do this anyway)
+        // Note that android 4.2.2 and later uses secure adb which means keys are created on first use.
+        // It's possible to get into issues if these have the wrong permissions, but they are always created
+        // in ~/.android so its not clear what can be done about this.
         int result = emu.getToolProcStarter(Tool.ADB, "connect " + emu.connectString()).stdout(logger).stderr(logger).join();
         if (result != 0) { // adb currently only ever returns 0!
             log(logger, Messages.CANNOT_CONNECT_TO_EMULATOR());
@@ -726,7 +731,7 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
         final boolean isOldApi = apiLevel > 0 && apiLevel < 4;
         final String cmd = isOldApi ? "dev.bootcomplete" : "init.svc.bootanim";
         final String expectedAnswer = isOldApi ? "1" :"stopped";
-        final String args = String.format("-s %s shell getprop %s", emu.serial(), cmd);
+        final String args = String.format("-s %s wait-for-device shell getprop %s", emu.serial(), cmd);
         ArgumentListBuilder bootCheckCmd = emu.getToolCommand(Tool.ADB, args);
 
         try {
