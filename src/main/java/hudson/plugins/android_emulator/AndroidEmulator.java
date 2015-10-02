@@ -34,14 +34,18 @@ import org.kohsuke.stapler.StaplerRequest;
 import org.kohsuke.stapler.export.Exported;
 import org.kohsuke.stapler.export.ExportedBean;
 
+import java.io.BufferedReader;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.PrintStream;
 import java.io.PrintWriter;
+import java.io.Reader;
 import java.io.Serializable;
 import java.io.StringWriter;
+import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.ArrayList;
 import java.util.List;
@@ -326,7 +330,7 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
 
         // Compile complete command for starting emulator
         final String emulatorArgs = emuConfig.getCommandArguments(snapshotState,
-                androidSdk.supportsSnapshots(), emu.userPort(), emu.adbPort());
+                androidSdk.supportsSnapshots(), emu.userPort(), emu.adbPort(), emu.getEmulatorCallbackPort(), ADB_CONNECT_TIMEOUT_MS/1000);
 
         // Start emulator process
         if (snapshotState == SnapshotState.BOOT) {
@@ -358,18 +362,20 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
             return null;
         }
 
-        // Sitting on the socket appears to break adb. With this code enabled I pretty much
-        // always end up with device offline. If I take it out all is good. adb is now
-        // clever enough to figure out that the emulator is booting and will thus cope without this.
+        // Sitting on the socket appears to break adb. If you try and do this you always end up with device offline.
+        // A much better way is to use report-console to tell us what the port is (and hence when its available). So
+        // we now do this. adb is also now clever enough to figure out that the emulator is booting and will thus
+        // cope without this.
 
         // Wait for TCP socket to become available
-  //      boolean socket = waitForSocket(launcher, emu.adbPort(), ADB_CONNECT_TIMEOUT_MS);
-  //      if (!socket) {
-  //          log(logger, Messages.EMULATOR_DID_NOT_START());
-  //          build.setResult(Result.NOT_BUILT);
-  //          cleanUp(emuConfig, emu);
-  //          return null;
-  //      }
+        int socket = waitForSocket(launcher, emu.getEmulatorCallbackPort(), ADB_CONNECT_TIMEOUT_MS);
+        if (socket < 0) {
+            log(logger, Messages.EMULATOR_DID_NOT_START());
+            build.setResult(Result.NOT_BUILT);
+            cleanUp(emuConfig, emu);
+            return null;
+        }
+        log(logger, Messages.EMULATOR_CONSOLE_REPORT(socket));
 
         // As of SDK Tools r12, "emulator" is no longer the main process; it just starts a certain
         // child process depending on the AVD architecture.  Therefore on Windows, checking the
@@ -690,24 +696,23 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
     }
 
     /**
-     * Waits for a socket on the remote machine's localhost to become available, or times out.
+     * Waits for an emulator to say what socket its using, or times out.
      *
      * @param launcher The launcher for the remote node.
-     * @param port The port to try and connect to.
+     * @param port The server port to listen on.
      * @param timeout How long to keep trying (in milliseconds) before giving up.
-     * @return <code>true</code> if the socket was available, <code>false</code> if we timed-out.
+     * @return port number of the emulator if the socket was available, -1 if we timed-out.
      */
-    private boolean waitForSocket(Launcher launcher, int port, int timeout) {
+    private int waitForSocket(Launcher launcher, int port, int timeout) {
         try {
-            LocalPortOpenTask task = new LocalPortOpenTask(port, timeout);
+            LocalPortReceiveAdbPortTask task = new LocalPortReceiveAdbPortTask(port, timeout);
             return launcher.getChannel().call(task);
         } catch (InterruptedException ex) {
             // Ignore
         } catch (IOException e) {
             // Ignore
         }
-
-        return false;
+        return -1;
     }
 
     /**
@@ -746,7 +751,7 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
                 if (retVal == 0) {
                     // If boot is complete, our work here is done
                     String result = stream.toString().trim();
-                    log(emu.logger(), result);
+                    log(emu.logger(), Messages.EMULATOR_STATE_REPORT(result));
                     if (result.equals(expectedAnswer)) {
                         return true;
                     }
@@ -1089,8 +1094,8 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
 
     }
 
-    /** Task that will block until it can either connect to a port on localhost, or it times-out. */
-    private static final class LocalPortOpenTask implements Callable<Boolean, InterruptedException> {
+    /** Task that will block until it receives a conection from the emulator together with identifying port, or it times-out. */
+    private static final class LocalPortReceiveAdbPortTask implements Callable<Integer, InterruptedException> {
 
         private static final long serialVersionUID = 1L;
 
@@ -1101,26 +1106,30 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
          * @param port The local TCP port to attempt to connect to.
          * @param timeout How long to keep trying (in milliseconds) before giving up.
          */
-        public LocalPortOpenTask(int port, int timeout) {
+        public LocalPortReceiveAdbPortTask(int port, int timeout) {
             this.port = port;
             this.timeout = timeout;
         }
 
-        public Boolean call() throws InterruptedException {
+        public Integer call() throws InterruptedException {
             final long start = System.currentTimeMillis();
 
             while (System.currentTimeMillis() < start + timeout) {
                 try {
-                    Socket socket = new Socket("127.0.0.1", port);
-                    socket.getOutputStream();
+                    ServerSocket socket = new ServerSocket(port);
+                    Socket completed = socket.accept();
+                    BufferedReader reader = new BufferedReader(new InputStreamReader(completed.getInputStream()));
+                    String port = reader.readLine();
+                    reader.close();
+                    completed.close();
                     socket.close();
-                    return true;
+                    return Integer.parseInt(port);
                 } catch (IOException ignore) {}
 
                 Thread.sleep(1000);
             }
 
-            return false;
+            return -1;
         }
     }
 

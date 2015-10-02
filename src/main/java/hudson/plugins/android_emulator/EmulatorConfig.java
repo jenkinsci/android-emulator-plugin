@@ -303,11 +303,11 @@ class EmulatorConfig implements Serializable {
      * @return A string of command line arguments.
      */
     public String getCommandArguments(SnapshotState snapshotState, boolean sdkSupportsSnapshots,
-            int userPort, int adbPort) {
+            int userPort, int adbPort, int callbackPort, int consoleTimeout) {
         StringBuilder sb = new StringBuilder();
 
         // Set basics
-        sb.append(String.format(" -ports %s,%s", userPort, adbPort));
+        sb.append(String.format(" -ports %s,%s -report-console tcp:%s,max=%s", userPort, adbPort, callbackPort, consoleTimeout));
         if (!isNamedEmulator()) {
             sb.append(" -prop persist.sys.language=");
             sb.append(getDeviceLanguage());
