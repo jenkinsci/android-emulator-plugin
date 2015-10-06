@@ -90,6 +90,7 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
     // Advanced properties
     @Exported public final boolean deleteAfterBuild;
     @Exported public final int startupDelay;
+    @Exported public final int startupTimeout;
     @Exported public final String commandLineOptions;
     @Exported public final String executable;
 
@@ -98,7 +99,7 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
     public AndroidEmulator(String avdName, String osVersion, String screenDensity,
             String screenResolution, String deviceLocale, String sdCardSize,
             HardwareProperty[] hardwareProperties, boolean wipeData, boolean showWindow,
-            boolean useSnapshots, boolean deleteAfterBuild, int startupDelay,
+            boolean useSnapshots, boolean deleteAfterBuild, int startupDelay, int startupTimeout,
             String commandLineOptions, String targetAbi, String executable, String avdNameSuffix) {
         this.avdName = avdName;
         this.osVersion = osVersion;
@@ -113,6 +114,7 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
         this.deleteAfterBuild = deleteAfterBuild;
         this.executable = executable;
         this.startupDelay = Math.abs(startupDelay);
+        this.startupTimeout = Math.abs(startupTimeout);
         this.commandLineOptions = commandLineOptions;
         this.targetAbi = targetAbi;
         this.avdNameSuffix = avdNameSuffix;
@@ -400,7 +402,10 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
         // Monitor device for boot completion signal
         log(logger, Messages.WAITING_FOR_BOOT_COMPLETION());
         int bootTimeout = BOOT_COMPLETE_TIMEOUT_MS;
-        if (!emulatorAlreadyExists || emuConfig.shouldWipeData() || snapshotState == SnapshotState.INITIALISE) {
+        if (startupTimeout > 0) {
+            bootTimeout = startupTimeout * 1000;
+        }
+        else if (!emulatorAlreadyExists || emuConfig.shouldWipeData() || snapshotState == SnapshotState.INITIALISE) {
             bootTimeout *= 2;
         }
         boolean bootSucceeded = waitForBootCompletion(ignoreProcess, bootTimeout, emuConfig, emu);
@@ -436,7 +441,7 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
             connectEmulator(emu);
 
             log(logger, Messages.UNLOCKING_SCREEN());
-            final long adbTimeout = bootTimeout / 16;
+            final long adbTimeout = BOOT_COMPLETE_TIMEOUT_MS / 16;
             final String keyEventArgs = String.format("-s %s shell input keyevent %%d", emu.serial());
             final String menuArgs = String.format(keyEventArgs, 82);
             ArgumentListBuilder menuCmd = emu.getToolCommand(Tool.ADB, menuArgs);
@@ -832,6 +837,7 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
             boolean useSnapshots = true;
             boolean deleteAfterBuild = false;
             int startupDelay = 0;
+            int startupTimeout = 0;
             String commandLineOptions = null;
             String executable = null;
             String avdNameSuffix = null;
@@ -860,10 +866,13 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
             try {
                 startupDelay = Integer.parseInt(formData.getString("startupDelay"));
             } catch (NumberFormatException e) {}
+            try {
+                startupTimeout = Integer.parseInt(formData.getString("startupTimeout"));
+            } catch (NumberFormatException e) {}
 
             return new AndroidEmulator(avdName, osVersion, screenDensity, screenResolution,
                     deviceLocale, sdCardSize, hardware.toArray(new HardwareProperty[0]), wipeData,
-                    showWindow, useSnapshots, deleteAfterBuild, startupDelay, commandLineOptions,
+                    showWindow, useSnapshots, deleteAfterBuild, startupDelay, startupTimeout, commandLineOptions,
                     targetAbi, executable, avdNameSuffix);
         }
 
