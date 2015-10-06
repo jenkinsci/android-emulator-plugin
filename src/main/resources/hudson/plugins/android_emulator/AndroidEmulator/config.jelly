@@ -118,6 +118,10 @@
               default="0" />
           <f:description>${%Wait this many seconds before attempting to start the emulator}</f:description>
         </f:entry>
+        <f:entry title="${%Startup timeout}" help="/plugin/android-emulator/help-startupTimeout.html">
+          <f:textbox name="android-emulator.startupTimeout" value="${instance.startupTimeout}" style="width:4em"/>
+          <f:description>${%Wait this many seconds before aborting the startup of the emulator}</f:description>
+        </f:entry>
         <f:entry title="${%Emulator options}" help="/plugin/android-emulator/help-commandLineOptions.html">
           <f:textbox name="android-emulator.commandLineOptions" value="${instance.commandLineOptions}" />
           <f:description>${%Will be given when starting the Android &lt;tt>emulator&lt;/tt> executable}</f:description>
