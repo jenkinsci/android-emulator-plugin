@@ -89,6 +89,7 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
     @Exported public final String commandLineOptions;
     @Exported public final String executable;
 
+    public boolean consoleOnline;
 
     @DataBoundConstructor
     public AndroidEmulator(String avdName, String osVersion, String screenDensity,
@@ -490,7 +491,7 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
         return new Environment() {
             @Override
             public void buildEnvVars(Map<String, String> env) {
-                env.put("ANDROID_SERIAL", emu.serial());
+                env.put("ANDROID_SERIAL", consoleOnline ? emu.consoleSerial() : emu.serial());
                 env.put("ANDROID_AVD_DEVICE", emu.serial());
                 env.put("ANDROID_AVD_ADB_PORT", Integer.toString(emu.adbPort()));
                 env.put("ANDROID_AVD_USER_PORT", Integer.toString(emu.userPort()));
@@ -743,6 +744,7 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
                     	logger.println(result);
                     }
                     if (result.equals(expectedAnswer)) {
+                        consoleOnline = false;
                         return true;
                     }
                 }
@@ -767,6 +769,7 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
                     	logger.println(result);
                     }
                     if (result.equals(expectedAnswer)) {
+                        consoleOnline = true;
                         return true;
                     }
                 }
