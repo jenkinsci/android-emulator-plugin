@@ -89,6 +89,7 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
     @Exported public final String commandLineOptions;
     @Exported public final String executable;
 
+    public boolean consoleOnline;
 
     @DataBoundConstructor
     public AndroidEmulator(String avdName, String osVersion, String screenDensity,
@@ -301,7 +302,7 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
 
         // We manually start the adb-server so that later commands will not have to start it,
         // allowing them to complete faster.
-        Proc adbStart = emu.getToolProcStarter(Tool.ADB, "start-server").stdout(logger).stderr(logger).start();
+        Proc adbStart  = emu.getToolProcStarter(Tool.ADB, "start-server").stdout(logger).stderr(logger).start();
         adbStart.joinWithTimeout(5L, TimeUnit.SECONDS, listener);
         Proc adbStart2 = emu.getToolProcStarter(Tool.ADB, "start-server").stdout(logger).stderr(logger).start();
         adbStart2.joinWithTimeout(5L, TimeUnit.SECONDS, listener);
@@ -390,7 +391,7 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
         if (!emulatorAlreadyExists || emuConfig.shouldWipeData() || snapshotState == SnapshotState.INITIALISE) {
             bootTimeout *= 2;
         }
-        boolean bootSucceeded = waitForBootCompletion(ignoreProcess, bootTimeout, emuConfig, emu);
+        boolean bootSucceeded = waitForBootCompletion(ignoreProcess, bootTimeout, emuConfig, emu, logger);
         if (!bootSucceeded) {
             if ((System.currentTimeMillis() - bootTime) < bootTimeout) {
                 log(logger, Messages.EMULATOR_STOPPED_DURING_BOOT());
@@ -490,7 +491,7 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
         return new Environment() {
             @Override
             public void buildEnvVars(Map<String, String> env) {
-                env.put("ANDROID_SERIAL", emu.serial());
+                env.put("ANDROID_SERIAL", consoleOnline ? emu.consoleSerial() : emu.serial());
                 env.put("ANDROID_AVD_DEVICE", emu.serial());
                 env.put("ANDROID_AVD_ADB_PORT", Integer.toString(emu.adbPort()));
                 env.put("ANDROID_AVD_USER_PORT", Integer.toString(emu.userPort()));
@@ -707,10 +708,11 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
      * @param ignoreProcess Whether to bypass checking that the process is alive (e.g. on Windows).
      * @param timeout How long to keep trying (in milliseconds) before giving up.
      * @param emu The emulator context
+     * @param logger for log debug message
      * @return <code>true</code> if the emulator has booted, <code>false</code> if we timed-out.
      */
     private boolean waitForBootCompletion(final boolean ignoreProcess,
-            final int timeout, EmulatorConfig config, AndroidEmulatorContext emu) {
+            final int timeout, EmulatorConfig config, AndroidEmulatorContext emu, PrintStream logger) {
         long start = System.currentTimeMillis();
         int sleep = timeout / (int) (Math.sqrt(timeout / 1000) * 2);
 
@@ -733,12 +735,41 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
                 ByteArrayOutputStream stream = new ByteArrayOutputStream(16);
 
                 // Run "getprop", timing-out in case adb hangs
-                Proc proc = emu.getProcStarter(bootCheckCmd).stdout(stream).start();
+                Proc proc = emu.getProcStarter(bootCheckCmd).stdout(stream).stderr(logger).start();
                 int retVal = proc.joinWithTimeout(adbTimeout, TimeUnit.MILLISECONDS, emu.launcher().getListener());
                 if (retVal == 0) {
                     // If boot is complete, our work here is done
                     String result = stream.toString().trim();
+                    if (Constants.DEBUG) {
+                    	logger.println(result);
+                    }
                     if (result.equals(expectedAnswer)) {
+                        consoleOnline = false;
+                        return true;
+                    }
+                }
+
+                if (Constants.DEBUG){
+                	String deviceArgs = " devices";
+                	ArgumentListBuilder deviceCmd = emu.getToolCommand(Tool.ADB, deviceArgs);
+                	proc = emu.getProcStarter(deviceCmd).stdout(logger).stderr(logger).start();
+                	proc.joinWithTimeout(adbTimeout, TimeUnit.MILLISECONDS, emu.launcher().getListener());
+                }
+                
+                // try with console port
+                stream = new ByteArrayOutputStream(16);
+                final String consoleArgs = String.format("-s %s shell getprop %s", emu.consoleSerial(), cmd);
+                ArgumentListBuilder consoleBootCheckCmd = emu.getToolCommand(Tool.ADB, consoleArgs);
+                proc = emu.getProcStarter(consoleBootCheckCmd).stdout(stream).stderr(logger).start();
+                retVal = proc.joinWithTimeout(adbTimeout, TimeUnit.MILLISECONDS, emu.launcher().getListener());
+                if (retVal == 0) {
+                    // If boot is complete, our work here is done
+                    String result = stream.toString().trim();
+                    if (Constants.DEBUG) {
+                    	logger.println(result);
+                    }
+                    if (result.equals(expectedAnswer)) {
+                        consoleOnline = true;
                         return true;
                     }
                 }

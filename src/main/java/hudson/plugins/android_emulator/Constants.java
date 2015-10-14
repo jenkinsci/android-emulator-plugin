@@ -6,6 +6,7 @@ import hudson.plugins.android_emulator.util.Utils;
 import java.io.Serializable;
 
 public interface Constants {
+	public static final boolean DEBUG = false;
 
     /** The locale to which Android emulators default if not otherwise specified. */
     static final String DEFAULT_LOCALE = "en_US";

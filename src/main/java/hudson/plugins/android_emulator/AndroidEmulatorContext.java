@@ -1,6 +1,7 @@
 package hudson.plugins.android_emulator;
 
 import java.io.IOException;
+import java.io.OutputStream;
 import java.io.PrintStream;
 
 import hudson.EnvVars;
@@ -36,6 +37,8 @@ public class AndroidEmulatorContext {
 	private BuildListener listener;
 	private Launcher launcher;
 
+	private String consoleSerial;
+
 	public AndroidEmulatorContext(AbstractBuild<?, ?> build_,
 			Launcher launcher_, BuildListener listener_, AndroidSdk sdk_)
 			throws InterruptedException, IOException {
@@ -56,6 +59,7 @@ public class AndroidEmulatorContext {
 		adbServerPort = ports[2];
 
 		serial = String.format("localhost:%d", adbPort);
+		consoleSerial = String.format("emulator-%d", userPort);
 	}
 
 	public void cleanUp() {
@@ -76,6 +80,9 @@ public class AndroidEmulatorContext {
 	}
 	public String serial() {
 		return serial;
+	}
+	public String consoleSerial(){
+		return consoleSerial;
 	}
 
 	public BuildListener listener() {
@@ -115,7 +122,12 @@ public class AndroidEmulatorContext {
 		if (launcher.isUnix()) {
 			buildEnvironment.put("LD_LIBRARY_PATH", String.format("%s/tools/lib", sdk.getSdkRoot()));
 		}
-		return launcher.launch().stdout(new NullStream()).stderr(logger()).envs(buildEnvironment);
+		
+		OutputStream out = new NullStream();
+		if (Constants.DEBUG) {
+			out = logger();
+		}
+		return launcher.launch().stdout(out).stderr(logger()).envs(buildEnvironment);
 	}
 
 	/**
