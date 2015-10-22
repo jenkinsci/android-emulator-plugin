@@ -55,10 +55,10 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
     private static final long serialVersionUID = 1L;
 
     /** Duration by which the emulator should start being available via adb. */
-    private static final int ADB_CONNECT_TIMEOUT_MS = 60 * 1000;
+    private static final int ADB_CONNECT_TIMEOUT_MS = 60;
 
     /** Duration by which emulator booting should normally complete. */
-    private static final int BOOT_COMPLETE_TIMEOUT_MS = 360 * 1000;
+    private static final int BOOT_COMPLETE_TIMEOUT_MS = 360;
 
     /** Interval during which killing a process should complete. */
     private static final int KILL_PROCESS_TIMEOUT_MS = 10 * 1000;
@@ -88,6 +88,8 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
     @Exported public final int startupDelay;
     @Exported public final String commandLineOptions;
     @Exported public final String executable;
+    @Exported public final int adbConnectTimeoutMs;
+    @Exported public final int bootCompleteTimeoutMs;
 
 
     @DataBoundConstructor
@@ -95,7 +97,8 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
             String screenResolution, String deviceLocale, String sdCardSize,
             HardwareProperty[] hardwareProperties, boolean wipeData, boolean showWindow,
             boolean useSnapshots, boolean deleteAfterBuild, int startupDelay,
-            String commandLineOptions, String targetAbi, String executable, String avdNameSuffix) {
+            String commandLineOptions, String targetAbi, String executable, String avdNameSuffix,
+            int adbConnectTimeoutMs, int bootCompleteTimeoutMs) {
         this.avdName = avdName;
         this.osVersion = osVersion;
         this.screenDensity = screenDensity;
@@ -112,6 +115,8 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
         this.commandLineOptions = commandLineOptions;
         this.targetAbi = targetAbi;
         this.avdNameSuffix = avdNameSuffix;
+        this.adbConnectTimeoutMs = adbConnectTimeoutMs;
+        this.bootCompleteTimeoutMs = bootCompleteTimeoutMs;
     }
 
     public boolean getUseNamedEmulator() {
@@ -359,7 +364,7 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
         }
 
         // Wait for TCP socket to become available
-        boolean socket = waitForSocket(launcher, emu.adbPort(), ADB_CONNECT_TIMEOUT_MS);
+        boolean socket = waitForSocket(launcher, emu.adbPort(), adbConnectTimeoutMs * 1000);
         if (!socket) {
             log(logger, Messages.EMULATOR_DID_NOT_START());
             build.setResult(Result.NOT_BUILT);
@@ -386,7 +391,7 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
 
         // Monitor device for boot completion signal
         log(logger, Messages.WAITING_FOR_BOOT_COMPLETION());
-        int bootTimeout = BOOT_COMPLETE_TIMEOUT_MS;
+        int bootTimeout = bootCompleteTimeoutMs * 1000;
         if (!emulatorAlreadyExists || emuConfig.shouldWipeData() || snapshotState == SnapshotState.INITIALISE) {
             bootTimeout *= 2;
         }
@@ -821,6 +826,8 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
             String commandLineOptions = null;
             String executable = null;
             String avdNameSuffix = null;
+            int adbConnectTimeoutMs = ADB_CONNECT_TIMEOUT_MS;
+            int bootCompleteTimeoutMs = BOOT_COMPLETE_TIMEOUT_MS;
 
             JSONObject emulatorData = formData.getJSONObject("useNamed");
             String useNamedValue = emulatorData.getString("value");
@@ -845,12 +852,14 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
 
             try {
                 startupDelay = Integer.parseInt(formData.getString("startupDelay"));
+                adbConnectTimeoutMs = Integer.parseInt(formData.getString("adbConnectTimeoutMs"));
+                bootCompleteTimeoutMs = Integer.parseInt(formData.getString("bootCompleteTimeoutMs"));
             } catch (NumberFormatException e) {}
 
             return new AndroidEmulator(avdName, osVersion, screenDensity, screenResolution,
                     deviceLocale, sdCardSize, hardware.toArray(new HardwareProperty[0]), wipeData,
                     showWindow, useSnapshots, deleteAfterBuild, startupDelay, commandLineOptions,
-                    targetAbi, executable, avdNameSuffix);
+                    targetAbi, executable, avdNameSuffix, adbConnectTimeoutMs, bootCompleteTimeoutMs);
         }
 
         @Override
