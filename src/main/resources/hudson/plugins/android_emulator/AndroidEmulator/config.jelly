@@ -128,6 +128,16 @@
                                 items="${descriptor.executables}"
                                 checkUrl="'descriptorByName/AndroidEmulator/checkExecutable?value='+escape(this.value)" />
         </f:entry>
+        <f:entry title="${%ADB connection timeout}" help="/plugin/android-emulator/help-adbConnectTimeoutMs.html">
+          <f:textbox name="android-emulator.adbConnectTimeoutMs" value="${instance.adbConnectTimeoutMs}" style="width:3em"
+              default="0" />
+          <f:description>${%Wait this many seconds before giving up trying to connecto to emulator}</f:description>
+        </f:entry>
+        <f:entry title="${%Boot complete timeout}" help="/plugin/android-emulator/help-bootCompleteTimeoutMs.html">
+          <f:textbox name="android-emulator.bootCompleteTimeoutMs" value="${instance.bootCompleteTimeoutMs}" style="width:3em"
+              default="0" />
+          <f:description>${%Wait this many seconds before giving up trying booting the emulator}</f:description>
+        </f:entry>
        </f:advanced>
     </table>
   </f:block>
