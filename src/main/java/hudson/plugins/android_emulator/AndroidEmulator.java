@@ -42,7 +42,6 @@ import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.PrintStream;
 import java.io.PrintWriter;
-import java.io.Reader;
 import java.io.Serializable;
 import java.io.StringWriter;
 import java.net.ServerSocket;
@@ -68,6 +67,8 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
     private static final int KILL_PROCESS_TIMEOUT_MS = 10 * 1000;
 
     private DescriptorImpl descriptor;
+
+    private boolean useRunningDevice = false;
 
     // Config properties: AVD name
     @Exported public final String avdName;
@@ -96,13 +97,14 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
 
 
     @DataBoundConstructor
-    public AndroidEmulator(String avdName, String osVersion, String screenDensity,
+    public AndroidEmulator(String avdName, String osVersion, boolean useRunningDevice, String screenDensity,
             String screenResolution, String deviceLocale, String sdCardSize,
             HardwareProperty[] hardwareProperties, boolean wipeData, boolean showWindow,
             boolean useSnapshots, boolean deleteAfterBuild, int startupDelay, int startupTimeout,
             String commandLineOptions, String targetAbi, String executable, String avdNameSuffix) {
         this.avdName = avdName;
         this.osVersion = osVersion;
+        this.useRunningDevice = useRunningDevice;
         this.screenDensity = screenDensity;
         this.screenResolution = screenResolution;
         this.deviceLocale = deviceLocale;
@@ -121,7 +123,19 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
     }
 
     public boolean getUseNamedEmulator() {
-        return avdName != null;
+        return avdName != null && !useRunningDevice;
+    }
+
+    /**
+     * Indicates whether we are configured to connect to a running device or not.
+     * @return true if we should connect to a running device.
+     */
+    public boolean getUseRunningDevice() {
+        return useRunningDevice && avdName != null;
+    }
+
+    public boolean getCreateEmulator() {
+        return avdName == null;
     }
 
     /**
@@ -161,8 +175,8 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
         String targetAbi = Utils.expandVariables(envVars, combination, this.targetAbi);
         String avdNameSuffix = Utils.expandVariables(envVars, combination, this.avdNameSuffix);
 
-        return EmulatorConfig.getAvdName(avdName, osVersion, screenDensity, screenResolution,
-                deviceLocale, targetAbi, avdNameSuffix);
+        return EmulatorConfig.getAvdName(avdName, this.useRunningDevice, osVersion, screenDensity,
+                screenResolution, deviceLocale, targetAbi, avdNameSuffix);
     }
 
     @Override
@@ -226,8 +240,8 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
         final String androidSdkHome = (envVars != null && shouldKeepInWorkspace ? envVars.get("WORKSPACE") : null);
         try {
             emuConfig = EmulatorConfig.create(avdName, osVersion, screenDensity,
-                screenResolution, deviceLocale, sdCardSize, wipeData, showWindow, useSnapshots,
-                commandLineOptions, targetAbi, androidSdkHome, executable, avdNameSuffix);
+                screenResolution, deviceLocale, sdCardSize, useRunningDevice, wipeData, showWindow,
+                    useSnapshots, commandLineOptions, targetAbi, androidSdkHome, executable, avdNameSuffix);
         } catch (IllegalArgumentException e) {
             log(logger, Messages.EMULATOR_CONFIGURATION_BAD(e.getLocalizedMessage()));
             build.setResult(Result.NOT_BUILT);
@@ -291,7 +305,7 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
         }
 
         // Update emulator configuration with desired hardware properties
-        if (!emuConfig.isNamedEmulator() && hardwareProperties.length != 0) {
+        if (!emuConfig.isNamedEmulator() && !emuConfig.isRunningDevice() && hardwareProperties.length != 0) {
             Callable<Void, IOException> task = emuConfig.getEmulatorConfigTask(hardwareProperties, listener);
             launcher.getChannel().call(task);
         }
@@ -304,6 +318,9 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
         }
 
         final AndroidEmulatorContext emu = new AndroidEmulatorContext(build, launcher, listener, androidSdk);
+        if (emuConfig.isRunningDevice()) {
+            emu.setSerial(emuConfig.getAvdName());
+        }
 
         // We manually start the adb-server so that later commands will not have to start it,
         // allowing them to complete faster.
@@ -330,54 +347,59 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
             snapshotState = SnapshotState.NONE;
         }
 
-        // Compile complete command for starting emulator
-        final String emulatorArgs = emuConfig.getCommandArguments(snapshotState,
-                androidSdk.supportsSnapshots(), emu.userPort(), emu.adbPort(), emu.getEmulatorCallbackPort(), ADB_CONNECT_TIMEOUT_MS/1000);
-
-        // Start emulator process
-        if (snapshotState == SnapshotState.BOOT) {
-            log(logger, Messages.STARTING_EMULATOR_FROM_SNAPSHOT());
-        } else if (snapshotState == SnapshotState.INITIALISE) {
-            log(logger, Messages.STARTING_EMULATOR_SNAPSHOT_INIT());
-        } else {
-            log(logger, Messages.STARTING_EMULATOR());
-        }
-        if (emulatorAlreadyExists && emuConfig.shouldWipeData()) {
-            log(logger, Messages.ERASING_EXISTING_EMULATOR_DATA());
-        }
         final long bootTime = System.currentTimeMillis();
 
-        // Prepare to capture and log emulator standard output
-        ByteArrayOutputStream emulatorOutput = new ByteArrayOutputStream();
-        ForkOutputStream emulatorLogger = new ForkOutputStream(logger, emulatorOutput);
+        if (!emuConfig.isNamedEmulator() && !emuConfig.isRunningDevice()) {
+            // Compile complete command for starting emulator
+            final String emulatorArgs = emuConfig.getCommandArguments(snapshotState,
+                    androidSdk.supportsSnapshots(), emu.userPort(), emu.adbPort(), emu.getEmulatorCallbackPort(), ADB_CONNECT_TIMEOUT_MS / 1000);
 
-        final Proc emulatorProcess = emu.getToolProcStarter(emuConfig.getExecutable(), emulatorArgs)
-                .stdout(emulatorLogger).stderr(logger).start();
-        emu.setProcess(emulatorProcess);
+            // Start emulator process
+            if (snapshotState == SnapshotState.BOOT) {
+                log(logger, Messages.STARTING_EMULATOR_FROM_SNAPSHOT());
+            }
+            else if (snapshotState == SnapshotState.INITIALISE) {
+                log(logger, Messages.STARTING_EMULATOR_SNAPSHOT_INIT());
+            }
+            else {
+                log(logger, Messages.STARTING_EMULATOR());
+            }
+            if (emulatorAlreadyExists && emuConfig.shouldWipeData()) {
+                log(logger, Messages.ERASING_EXISTING_EMULATOR_DATA());
+            }
 
-        // Give the emulator process a chance to initialise
-        Thread.sleep(5 * 1000);
+            // Prepare to capture and log emulator standard output
+            ByteArrayOutputStream emulatorOutput = new ByteArrayOutputStream();
+            ForkOutputStream emulatorLogger = new ForkOutputStream(logger, emulatorOutput);
 
-        // Check whether a failure was reported on stdout
-        if (emulatorOutput.toString().contains("image is used by another emulator")) {
-            log(logger, Messages.EMULATOR_ALREADY_IN_USE(emuConfig.getAvdName()));
-            return null;
+            final Proc emulatorProcess = emu.getToolProcStarter(emuConfig.getExecutable(), emulatorArgs)
+                    .stdout(emulatorLogger).stderr(logger).start();
+            emu.setProcess(emulatorProcess);
+
+            // Give the emulator process a chance to initialise
+            Thread.sleep(5 * 1000);
+
+            // Check whether a failure was reported on stdout
+            if (emulatorOutput.toString().contains("image is used by another emulator")) {
+                log(logger, Messages.EMULATOR_ALREADY_IN_USE(emuConfig.getAvdName()));
+                return null;
+            }
+
+            // Sitting on the socket appears to break adb. If you try and do this you always end up with device offline.
+            // A much better way is to use report-console to tell us what the port is (and hence when its available). So
+            // we now do this. adb is also now clever enough to figure out that the emulator is booting and will thus
+            // cope without this.
+
+            // Wait for TCP socket to become available
+            int socket = waitForSocket(launcher, emu.getEmulatorCallbackPort(), ADB_CONNECT_TIMEOUT_MS);
+            if (socket < 0) {
+                log(logger, Messages.EMULATOR_DID_NOT_START());
+                build.setResult(Result.NOT_BUILT);
+                cleanUp(emuConfig, emu);
+                return null;
+            }
+            log(logger, Messages.EMULATOR_CONSOLE_REPORT(socket));
         }
-
-        // Sitting on the socket appears to break adb. If you try and do this you always end up with device offline.
-        // A much better way is to use report-console to tell us what the port is (and hence when its available). So
-        // we now do this. adb is also now clever enough to figure out that the emulator is booting and will thus
-        // cope without this.
-
-        // Wait for TCP socket to become available
-        int socket = waitForSocket(launcher, emu.getEmulatorCallbackPort(), ADB_CONNECT_TIMEOUT_MS);
-        if (socket < 0) {
-            log(logger, Messages.EMULATOR_DID_NOT_START());
-            build.setResult(Result.NOT_BUILT);
-            cleanUp(emuConfig, emu);
-            return null;
-        }
-        log(logger, Messages.EMULATOR_CONSOLE_REPORT(socket));
 
         // As of SDK Tools r12, "emulator" is no longer the main process; it just starts a certain
         // child process depending on the AVD architecture.  Therefore on Windows, checking the
@@ -385,13 +407,17 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
         //
         // With the adb socket open we know the correct process is running, so we set this flag to
         // indicate that any methods wanting to check the "emulator" process state should ignore it.
-        boolean ignoreProcess = !launcher.isUnix() && androidSdk.getSdkToolsMajorVersion() >= 12;
+        boolean ignoreProcess = !launcher.isUnix() && androidSdk.getSdkToolsMajorVersion() >= 12
+                || emuConfig.isRunningDevice();
+
+
+        final String connectString = emuConfig.isRunningDevice() ? emuConfig.getAvdName() : emu.connectString();
 
         // Notify adb of our existence (though the emulator should do this anyway)
         // Note that android 4.2.2 and later uses secure adb which means keys are created on first use.
         // It's possible to get into issues if these have the wrong permissions, but they are always created
         // in ~/.android so its not clear what can be done about this.
-        int result = emu.getToolProcStarter(Tool.ADB, "connect " + emu.connectString()).stdout(logger).stderr(logger).join();
+        int result = emu.getToolProcStarter(Tool.ADB, "connect " + connectString).stdout(logger).stderr(logger).join();
         if (result != 0) { // adb currently only ever returns 0!
             log(logger, Messages.CANNOT_CONNECT_TO_EMULATOR());
             build.setResult(Result.NOT_BUILT);
@@ -515,12 +541,15 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
                 env.put("ANDROID_AVD_NAME", emuConfig.getAvdName());
                 env.put("ANDROID_ADB_SERVER_PORT", Integer.toString(emu.adbServerPort()));
                 env.put("ANDROID_TMP_LOGCAT_FILE", logcatFile.getRemote());
-                if (!emuConfig.isNamedEmulator()) {
+                if (!emuConfig.isNamedEmulator() && !emuConfig.isRunningDevice()) {
                     env.put("ANDROID_AVD_OS", emuConfig.getOsVersion().toString());
                     env.put("ANDROID_AVD_DENSITY", emuConfig.getScreenDensity().toString());
                     env.put("ANDROID_AVD_RESOLUTION", emuConfig.getScreenResolution().toString());
                     env.put("ANDROID_AVD_SKIN", emuConfig.getScreenResolution().getSkinName());
                     env.put("ANDROID_AVD_LOCALE", emuConfig.getDeviceLocale());
+                }
+                else if (emuConfig.isRunningDevice()) {
+                    env.put("ANDROID_AVD_OS", emuConfig.getOsVersion().toString());
                 }
                 if (androidSdk.hasKnownRoot()) {
                     env.put("JENKINS_ANDROID_HOME", androidSdk.getSdkRoot());
@@ -671,6 +700,16 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
             String screenResolution, String deviceLocale, String sdCardSize) {
         if (getUseNamedEmulator()) {
             ValidationResult result = descriptor.doCheckAvdName(avdName, false);
+            if (result.isFatal()) {
+                return result.getMessage();
+            }
+        }
+        else if (getUseRunningDevice()) {
+            ValidationResult result = descriptor.doCheckAvdName(avdName, false);
+            if (result.isFatal()) {
+                return result.getMessage();
+            }
+            result = descriptor.doCheckOsVersion(osVersion, false);
             if (result.isFatal()) {
                 return result.getMessage();
             }
@@ -836,6 +875,7 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
             boolean showWindow = true;
             boolean useSnapshots = true;
             boolean deleteAfterBuild = false;
+            boolean useRunningDevice = false;
             int startupDelay = 0;
             int startupTimeout = 0;
             String commandLineOptions = null;
@@ -843,9 +883,14 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
             String avdNameSuffix = null;
 
             JSONObject emulatorData = formData.getJSONObject("useNamed");
-            String useNamedValue = emulatorData.getString("value");
-            if (Boolean.parseBoolean(useNamedValue)) {
+            String useNamedValue = Util.fixEmptyAndTrim(emulatorData.getString("value"));
+            if (useNamedValue.equals("named")) {
                 avdName = Util.fixEmptyAndTrim(emulatorData.getString("avdName"));
+            }
+            else if (useNamedValue.equals("running")) {
+                avdName = Util.fixEmptyAndTrim(emulatorData.getString("avdName"));
+                osVersion = Util.fixEmptyAndTrim(emulatorData.getString("osVersion"));
+                useRunningDevice = true;
             } else {
                 osVersion = Util.fixEmptyAndTrim(emulatorData.getString("osVersion"));
                 screenDensity = Util.fixEmptyAndTrim(emulatorData.getString("screenDensity"));
@@ -870,7 +915,7 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
                 startupTimeout = Integer.parseInt(formData.getString("startupTimeout"));
             } catch (NumberFormatException e) {}
 
-            return new AndroidEmulator(avdName, osVersion, screenDensity, screenResolution,
+            return new AndroidEmulator(avdName, osVersion, useRunningDevice, screenDensity, screenResolution,
                     deviceLocale, sdCardSize, hardware.toArray(new HardwareProperty[0]), wipeData,
                     showWindow, useSnapshots, deleteAfterBuild, startupDelay, startupTimeout, commandLineOptions,
                     targetAbi, executable, avdNameSuffix);
@@ -947,7 +992,7 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
         private ValidationResult doCheckOsVersion(String osVersion, boolean allowVariables) {
             if (osVersion == null || osVersion.equals("")) {
                 return ValidationResult.error(Messages.OS_VERSION_REQUIRED());
-            }
+           }
             if (!allowVariables && osVersion.matches(Constants.REGEX_VARIABLE)) {
                 return ValidationResult.error(Messages.INVALID_OS_VERSION());
             }

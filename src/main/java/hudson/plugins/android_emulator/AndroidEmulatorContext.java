@@ -93,6 +93,10 @@ public class AndroidEmulatorContext {
 		return serial;
 	}
 
+    public void setSerial(String serial)  {
+        this.serial = serial;
+    }
+
 	public BuildListener listener() {
 		return listener;
 	}

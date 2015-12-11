@@ -37,6 +37,7 @@ class EmulatorConfig implements Serializable {
     private String deviceLocale;
     private String sdCardSize;
     private String targetAbi;
+    private boolean useRunningDevice;
     private boolean wipeData;
     private final boolean showWindow;
     private final boolean useSnapshots;
@@ -45,9 +46,10 @@ class EmulatorConfig implements Serializable {
     private final String executable;
     private final String avdNameSuffix;
 
-    private EmulatorConfig(String avdName, boolean wipeData, boolean showWindow,
-            boolean useSnapshots, String commandLineOptions, String androidSdkHome, String executable, String
+    private EmulatorConfig(String osVersion, String avdName, boolean useRunningDevice, boolean wipeData, boolean showWindow,
+                           boolean useSnapshots, String commandLineOptions, String androidSdkHome, String executable, String
             avdNameSuffix) {
+        this.osVersion = AndroidPlatform.valueOf(osVersion);
         this.avdName = avdName;
         this.wipeData = wipeData;
         this.showWindow = showWindow;
@@ -56,6 +58,7 @@ class EmulatorConfig implements Serializable {
         this.androidSdkHome = androidSdkHome;
         this.executable = executable;
         this.avdNameSuffix = avdNameSuffix;
+        this.useRunningDevice = useRunningDevice;
     }
 
     private EmulatorConfig(String osVersion, String screenDensity, String screenResolution,
@@ -111,26 +114,27 @@ class EmulatorConfig implements Serializable {
         this.androidSdkHome = androidSdkHome;
         this.executable = executable;
         this.avdNameSuffix = avdNameSuffix;
+        this.useRunningDevice = false;
     }
 
     public static final EmulatorConfig create(String avdName, String osVersion, String screenDensity,
-            String screenResolution, String deviceLocale, String sdCardSize, boolean wipeData,
-            boolean showWindow, boolean useSnapshots, String commandLineOptions, String targetAbi,
-            String androidSdkHome, String executable, String avdNameSuffix) {
+                                              String screenResolution, String deviceLocale, String sdCardSize, boolean useRunningDevice, boolean wipeData,
+                                              boolean showWindow, boolean useSnapshots, String commandLineOptions, String targetAbi,
+                                              String androidSdkHome, String executable, String avdNameSuffix) {
         if (Util.fixEmptyAndTrim(avdName) == null) {
             return new EmulatorConfig(osVersion, screenDensity, screenResolution, deviceLocale, sdCardSize, wipeData,
                     showWindow, useSnapshots, commandLineOptions, targetAbi, androidSdkHome, executable, avdNameSuffix);
         }
 
-        return new EmulatorConfig(avdName, wipeData, showWindow, useSnapshots, commandLineOptions, androidSdkHome, executable,
-                avdNameSuffix);
+        return new EmulatorConfig(osVersion, avdName, useRunningDevice , wipeData, showWindow, useSnapshots, commandLineOptions, androidSdkHome,
+                executable, avdNameSuffix);
     }
 
-    public static final String getAvdName(String avdName, String osVersion, String screenDensity,
-            String screenResolution, String deviceLocale, String targetAbi, String avdNameSuffix) {
+    public static final String getAvdName(String avdName, boolean useRunningDevice, String osVersion, String screenDensity,
+                                          String screenResolution, String deviceLocale, String targetAbi, String avdNameSuffix) {
         try {
-            return create(avdName, osVersion, screenDensity, screenResolution, deviceLocale, null, false, false, false,
-                    null, targetAbi, null, null, avdNameSuffix).getAvdName();
+            return create(avdName, osVersion, screenDensity, screenResolution, deviceLocale, null, useRunningDevice, false, false,
+                    false, null, targetAbi, null, null, avdNameSuffix).getAvdName();
         } catch (IllegalArgumentException e) {}
         return null;
     }
@@ -139,8 +143,10 @@ class EmulatorConfig implements Serializable {
         return avdName != null && osVersion == null;
     }
 
+    public boolean isRunningDevice() { return useRunningDevice; }
+
     public String getAvdName() {
-        if (isNamedEmulator()) {
+        if (isNamedEmulator() || isRunningDevice()) {
             return avdName;
         }
 
@@ -308,7 +314,7 @@ class EmulatorConfig implements Serializable {
 
         // Set basics
         sb.append(String.format(" -ports %s,%s -report-console tcp:%s,max=%s", userPort, adbPort, callbackPort, consoleTimeout));
-        if (!isNamedEmulator()) {
+        if (!isNamedEmulator() && !isRunningDevice()) {
             sb.append(" -prop persist.sys.language=");
             sb.append(getDeviceLanguage());
             sb.append(" -prop persist.sys.country=");
@@ -392,9 +398,16 @@ class EmulatorConfig implements Serializable {
             final File avdDirectory = getAvdDirectory(homeDir);
             final boolean emulatorExists = getAvdConfigFile(homeDir).exists();
 
-            // Can't do anything if a named emulator doesn't exist
-            if (isNamedEmulator() && !emulatorExists) {
-                throw new EmulatorDiscoveryException(Messages.AVD_DOES_NOT_EXIST(avdName, avdDirectory));
+            if (isRunningDevice() || isNamedEmulator() && !emulatorExists) {
+                // Can't do anything if a named emulator doesn't exist
+                if (getOsVersion() == null) {
+                    throw new EmulatorDiscoveryException(Messages.AVD_DOES_NOT_EXIST(avdName, avdDirectory));
+                }
+                // We assume its remotely accessible and all we wanted was the SDK setup. Would be better to
+                // check the remote availability via adb here.
+                else {
+                    return true;
+                }
             }
 
             // Check whether AVD needs to be created
