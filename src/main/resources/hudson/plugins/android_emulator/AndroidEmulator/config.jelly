@@ -3,7 +3,7 @@
   <f:block>
     <table style="margin-left:2em">
 
-      <f:radioBlock name="android-emulator.useNamed" value="true"
+      <f:radioBlock name="android-emulator.useNamed" value="named"
           title="${%Run existing emulator}" checked="${instance.useNamedEmulator}"
           help="/plugin/android-emulator/help-emulatorNamed.html">
         <f:block>
@@ -17,8 +17,26 @@
         </f:block>
       </f:radioBlock>
 
-      <f:radioBlock name="android-emulator.useNamed" value="false"
-          title="${%Run emulator with properties}" checked="${!instance.useNamedEmulator}"
+      <f:radioBlock name="android-emulator.useNamed" value="running"
+          title="${%Connect to existing device}" checked="${instance.useRunningDevice}"
+          help="/plugin/android-emulator/help-runningDevice.html">
+        <f:block>
+          <table style="margin-left:2em">
+            <f:entry title="${%Device name}" help="/plugin/android-emulator/help-avdName.html">
+              <f:textbox name="android-emulator.avdName" value="${instance.avdName}"
+                  checkUrl="'descriptorByName/AndroidEmulator/checkAvdName?value='+escape(this.value)"/>
+              <f:description>${%Enter the name of an existing Android device}</f:description>
+            </f:entry>
+            <f:entry title="${%Android OS version}" help="/plugin/android-emulator/help-osVersion.html">
+              <f:editableComboBox id="android-emulator.osVersion" field="osVersion"
+                  items="${descriptor.androidVersions}"/>
+            </f:entry>
+          </table>
+        </f:block>
+      </f:radioBlock>
+
+      <f:radioBlock name="android-emulator.useNamed" value="create"
+          title="${%Run emulator with properties}" checked="${instance.createEmulator}"
           help="/plugin/android-emulator/help-emulatorCustom.html">
         <f:block>
           <table style="margin-left:2em">
@@ -117,6 +135,10 @@
           <f:textbox name="android-emulator.startupDelay" value="${instance.startupDelay}" style="width:3em"
               default="0" />
           <f:description>${%Wait this many seconds before attempting to start the emulator}</f:description>
+        </f:entry>
+        <f:entry title="${%Startup timeout}" help="/plugin/android-emulator/help-startupTimeout.html">
+          <f:textbox name="android-emulator.startupTimeout" value="${instance.startupTimeout}" style="width:4em"/>
+          <f:description>${%Wait this many seconds before aborting the startup of the emulator}</f:description>
         </f:entry>
         <f:entry title="${%Emulator options}" help="/plugin/android-emulator/help-commandLineOptions.html">
           <f:textbox name="android-emulator.commandLineOptions" value="${instance.commandLineOptions}" />

@@ -21,7 +21,7 @@ import hudson.plugins.android_emulator.AndroidEmulator.DescriptorImpl;
  * once concurrently on any one build machine.
  * <p>
  * From the given {@link hudson.model.Queue.Task Task}, we form a hash of the emulator configuration
- * and check whether any other build currently running on the given {@link hudeon.model.Node Node}
+ * and check whether any other build currently running on the given {@link hudson.model.Node Node}
  * is already using this configuration. If so, we veto execution of the given {@code Task}.
  * </p>
  * As Android emulator attributes will quite often be parameterised (especially for matrix builds),
@@ -35,10 +35,12 @@ public class TaskDispatcher extends QueueTaskDispatcher {
 
     @Override
     public CauseOfBlockage canTake(Node node, Task task) {
+
         // If the given task doesn't use the AndroidEmulator BuildWrapper, we don't care.
         // Or, if there is an emulator hash, but with unresolved environment variables, we shouldn't block the build
         String desiredHash = getEmulatorConfigHashForTask(node, task);
-        if (desiredHash == null || desiredHash.contains("$")) {
+
+        if (desiredHash == null || desiredHash.contains("$") || true) {
             return null;
         }
 
