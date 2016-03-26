@@ -28,6 +28,7 @@ import hudson.util.ForkOutputStream;
 import hudson.util.FormValidation;
 import hudson.util.NullStream;
 import net.sf.json.JSONObject;
+import org.apache.commons.io.IOUtils;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.QueryParameter;
 import org.kohsuke.stapler.StaplerRequest;
@@ -701,21 +702,18 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
     }
 
     /**
-     * Waits for an emulator to say what socket its using, or times out.
+     * Waits for an emulator to tell us which port it is using, or times out.
      *
      * @param launcher The launcher for the remote node.
-     * @param port The server port to listen on.
-     * @param timeout How long to keep trying (in milliseconds) before giving up.
-     * @return port number of the emulator if the socket was available, -1 if we timed-out.
+     * @param port The port to listen on.
+     * @param timeout How long to keep waiting (in milliseconds) before giving up.
+     * @return The port number of the emulator's telnet interface, or {@code -1} in case of failure.
      */
-    private int waitForSocket(Launcher launcher, int port, int timeout) {
+    private int waitForSocket(Launcher launcher, int port, int timeout) throws InterruptedException {
         try {
-            LocalPortReceiveAdbPortTask task = new LocalPortReceiveAdbPortTask(port, timeout);
+            ReceiveEmulatorPortTask task = new ReceiveEmulatorPortTask(port, timeout);
             return launcher.getChannel().call(task);
-        } catch (InterruptedException ex) {
-            // Ignore
-        } catch (IOException e) {
-            // Ignore
+        } catch (IOException ignore) {
         }
         return -1;
     }
@@ -1103,8 +1101,11 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
 
     }
 
-    /** Task that will block until it receives a conection from the emulator together with identifying port, or it times-out. */
-    private static final class LocalPortReceiveAdbPortTask implements Callable<Integer, InterruptedException> {
+    /**
+     * Task that will wait, up to a certain timeout, for an inbound connection from the emulator,
+     * informing us on which port it is running.
+     */
+    private static final class ReceiveEmulatorPortTask implements Callable<Integer, InterruptedException> {
 
         private static final long serialVersionUID = 1L;
 
@@ -1112,32 +1113,40 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
         private final int timeout;
 
         /**
-         * @param port The local TCP port to attempt to connect to.
-         * @param timeout How long to keep trying (in milliseconds) before giving up.
+         * @param port The local TCP port to listen on.
+         * @param timeout How many milliseconds to wait for an emulator connection before giving up.
          */
-        public LocalPortReceiveAdbPortTask(int port, int timeout) {
+        public ReceiveEmulatorPortTask(int port, int timeout) {
             this.port = port;
             this.timeout = timeout;
         }
 
         public Integer call() throws InterruptedException {
-            final long start = System.currentTimeMillis();
+            ServerSocket socket = null;
+            try {
+                // TODO: Find a better way to allow the build to be interrupted.
+                // ServerSocket#accept() blocks and cannot be interrupted, which means that any
+                // attempts to stop the build will fail.  The best we can do here is to set the
+                // SO_TIMEOUT, so at least if an emulator fails to start, we won't wait here forever
+                socket = new ServerSocket(port);
+                socket.setSoTimeout(timeout);
 
-            while (System.currentTimeMillis() < start + timeout) {
-                try {
-                    ServerSocket socket = new ServerSocket(port);
-                    Socket completed = socket.accept();
-                    BufferedReader reader = new BufferedReader(new InputStreamReader(completed.getInputStream()));
-                    String port = reader.readLine();
-                    reader.close();
-                    completed.close();
-                    socket.close();
-                    return Integer.parseInt(port);
-                } catch (IOException ignore) {}
+                // Wait for the emulator to connect to us
+                Socket completed = socket.accept();
 
-                Thread.sleep(1000);
+                // Parse and return the port number the emulator sent us
+                BufferedReader reader = new BufferedReader(new InputStreamReader(completed.getInputStream()));
+                String port = reader.readLine();
+                reader.close();
+                completed.close();
+                return Integer.parseInt(port);
+            } catch (IOException ignore) {
+            } catch (NumberFormatException ignore) {
+            } finally {
+                IOUtils.closeQuietly(socket);
             }
 
+            // Timed out
             return -1;
         }
     }
