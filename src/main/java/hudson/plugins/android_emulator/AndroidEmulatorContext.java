@@ -101,10 +101,6 @@ public class AndroidEmulatorContext {
 	}
     public int getEmulatorCallbackPort() { return emulatorCallbackPort; }
 
-    public String connectString() {
-        return "localhost:" + userPort;
-    }
-
 	public String serial() {
 		return serial;
 	}

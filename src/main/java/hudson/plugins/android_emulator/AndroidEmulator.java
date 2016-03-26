@@ -388,18 +388,6 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
         // indicate that any methods wanting to check the "emulator" process state should ignore it.
         boolean ignoreProcess = !launcher.isUnix() && androidSdk.getSdkToolsMajorVersion() >= 12;
 
-        // Notify adb of our existence (though the emulator should do this anyway)
-        // Note that android 4.2.2 and later uses secure adb which means keys are created on first use.
-        // It's possible to get into issues if these have the wrong permissions, but they are always created
-        // in ~/.android so its not clear what can be done about this.
-        int result = emu.getToolProcStarter(Tool.ADB, "connect " + emu.connectString()).stdout(logger).stderr(logger).join();
-        if (result != 0) { // adb currently only ever returns 0!
-            log(logger, Messages.CANNOT_CONNECT_TO_EMULATOR());
-            build.setResult(Result.NOT_BUILT);
-            cleanUp(emuConfig, emu);
-            return null;
-        }
-
         // Monitor device for boot completion signal
         log(logger, Messages.WAITING_FOR_BOOT_COMPLETION());
         int bootTimeout = BOOT_COMPLETE_TIMEOUT_MS;
@@ -438,9 +426,6 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
             // The delay here is a function of boot time, i.e. relative to the slowness of the host
             Thread.sleep(bootDuration / 4);
 
-            // Make sure we're still connected
-            connectEmulator(emu);
-
             log(logger, Messages.UNLOCKING_SCREEN());
             final long adbTimeout = BOOT_COMPLETE_TIMEOUT_MS / 16;
             final String keyEventArgs = String.format("-s %s shell input keyevent %%d", emu.serial());
@@ -463,9 +448,6 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
             // In order to create a clean initial snapshot, give the system some more time to settle
             log(logger, Messages.WAITING_INITIAL_SNAPSHOT());
             Thread.sleep((long) (bootDuration * 0.8));
-
-            // Make sure we're still connected
-            connectEmulator(emu);
 
             // Clear main log before creating snapshot
             final String clearArgs = String.format("-s %s logcat -c", emu.serial());
@@ -497,9 +479,6 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
                 log(logger, Messages.SNAPSHOT_CREATION_FAILED());
             }
         }
-
-        // Make sure we're still connected
-        connectEmulator(emu);
 
         // Done!
         final long bootCompleteTime = System.currentTimeMillis();
@@ -544,21 +523,6 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
             }
         };
     }
-
-    private static void connectEmulator(AndroidEmulatorContext emu)
-            throws IOException, InterruptedException {
-        ArgumentListBuilder adbConnectCmd = emu.getToolCommand(Tool.ADB, "connect " + emu.connectString());
-        emu.getProcStarter(adbConnectCmd).start().joinWithTimeout(5L, TimeUnit.SECONDS, emu.launcher().getListener());
-    }
-
-    private static void disconnectEmulator(AndroidEmulatorContext emu)
-            throws IOException, InterruptedException {
-        // The docs say host:port is valid, but reality is different.
-        final String args = "disconnect"; //+ emu.connectString();
-        ArgumentListBuilder adbDisconnectCmd = emu.getToolCommand(Tool.ADB, args);
-        emu.getProcStarter(adbDisconnectCmd).start().joinWithTimeout(5L, TimeUnit.SECONDS, emu.launcher().getListener());
-    }
-
 
     /** Helper method for writing to the build log in a consistent manner. */
     public synchronized static void log(final PrintStream logger, final String message) {
@@ -606,9 +570,6 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
         // FIXME: Sometimes on Windows neither the emulator.exe nor the adb.exe processes die.
         //        Launcher.kill(EnvVars) does not appear to help either.
         //        This is (a) inconsistent; (b) very annoying.
-
-        // Disconnect emulator from adb
-        disconnectEmulator(emu);
 
         // Stop emulator process
         log(emu.logger(), Messages.STOPPING_EMULATOR());
@@ -744,7 +705,6 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
 
         try {
             final long adbTimeout = timeout / 8;
-            int iterations = 0;
             while (System.currentTimeMillis() < start + timeout && (ignoreProcess || emu.process().isAlive())) {
                 ByteArrayOutputStream stream = new ByteArrayOutputStream(16);
 
@@ -759,18 +719,6 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
                         return true;
                     }
                 }
-
-                // Otherwise continue...
-
-                /* Ensure the emulator is connected to adb, in case it had crashed.
-                 * We also disconnect it every 3 tries, in case it's stuck in an offline state.
-                 */
-                if (++iterations % 3 == 0) {
-                    try {
-                        disconnectEmulator(emu);
-                    } catch (Exception ignore) {}
-                }
-                connectEmulator(emu);
 
                 Thread.sleep(sleep);
             }
