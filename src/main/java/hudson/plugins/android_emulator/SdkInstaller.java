@@ -2,7 +2,6 @@ package hudson.plugins.android_emulator;
 
 import hudson.EnvVars;
 import hudson.FilePath;
-import hudson.FilePath.FileCallable;
 import hudson.Launcher;
 import hudson.Launcher.ProcStarter;
 import hudson.Proc;
@@ -17,6 +16,8 @@ import hudson.plugins.android_emulator.util.ValidationResult;
 import hudson.remoting.Callable;
 import hudson.remoting.VirtualChannel;
 import hudson.util.ArgumentListBuilder;
+import jenkins.MasterToSlaveFileCallable;
+import jenkins.security.MasterToSlaveCallable;
 import org.apache.commons.lang.StringUtils;
 
 import java.io.BufferedReader;
@@ -123,7 +124,7 @@ public class SdkInstaller {
     @SuppressWarnings("serial")
     private static AndroidSdk getAndroidSdkForNode(Node node, final String androidHome,
             final String androidSdkHome) throws IOException, InterruptedException {
-        return node.getChannel().call(new Callable<AndroidSdk, IOException>() {
+        return node.getChannel().call(new MasterToSlaveCallable<AndroidSdk, IOException>() {
             public AndroidSdk call() throws IOException {
                 return new AndroidSdk(androidHome, androidSdkHome);
             }
@@ -159,7 +160,7 @@ public class SdkInstaller {
         final URL downloadUrl = installer.getUrl(SDK_VERSION);
 
         // Download the SDK, if required
-        boolean wasNowInstalled = installDir.act(new FileCallable<Boolean>() {
+        boolean wasNowInstalled = installDir.act(new MasterToSlaveFileCallable<Boolean>() {
             public Boolean invoke(File f, VirtualChannel channel)
                     throws InterruptedException, IOException {
                 String msg = Messages.DOWNLOADING_SDK_FROM(downloadUrl);
@@ -408,7 +409,7 @@ public class SdkInstaller {
      */
     private static String getPlatformFromExistingEmulator(Launcher launcher,
             final EmulatorConfig emuConfig) throws IOException, InterruptedException {
-        return launcher.getChannel().call(new Callable<String, IOException>() {
+        return launcher.getChannel().call(new MasterToSlaveCallable<String, IOException>() {
             public String call() throws IOException {
                 File metadataFile = emuConfig.getAvdMetadataFile();
                 Map<String, String> metadata = Utils.parseConfigFile(metadataFile);
@@ -474,7 +475,7 @@ public class SdkInstaller {
     private static boolean isSdkInstallComplete(Node node, final String sdkRoot)
             throws IOException, InterruptedException {
         // Validation needs to run on the remote node
-        ValidationResult result = node.getChannel().call(new Callable<ValidationResult, InterruptedException>() {
+        ValidationResult result = node.getChannel().call(new MasterToSlaveCallable<ValidationResult, InterruptedException>() {
             public ValidationResult call() throws InterruptedException {
                 return Utils.validateAndroidHome(new File(sdkRoot), false);
             }
@@ -519,7 +520,7 @@ public class SdkInstaller {
     }
 
     /** Helper to run SDK statistics opt-out task on a remote node. */
-    private static final class StatsOptOutTask implements Callable<Void, Exception> {
+    private static final class StatsOptOutTask extends MasterToSlaveCallable<Void, Exception> {
 
         private static final long serialVersionUID = 1L;
         private final String androidSdkHome;
@@ -582,7 +583,7 @@ public class SdkInstaller {
 
         static AndroidInstaller fromNode(Node node) throws SdkUnavailableException,
                 IOException, InterruptedException {
-            return node.getChannel().call(new Callable<AndroidInstaller, SdkUnavailableException>() {
+            return node.getChannel().call(new MasterToSlaveCallable<AndroidInstaller, SdkUnavailableException>() {
                 public AndroidInstaller call() throws SdkUnavailableException {
                     return get();
                 }

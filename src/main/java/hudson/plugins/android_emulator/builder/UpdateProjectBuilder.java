@@ -3,7 +3,6 @@ package hudson.plugins.android_emulator.builder;
 import static hudson.plugins.android_emulator.AndroidEmulator.log;
 import hudson.Extension;
 import hudson.FilePath;
-import hudson.FilePath.FileCallable;
 import hudson.Functions;
 import hudson.Launcher;
 import hudson.model.BuildListener;
@@ -39,6 +38,7 @@ import org.jvnet.localizer.Localizable;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.w3c.dom.NodeList;
 import org.xml.sax.InputSource;
+import jenkins.MasterToSlaveFileCallable;
 
 public class UpdateProjectBuilder extends AbstractBuilder {
 
@@ -162,7 +162,7 @@ public class UpdateProjectBuilder extends AbstractBuilder {
     /** Determines the canonical path to the current build's workspace. */
     private static String getWorkspacePath(FilePath workspace) throws IOException,
             InterruptedException {
-        return workspace.act(new FileCallable<String>() {
+        return workspace.act(new MasterToSlaveFileCallable<String>() {
             public String invoke(File f, VirtualChannel channel) throws IOException {
                 return f.getCanonicalPath();
             }
@@ -170,7 +170,7 @@ public class UpdateProjectBuilder extends AbstractBuilder {
     }
 
     /** FileCallable to determine Android target projects specified in a given directory. */
-    private static final class ProjectFinder implements FileCallable<List<Project>> {
+    private static final class ProjectFinder extends MasterToSlaveFileCallable<List<Project>> {
 
         private final BuildListener listener;
         private transient PrintStream logger;

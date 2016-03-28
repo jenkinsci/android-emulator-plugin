@@ -2,7 +2,6 @@ package hudson.plugins.android_emulator.builder;
 
 import static hudson.plugins.android_emulator.AndroidEmulator.log;
 import hudson.Extension;
-import hudson.FilePath.FileCallable;
 import hudson.Functions;
 import hudson.Launcher;
 import hudson.model.BuildListener;
@@ -14,6 +13,7 @@ import hudson.plugins.android_emulator.sdk.AndroidSdk;
 import hudson.plugins.android_emulator.util.Utils;
 import hudson.remoting.VirtualChannel;
 import hudson.tasks.Builder;
+import jenkins.MasterToSlaveFileCallable;
 
 import java.io.File;
 import java.io.IOException;
@@ -63,7 +63,7 @@ public class ProjectPrerequisitesInstaller extends AbstractBuilder {
     }
 
     /** FileCallable to determine Android target projects specified in a given directory. */
-    private static final class ProjectPlatformFinder implements FileCallable<Collection<String>> {
+    private static final class ProjectPlatformFinder extends MasterToSlaveFileCallable<Collection<String>> {
 
         private final BuildListener listener;
         private transient PrintStream logger;

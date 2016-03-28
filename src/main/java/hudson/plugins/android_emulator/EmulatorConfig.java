@@ -25,6 +25,7 @@ import java.io.PushbackInputStream;
 import java.io.Serializable;
 import java.util.Map;
 import java.util.regex.Pattern;
+import jenkins.security.MasterToSlaveCallable;
 
 class EmulatorConfig implements Serializable {
 
@@ -387,7 +388,7 @@ class EmulatorConfig implements Serializable {
      * {@code FALSE} if an AVD was newly created, and throws an AndroidEmulatorException if the
      * given AVD or parts required to generate a new AVD were not found.
      */
-    private final class EmulatorCreationTask implements Callable<Boolean, AndroidEmulatorException> {
+    private final class EmulatorCreationTask extends MasterToSlaveCallable<Boolean, AndroidEmulatorException> {
 
         private static final long serialVersionUID = 1L;
         private final AndroidSdk androidSdk;
@@ -659,7 +660,7 @@ class EmulatorConfig implements Serializable {
      *
      * Throws an IOException if the AVD's config could not be read or written.
      */
-    private final class EmulatorConfigTask implements Callable<Void, IOException> {
+    private final class EmulatorConfigTask extends MasterToSlaveCallable<Void, IOException> {
 
         private static final long serialVersionUID = 1L;
 
@@ -698,7 +699,7 @@ class EmulatorConfig implements Serializable {
     }
 
     /** A task that deletes the AVD corresponding to our local state. */
-    private final class EmulatorDeletionTask implements Callable<Boolean, Exception> {
+    private final class EmulatorDeletionTask extends MasterToSlaveCallable<Boolean, Exception> {
 
         private static final long serialVersionUID = 1L;
 

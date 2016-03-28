@@ -27,6 +27,7 @@ import hudson.util.ArgumentListBuilder;
 import hudson.util.ForkOutputStream;
 import hudson.util.FormValidation;
 import hudson.util.NullStream;
+import jenkins.security.MasterToSlaveCallable;
 import net.sf.json.JSONObject;
 import org.apache.commons.io.IOUtils;
 import org.kohsuke.stapler.DataBoundConstructor;
@@ -1055,7 +1056,8 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
      * Task that will wait, up to a certain timeout, for an inbound connection from the emulator,
      * informing us on which port it is running.
      */
-    private static final class ReceiveEmulatorPortTask implements Callable<Integer, InterruptedException> {
+    private static final class ReceiveEmulatorPortTask
+            extends MasterToSlaveCallable<Integer, InterruptedException> {
 
         private static final long serialVersionUID = 1L;
 

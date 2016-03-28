@@ -21,6 +21,7 @@ import hudson.plugins.android_emulator.util.Utils;
 import hudson.remoting.VirtualChannel;
 import hudson.tasks.Builder;
 import hudson.util.ForkOutputStream;
+import jenkins.MasterToSlaveFileCallable;
 import net.dongliu.apk.parser.ApkParser;
 import net.dongliu.apk.parser.bean.ApkMeta;
 
@@ -288,7 +289,7 @@ public abstract class AbstractBuilder extends Builder {
      * @throws InterruptedException If execution failed.
      */
     private static String getPackageIdForApk(FilePath apkPath) throws IOException, InterruptedException {
-        return apkPath.act(new FilePath.FileCallable<String>() {
+        return apkPath.act(new MasterToSlaveFileCallable<String>() {
             public String invoke(File f, VirtualChannel channel) throws IOException, InterruptedException {
                 return getApkMetadata(f).getPackageName();
             }

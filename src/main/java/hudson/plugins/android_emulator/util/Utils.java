@@ -51,6 +51,8 @@ import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import jenkins.security.MasterToSlaveCallable;
+
 import static hudson.plugins.android_emulator.AndroidEmulator.log;
 
 public class Utils {
@@ -109,7 +111,7 @@ public class Utils {
             final EnvVars envVars, final String androidHome) {
         final String autoInstallDir = getSdkInstallDirectory(node).getRemote();
 
-        Callable<String, InterruptedException> task = new Callable<String, InterruptedException>() {
+        Callable<String, InterruptedException> task = new MasterToSlaveCallable<String, InterruptedException>() {
             public String call() throws InterruptedException {
                 // Verify existence of provided value
                 if (validateHomeDir(androidHome)) {
@@ -172,7 +174,7 @@ public class Utils {
     public static AndroidSdk getAndroidSdk(Launcher launcher, final String androidSdkRoot, final String androidSdkHome) {
         final boolean isUnix = launcher.isUnix();
 
-        Callable<AndroidSdk, IOException> task = new Callable<AndroidSdk, IOException>() {
+        Callable<AndroidSdk, IOException> task = new MasterToSlaveCallable<AndroidSdk, IOException>() {
             public AndroidSdk call() throws IOException {
                 String sdkRoot = androidSdkRoot;
                 if (androidSdkRoot == null) {
@@ -716,7 +718,7 @@ public class Utils {
     }
 
     /** Task that will execute a command on the given emulator's console port, then quit. */
-    private static final class EmulatorCommandTask implements Callable<Boolean, IOException> {
+    private static final class EmulatorCommandTask extends MasterToSlaveCallable<Boolean, IOException> {
 
         private final int port;
         private final String command;
