@@ -431,16 +431,23 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
 
             log(logger, Messages.UNLOCKING_SCREEN());
             final long adbTimeout = BOOT_COMPLETE_TIMEOUT_MS / 16;
-            final String keyEventArgs = String.format("-s %s shell input keyevent %%d", emu.serial());
-            final String menuArgs = String.format(keyEventArgs, 82);
-            ArgumentListBuilder menuCmd = emu.getToolCommand(Tool.ADB, menuArgs);
+            final String keyEventTemplate = String.format("-s %s shell input keyevent %%d", emu.serial());
+            final String unlockArgs;
+            if (emuConfig.getOsVersion().getSdkLevel() < 23) {
+                unlockArgs = String.format(keyEventTemplate, 82);
+            } else {
+                // Android 6.0 introduced a command to dismiss the keyguard on unsecured devices
+                unlockArgs = String.format("-s %s shell wm dismiss-keyguard", emu.serial());
+            }
+            ArgumentListBuilder menuCmd = emu.getToolCommand(Tool.ADB, unlockArgs);
             Proc proc = emu.getProcStarter(menuCmd).start();
             proc.joinWithTimeout(adbTimeout, TimeUnit.MILLISECONDS, emu.launcher().getListener());
 
             // If a named emulator already existed, it may not have been booted yet, so the screen
             // wouldn't be locked.  Similarly, an non-named emulator may have already booted the
-            // first time without us knowing.  In both cases, we press Back after Menu to compensate
-            final String backArgs = String.format(keyEventArgs, 4);
+            // first time without us knowing.  In both cases, we press Back after attempting to
+            // unlock the screen to compensate
+            final String backArgs = String.format(keyEventTemplate, 4);
             ArgumentListBuilder backCmd = emu.getToolCommand(Tool.ADB, backArgs);
             proc = emu.getProcStarter(backCmd).start();
             proc.joinWithTimeout(adbTimeout, TimeUnit.MILLISECONDS, emu.launcher().getListener());
