@@ -303,17 +303,34 @@ class EmulatorConfig implements Serializable {
      * @return A string of command line arguments.
      */
     public String getCommandArguments(SnapshotState snapshotState, boolean sdkSupportsSnapshots,
-            int userPort, int adbPort, int callbackPort, int consoleTimeout) {
+            boolean emulatorSupportsEngineFlag, int userPort, int adbPort, int callbackPort,
+            int consoleTimeout) {
         StringBuilder sb = new StringBuilder();
 
-        // Set basics
-        sb.append(String.format(" -ports %s,%s -report-console tcp:%s,max=%s", userPort, adbPort, callbackPort, consoleTimeout));
+        // Stick to using the original version of the emulator for now, as otherwise we can't use
+        // the "-ports" command line flag, which we need to stay outside of the regular port range,
+        // nor can we use the "-prop" or "-report-console" command line flags that we require.
+        //
+        // See Android bugs 202762, 202853, 205202 and 205204
+        if (emulatorSupportsEngineFlag) {
+            sb.append(" -engine classic");
+        }
+
+        // Tell the emulator to use certain ports
+        sb.append(String.format(" -ports %s,%s", userPort, adbPort));
+
+        // Ask the emulator to report to us on the given port, once initial startup is complete
+        sb.append(String.format(" -report-console tcp:%s,max=%s", callbackPort, consoleTimeout));
+
+        // Set the locale to be used at startup
         if (!isNamedEmulator()) {
             sb.append(" -prop persist.sys.language=");
             sb.append(getDeviceLanguage());
             sb.append(" -prop persist.sys.country=");
             sb.append(getDeviceCountry());
         }
+
+        // Set the ID of the AVD we want to start
         sb.append(" -avd ");
         sb.append(getAvdName());
 

@@ -26,6 +26,9 @@ public class AndroidSdk implements Serializable {
     /** First version that recognises the "sys-img-[arch]-[tag]-[api]" format. */
     private static final int SDK_SYSTEM_IMAGE_NEW_FORMAT = 23;
 
+    /** First version that has an emulator which recognises the "-engine" flag. */
+    private static final int SDK_EMULATOR_ENGINE_FLAG = 25;
+
     private final String sdkRoot;
     private final String sdkHome;
     private String sdkToolsVersion;
@@ -90,6 +93,11 @@ public class AndroidSdk implements Serializable {
 
     public boolean supportsSystemImageNewFormat() {
         return getSdkToolsMajorVersion() >= SDK_SYSTEM_IMAGE_NEW_FORMAT;
+    }
+
+    /** @return {@code true} if this SDK has an emulator that supports the "-engine" flag. */
+    public boolean supportsEmulatorEngineFlag() {
+        return getSdkToolsMajorVersion() >= SDK_EMULATOR_ENGINE_FLAG;
     }
 
     /** {@return true} if we should explicitly select a non-64-bit emulator executable for snapshot-related tasks. */
