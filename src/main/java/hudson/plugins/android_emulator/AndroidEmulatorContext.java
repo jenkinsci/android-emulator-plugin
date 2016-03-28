@@ -51,7 +51,14 @@ public class AndroidEmulatorContext {
         // user telnet interface, and one to communicate with ADB.  These pairs start at port 5554.
         // http://android.googlesource.com/platform/system/core/+/d387acc/adb/adb.h#206
         // http://android.googlesource.com/platform/system/core/+/d387acc/adb/transport_local.cpp#44
-        final int PORT_RANGE_START = 5554;
+        //
+        // So long as the ADB server automatically registers itself with any emulators in the
+        // standard port range of 5555–5861, then we should avoid using that port range.
+        // Otherwise, when we run multiple ADB servers and emulators at the same time, each of the
+        // ADB servers will race to register with each emulator, meaning that each build will most
+        // likely end up with an emulator that always ends up appearing to be "offline".
+        // See http://b.android.com/205197
+        final int PORT_RANGE_START = 5554 + (2 * 64);
         final int PORT_RANGE_END = PORT_RANGE_START + (2 * 64);
 
         // When using the emulator `-port` option, the first port must be even, so here we reserve
