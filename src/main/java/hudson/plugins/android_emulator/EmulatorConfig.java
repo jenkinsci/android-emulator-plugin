@@ -299,6 +299,26 @@ class EmulatorConfig implements Serializable {
     }
 
     /**
+     * Sets or overwrites a key-value pair in the AVD config file.
+     *
+     * @param homeDir AVD home directory.
+     * @param key Key to set.
+     * @param value Value to set.
+     * @throws EmulatorCreationException If reading or writing the file failed.
+     */
+    private void setAvdConfigValue(File homeDir, String key, String value)
+            throws EmulatorCreationException {
+        Map<String, String> configValues;
+        try {
+            configValues = parseAvdConfigFile(homeDir);
+            configValues.put(key, value);
+            writeAvdConfigFile(homeDir, configValues);
+        } catch (IOException e) {
+            throw new EmulatorCreationException(Messages.AVD_CONFIG_NOT_READABLE(), e);
+        }
+    }
+
+    /**
      * Gets the command line arguments to pass to "emulator" based on this instance.
      *
      * @return A string of command line arguments.
@@ -465,14 +485,7 @@ class EmulatorConfig implements Serializable {
                 Util.copyFile(new File(snapshotDir, "snapshots.img"), snapshotsFile);
 
                 // Update the AVD config file mark snapshots as enabled
-                Map<String, String> configValues;
-                try {
-                    configValues = parseAvdConfigFile(homeDir);
-                    configValues.put("snapshot.present", "true");
-                    writeAvdConfigFile(homeDir, configValues);
-                } catch (IOException e) {
-                    throw new EmulatorCreationException(Messages.AVD_CONFIG_NOT_READABLE(), e);
-                }
+                setAvdConfigValue(homeDir, "snapshot.present", "true");
             }
 
             // If we need create an SD card for an existing emulator, do so
@@ -483,14 +496,7 @@ class EmulatorConfig implements Serializable {
                 }
 
                 // Update the AVD config file
-                Map<String, String> configValues;
-                try {
-                    configValues = parseAvdConfigFile(homeDir);
-                    configValues.put("sdcard.size", sdCardSize);
-                    writeAvdConfigFile(homeDir, configValues);
-                } catch (IOException e) {
-                    throw new EmulatorCreationException(Messages.AVD_CONFIG_NOT_READABLE(), e);
-                }
+                setAvdConfigValue(homeDir, "sdcard.size", sdCardSize);
             }
 
             // Return if everything is now ready for use
@@ -619,6 +625,9 @@ class EmulatorConfig implements Serializable {
                 avdCreated = false;
                 errOutput = null;
             }
+
+            // Set the screen density
+            setAvdConfigValue(homeDir, "hw.lcd.density", String.valueOf(getScreenDensity().getDpi()));
 
             // Check everything went ok
             if (!avdCreated) {
