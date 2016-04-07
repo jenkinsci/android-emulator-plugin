@@ -47,7 +47,7 @@ import static hudson.plugins.android_emulator.AndroidEmulator.log;
 public class SdkInstaller {
 
     /** Recent version of the Android SDK that will be installed. */
-    private static final String SDK_VERSION = "24.0.2";
+    private static final String SDK_VERSION = "24.4.1";
 
     /** Filename to write some metadata to about our automated installation. */
     private static final String SDK_INFO_FILENAME = ".jenkins-install-info";
