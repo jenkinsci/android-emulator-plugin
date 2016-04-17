@@ -1,8 +1,12 @@
+<b>Note:</b> This only works for projects using the deprecated Ant build system for Android.<br>
+For Gradle projects, consider adding the <a href="https://github.com/JakeWharton/sdk-manager-plugin"
+target="_blank">Android SDK Manager plugin</a> to your project.
+<hr>
 Installs any platforms required to build the Android apps in this job's workspace.
 <p>
-In an Android app project, test project or library project the platform version to build against
-must be specified in either the <tt>project.properties</tt> or <tt>default.properties</tt> file, by
-setting the <tt>target</tt> parameter.
+In an Android app project, test project or library project built with Ant, the platform version to
+build against must be specified in either the <tt>project.properties</tt> or
+<tt>default.properties</tt> file, by setting the <tt>target</tt> parameter.
 </p>
 <p>
 This build step will search for these files in your workspace, determine which target platform(s)
