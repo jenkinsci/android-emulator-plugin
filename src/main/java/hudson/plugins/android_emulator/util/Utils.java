@@ -297,6 +297,37 @@ public class Utils {
     }
 
     /**
+     * Locates the current user's home directory using the same scheme as the Android SDK does.
+     *
+     * @return A {@link File} representing the home directory.
+     */
+    public static File getHomeDirectory() {
+        // From https://android.googlesource.com/platform/external/qemu/android/base/system/System.cpp
+        String path = null;
+        if (Functions.isWindows()) {
+            // The emulator queries for the Win32 "CSIDL_PROFILE" path, which should equal USERPROFILE
+            path = System.getenv("USERPROFILE");
+
+            // Otherwise, fall back to the Windows equivalent of HOME
+            if (path == null) {
+                String homeDrive = System.getenv("HOMEDRIVE");
+                String homePath = System.getenv("HOMEPATH");
+                if (homeDrive != null && homePath != null) {
+                    path = homeDrive + homePath;
+                }
+            }
+        } else {
+            path = System.getenv("HOME");
+        }
+
+        // Path may not have been discovered
+        if (path == null) {
+            return null;
+        }
+        return new File(path);
+    }
+
+    /**
      * Detects the root directory of an SDK installation based on the Android tools on the PATH.
      *
      * @param isUnix Whether the system where this command should run is sane.

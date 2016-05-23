@@ -249,6 +249,15 @@ class EmulatorConfig implements Serializable {
     }
 
     /**
+     * Gets a task that writes an empty emulator auth file to the machine where the AVD will run.
+     *
+     * @return A Callable that will write an empty auth file.
+     */
+    public Callable<Void, IOException> getEmulatorAuthFileTask() {
+        return new EmulatorAuthFileTask();
+    }
+
+    /**
      * Gets a task that deletes the AVD corresponding to this instance's configuration.
      *
      *
@@ -705,6 +714,30 @@ class EmulatorConfig implements Serializable {
 
             return null;
         }
+    }
+
+    /** Writes an empty emulator auth file. */
+    private final class EmulatorAuthFileTask extends MasterToSlaveCallable<Void, IOException> {
+
+        private static final long serialVersionUID = 1L;
+
+        public Void call() throws IOException {
+            // Create an empty auth file to prevent the emulator telnet interface from requiring authentication
+            final File userHome = Utils.getHomeDirectory();
+            if (userHome != null) {
+                try {
+                    FilePath authFile = new FilePath(userHome).child(".emulator_console_auth_token");
+                    authFile.write("", "UTF-8");
+                } catch (IOException e) {
+                    throw new IOException(String.format("Failed to write auth file to %s.", userHome, e));
+                } catch (InterruptedException e) {
+                    throw new IOException(String.format("Interrupted while writing auth file to %s.", userHome, e));
+                }
+            }
+
+            return null;
+        }
+
     }
 
     /** A task that deletes the AVD corresponding to our local state. */

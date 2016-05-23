@@ -298,6 +298,10 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
             launcher.getChannel().call(task);
         }
 
+        // Write the auth token file for the emulator
+        Callable<Void, IOException> authFileTask = emuConfig.getEmulatorAuthFileTask();
+        launcher.getChannel().callAsync(authFileTask);
+
         // Delay start up by the configured amount of time
         final int delaySecs = startupDelay;
         if (delaySecs > 0) {
