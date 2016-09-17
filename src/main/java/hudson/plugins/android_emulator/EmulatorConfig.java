@@ -353,7 +353,9 @@ public class EmulatorConfig implements Serializable {
         sb.append(String.format(" -ports %s,%s", userPort, adbPort));
 
         // Ask the emulator to report to us on the given port, once initial startup is complete
-        sb.append(String.format(" -report-console tcp:%s,max=%s", callbackPort, consoleTimeout));
+        if (false) {
+            sb.append(String.format(" -report-console tcp:%s,max=%s", callbackPort, consoleTimeout));
+        }
 
         // Set the locale to be used at startup
         if (!isNamedEmulator()) {
