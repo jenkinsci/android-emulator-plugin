@@ -274,7 +274,7 @@ public class Utils {
      */
     public static File getHomeDirectory(String androidSdkHome) {
         // From git://android.git.kernel.org/platform/external/qemu.git/android/utils/bufprint.c
-        String homeDirPath = System.getenv("ANDROID_SDK_HOME");
+        String homeDirPath = System.getenv("ANDROID_SDK_HOME"); // TODO: If this is set, it will break keepInWorkspace
         if (homeDirPath == null) {
             if (androidSdkHome != null) {
                 homeDirPath = androidSdkHome;

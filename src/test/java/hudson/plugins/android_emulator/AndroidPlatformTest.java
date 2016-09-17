@@ -1,5 +1,6 @@
 package hudson.plugins.android_emulator;
 
+import hudson.plugins.android_emulator.model.AndroidPlatform;
 import junit.framework.TestCase;
 
 public class AndroidPlatformTest extends TestCase {

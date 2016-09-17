@@ -7,6 +7,9 @@ import hudson.Util;
 import hudson.model.BuildListener;
 import hudson.model.TaskListener;
 import hudson.plugins.android_emulator.AndroidEmulator.HardwareProperty;
+import hudson.plugins.android_emulator.model.AndroidPlatform;
+import hudson.plugins.android_emulator.model.ScreenDensity;
+import hudson.plugins.android_emulator.model.ScreenResolution;
 import hudson.plugins.android_emulator.sdk.AndroidSdk;
 import hudson.plugins.android_emulator.sdk.Tool;
 import hudson.plugins.android_emulator.util.Utils;
@@ -27,7 +30,7 @@ import java.util.Map;
 import java.util.regex.Pattern;
 import jenkins.security.MasterToSlaveCallable;
 
-class EmulatorConfig implements Serializable {
+public class EmulatorConfig implements Serializable {
 
     private static final long serialVersionUID = 1L;
 
