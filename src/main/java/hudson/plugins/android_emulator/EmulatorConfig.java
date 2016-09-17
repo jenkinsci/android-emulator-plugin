@@ -367,7 +367,8 @@ public class EmulatorConfig implements Serializable {
 
         // Set the ID of the AVD we want to start
         sb.append(" -avd ");
-        sb.append(getAvdName());
+//        sb.append(getAvdName());
+        sb.append("6p");
 
         // Snapshots
         if (snapshotState == SnapshotState.BOOT) {
