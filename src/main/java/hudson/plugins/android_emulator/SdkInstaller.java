@@ -5,9 +5,7 @@ import hudson.FilePath;
 import hudson.Launcher;
 import hudson.Launcher.ProcStarter;
 import hudson.Proc;
-import hudson.model.BuildListener;
-import hudson.model.Computer;
-import hudson.model.Node;
+import hudson.model.*;
 import hudson.plugins.android_emulator.SdkInstaller.AndroidInstaller.SdkUnavailableException;
 import hudson.plugins.android_emulator.sdk.AndroidSdk;
 import hudson.plugins.android_emulator.sdk.Tool;
@@ -20,24 +18,10 @@ import jenkins.MasterToSlaveFileCallable;
 import jenkins.security.MasterToSlaveCallable;
 import org.apache.commons.lang.StringUtils;
 
-import java.io.BufferedReader;
-import java.io.ByteArrayOutputStream;
-import java.io.File;
-import java.io.FileFilter;
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.PrintStream;
-import java.io.PrintWriter;
-import java.io.Serializable;
+import java.io.*;
 import java.net.MalformedURLException;
 import java.net.URL;
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.WeakHashMap;
+import java.util.*;
 import java.util.concurrent.Semaphore;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -46,13 +30,19 @@ import static hudson.plugins.android_emulator.AndroidEmulator.log;
 
 public class SdkInstaller {
 
-    /** Recent version of the Android SDK that will be installed. */
+    /**
+     * Recent version of the Android SDK that will be installed.
+     */
     private static final String SDK_VERSION = "24.4.1";
 
-    /** Filename to write some metadata to about our automated installation. */
+    /**
+     * Filename to write some metadata to about our automated installation.
+     */
     private static final String SDK_INFO_FILENAME = ".jenkins-install-info";
 
-    /** Map of nodes to locks, to ensure only one executor attempts SDK installation at once. */
+    /**
+     * Map of nodes to locks, to ensure only one executor attempts SDK installation at once.
+     */
     private static final Map<Node, Semaphore> mutexByNode = new WeakHashMap<Node, Semaphore>();
 
     /**
@@ -60,17 +50,17 @@ public class SdkInstaller {
      *
      * @return An {@code AndroidSdk} object for the newly-installed SDK.
      */
-    public static AndroidSdk install(Launcher launcher, BuildListener listener, String androidSdkHome)
+    public static AndroidSdk install(AbstractBuild build, Launcher launcher, BuildListener listener, String androidSdkHome)
             throws SdkInstallationException, IOException, InterruptedException {
         Semaphore semaphore = acquireLock();
         try {
-            return doInstall(launcher, listener, androidSdkHome);
+            return doInstall(build, launcher, listener, androidSdkHome);
         } finally {
             semaphore.release();
         }
     }
 
-    private static AndroidSdk doInstall(Launcher launcher, BuildListener listener, String androidSdkHome)
+    private static AndroidSdk doInstall(AbstractBuild build, Launcher launcher, BuildListener listener, String androidSdkHome)
             throws SdkInstallationException, IOException, InterruptedException {
         // We should install the SDK on the current build machine
         Node node = Computer.currentComputer().getNode();
@@ -92,12 +82,12 @@ public class SdkInstaller {
             AndroidSdk sdk = getAndroidSdkForNode(node, androidHome, androidSdkHome);
 
             // Get the latest platform-tools
-            installComponent(logger, launcher, sdk, "platform-tool");
+            installComponent(logger, build, launcher, sdk, "platform-tool");
 
             // Upgrade the tools if necessary and add the latest build-tools component
             List<String> components = new ArrayList<String>(4);
             components.add("tool");
-            String buildTools = getBuildToolsPackageName(logger, launcher, sdk);
+            String buildTools = getBuildToolsPackageName(logger, build, launcher, sdk);
             if (buildTools != null) {
                 components.add(buildTools);
             }
@@ -107,7 +97,7 @@ public class SdkInstaller {
             components.add("extra-google-m2repository");
 
             // Install the lot
-            installComponent(logger, launcher, sdk, components.toArray(new String[0]));
+            installComponent(logger, build, launcher, sdk, components.toArray(new String[0]));
 
             // If we made it this far, confirm completion by writing our our metadata file
             getInstallationInfoFilename(node).write(SDK_VERSION, "UTF-8");
@@ -123,7 +113,7 @@ public class SdkInstaller {
 
     @SuppressWarnings("serial")
     private static AndroidSdk getAndroidSdkForNode(Node node, final String androidHome,
-            final String androidSdkHome) throws IOException, InterruptedException {
+                                                   final String androidSdkHome) throws IOException, InterruptedException {
         return node.getChannel().call(new MasterToSlaveCallable<AndroidSdk, IOException>() {
             public AndroidSdk call() throws IOException {
                 return new AndroidSdk(androidHome, androidSdkHome);
@@ -131,10 +121,12 @@ public class SdkInstaller {
         });
     }
 
-    private static String getBuildToolsPackageName(PrintStream logger, Launcher launcher, AndroidSdk sdk)
-    throws IOException, InterruptedException {
+    private static String getBuildToolsPackageName(PrintStream logger, AbstractBuild<?,?> build, Launcher launcher,
+                                                   AndroidSdk sdk)
+            throws IOException, InterruptedException {
         ByteArrayOutputStream output = new ByteArrayOutputStream();
-        Utils.runAndroidTool(launcher, output, logger, sdk, Tool.ANDROID, "list sdk --extended", null);
+        Utils.runAndroidTool(launcher, build.getEnvironment(TaskListener.NULL), output, logger, sdk, Tool.ANDROID,
+                "list sdk --extended", null);
         Matcher m = Pattern.compile("\"(build-tools-.*?)\"").matcher(output.toString());
         if (!m.find()) {
             return null;
@@ -144,7 +136,6 @@ public class SdkInstaller {
 
     /**
      * Downloads and extracts the basic Android SDK on a given Node, if it hasn't already been done.
-     *
      *
      * @param node Node to install the SDK on.
      * @return Path where the SDK is installed, regardless of whether it was installed right now.
@@ -166,6 +157,7 @@ public class SdkInstaller {
                 String msg = Messages.DOWNLOADING_SDK_FROM(downloadUrl);
                 return installDir.installIfNecessaryFrom(downloadUrl, listener, msg);
             }
+
             private static final long serialVersionUID = 1L;
         });
 
@@ -188,13 +180,13 @@ public class SdkInstaller {
     /**
      * Installs the given SDK component(s) into the given installation.
      *
-     * @param logger Logs things.
-     * @param launcher Used to launch tasks on the remote node.
-     * @param sdk Root of the SDK installation to install components for.
+     * @param logger     Logs things.
+     * @param launcher   Used to launch tasks on the remote node.
+     * @param sdk        Root of the SDK installation to install components for.
      * @param components Name of the component(s) to install.
      */
-    private static void installComponent(PrintStream logger, Launcher launcher, AndroidSdk sdk,
-            String... components) throws IOException, InterruptedException {
+    private static void installComponent(PrintStream logger, AbstractBuild build, Launcher launcher, AndroidSdk sdk,
+                                         String... components) throws IOException, InterruptedException {
         String proxySettings = getProxySettings();
 
         // Build the command to install the given component(s)
@@ -204,11 +196,12 @@ public class SdkInstaller {
         String upgradeArgs = String.format("update sdk -u %s %s -t %s", all, proxySettings, list);
         ArgumentListBuilder cmd = Utils.getToolCommand(sdk, launcher.isUnix(), Tool.ANDROID, upgradeArgs);
         ProcStarter procStarter = launcher.launch().stderr(logger).readStdout().writeStdin().cmds(cmd);
+        EnvVars env = new EnvVars();
+        env.putAll(build.getEnvironment(TaskListener.NULL));
         if (sdk.hasKnownHome()) {
-            EnvVars env = new EnvVars();
             env.put("ANDROID_SDK_HOME", sdk.getSdkHome());
-            procStarter = procStarter.envs(env);
         }
+        procStarter = procStarter.envs(env);
 
         // Run the command and accept any licence requests during installation
         Proc proc = procStarter.start();
@@ -225,36 +218,35 @@ public class SdkInstaller {
 
     /**
      * Installs the platform for an emulator config into the given SDK installation, if necessary.
-     *
      * @param logger Logs things.
      * @param launcher Used to launch tasks on the remote node.
      * @param sdk SDK installation to install components for.
      * @param emuConfig Specifies the platform to be installed.
      */
-    static void installDependencies(PrintStream logger, Launcher launcher,
-            AndroidSdk sdk, EmulatorConfig emuConfig) throws IOException, InterruptedException {
+    static void installDependencies(PrintStream logger, AbstractBuild<?, ?> build, Launcher launcher,
+                                    AndroidSdk sdk, EmulatorConfig emuConfig) throws IOException, InterruptedException {
         // Get AVD platform from emulator config
         String platform = getPlatformForEmulator(launcher, emuConfig);
 
         // Install platform and any dependencies it may have
         boolean requiresAbi = !emuConfig.isNamedEmulator() && emuConfig.getOsVersion().requiresAbi();
         String abi = requiresAbi ? emuConfig.getTargetAbi() : null;
-        installPlatform(logger, launcher, sdk, platform, abi);
+        installPlatform(logger, build, launcher, sdk, platform, abi);
     }
 
     /**
      * Installs the given platform and its dependencies into the given installation, if necessary.
      *
-     * @param logger Logs things.
+     * @param logger   Logs things.
      * @param launcher Used to launch tasks on the remote node.
-     * @param sdk SDK installation to install components for.
+     * @param sdk      SDK installation to install components for.
      * @param platform Specifies the platform to be installed.
-     * @param abi Specifies the ABI to be installed; may be {@code null}.
+     * @param abi      Specifies the ABI to be installed; may be {@code null}.
      */
-    public static void installPlatform(PrintStream logger, Launcher launcher, AndroidSdk sdk,
-            String platform, String abi) throws IOException, InterruptedException {
+    public static void installPlatform(PrintStream logger, AbstractBuild<?, ?> build, Launcher launcher, AndroidSdk sdk,
+                                       String platform, String abi) throws IOException, InterruptedException {
         // Check whether this platform is already installed
-        if (isPlatformInstalled(logger, launcher, sdk, platform, abi)) {
+        if (isPlatformInstalled(logger, build, launcher, sdk, platform, abi)) {
             return;
         }
 
@@ -288,7 +280,7 @@ public class SdkInstaller {
         if (components.size() > 1) {
             for (Iterator<String> it = components.iterator(); it.hasNext(); ) {
                 String component = it.next();
-                if (isPlatformInstalled(logger, launcher, sdk, component, null)) {
+                if (isPlatformInstalled(logger, build, launcher, sdk, component, null)) {
                     it.remove();
                 }
             }
@@ -297,18 +289,19 @@ public class SdkInstaller {
         // Grab the lock and attempt installation
         Semaphore semaphore = acquireLock();
         try {
-            installComponent(logger, launcher, sdk, components.toArray(new String[0]));
+            installComponent(logger, build, launcher, sdk, components.toArray(new String[0]));
         } finally {
             semaphore.release();
         }
     }
 
-    private static boolean isPlatformInstalled(PrintStream logger, Launcher launcher,
-            AndroidSdk sdk, String platform, String abi) throws IOException, InterruptedException {
+
+    private static boolean isPlatformInstalled(PrintStream logger, AbstractBuild<?, ?> build, Launcher launcher,
+                                               AndroidSdk sdk, String platform, String abi) throws IOException, InterruptedException {
         ByteArrayOutputStream targetList = new ByteArrayOutputStream();
         // Preferably we'd use the "--compact" flag here, but it wasn't added until r12,
         // nor does it give any information about which system images are installed...
-        Utils.runAndroidTool(launcher, targetList, logger, sdk, Tool.ANDROID, "list target", null);
+        Utils.runAndroidTool(launcher, build.getEnvironment(TaskListener.NULL), targetList, logger, sdk, Tool.ANDROID, "list target", null);
         boolean platformInstalled = targetList.toString().contains('"'+ platform +'"');
         if (!platformInstalled) {
             return false;
@@ -329,7 +322,7 @@ public class SdkInstaller {
     }
 
     private static List<String> getSdkComponentsForPlatform(PrintStream logger, AndroidSdk sdk, String platform,
-            String abi) {
+                                                            String abi) {
         // Gather list of required components
         List<String> components = new ArrayList<String>();
 
@@ -385,7 +378,7 @@ public class SdkInstaller {
      * Determines the Android platform for the given emulator configuration.<br>
      * This is a string like "android-10" or "Google Inc.:Google APIs:4".
      *
-     * @param launcher Used to launch tasks on the remote node.
+     * @param launcher  Used to launch tasks on the remote node.
      * @param emuConfig The emulator whose target platform we want to determine.
      * @return The platform, or {@code null} if it could not be determined.
      */
@@ -403,18 +396,19 @@ public class SdkInstaller {
     /**
      * Determines the Android platform for an existing emulator, via its metadata config file.
      *
-     * @param launcher Used to access files on the remote node.
+     * @param launcher  Used to access files on the remote node.
      * @param emuConfig The emulator whose target platform we want to determine.
      * @return The platform identifier.
      */
     private static String getPlatformFromExistingEmulator(Launcher launcher,
-            final EmulatorConfig emuConfig) throws IOException, InterruptedException {
+                                                          final EmulatorConfig emuConfig) throws IOException, InterruptedException {
         return launcher.getChannel().call(new MasterToSlaveCallable<String, IOException>() {
             public String call() throws IOException {
                 File metadataFile = emuConfig.getAvdMetadataFile();
                 Map<String, String> metadata = Utils.parseConfigFile(metadataFile);
                 return metadata.get("target");
             }
+
             private static final long serialVersionUID = 1L;
         });
     }
@@ -468,7 +462,7 @@ public class SdkInstaller {
     /**
      * Determines whether the Android SDK installation on the given node is complete.
      *
-     * @param node The node to check.
+     * @param node    The node to check.
      * @param sdkRoot Root directory of the SDK installation to check.
      * @return {@code true} if the basic SDK <b>and</b> all required SDK components are installed.
      */
@@ -479,6 +473,7 @@ public class SdkInstaller {
             public ValidationResult call() throws InterruptedException {
                 return Utils.validateAndroidHome(new File(sdkRoot), false);
             }
+
             private static final long serialVersionUID = 1L;
         });
 
@@ -491,7 +486,9 @@ public class SdkInstaller {
         return getInstallationInfoFilename(node).exists();
     }
 
-    /** Gets the path of our installation metadata file for the given node. */
+    /**
+     * Gets the path of our installation metadata file for the given node.
+     */
     private static final FilePath getInstallationInfoFilename(Node node) {
         return Utils.getSdkInstallDirectory(node).child(SDK_INFO_FILENAME);
     }
@@ -510,16 +507,21 @@ public class SdkInstaller {
         }
     }
 
-    /** Serializable FileFilter that searches for Android SDK tool executables. */
+    /**
+     * Serializable FileFilter that searches for Android SDK tool executables.
+     */
     private static final class ToolFileFilter implements FileFilter, Serializable {
         public boolean accept(File f) {
             // Executables are files, which have no file extension, except for shell scripts
             return f.isFile() && (!f.getName().contains(".") || f.getName().endsWith(".sh"));
         }
+
         private static final long serialVersionUID = 1L;
     }
 
-    /** Helper to run SDK statistics opt-out task on a remote node. */
+    /**
+     * Helper to run SDK statistics opt-out task on a remote node.
+     */
     private static final class StatsOptOutTask extends MasterToSlaveCallable<Void, Exception> {
 
         private static final long serialVersionUID = 1L;
@@ -558,7 +560,9 @@ public class SdkInstaller {
         }
     }
 
-    /** Helper for getting platform-specific SDK installation information. */
+    /**
+     * Helper for getting platform-specific SDK installation information.
+     */
     enum AndroidInstaller {
 
         LINUX("linux", "tgz"),
@@ -577,7 +581,8 @@ public class SdkInstaller {
         URL getUrl(String version) {
             try {
                 return new URL(String.format(PATTERN, version, platform, extension));
-            } catch (MalformedURLException e) {}
+            } catch (MalformedURLException e) {
+            }
             return null;
         }
 
@@ -587,6 +592,7 @@ public class SdkInstaller {
                 public AndroidInstaller call() throws SdkUnavailableException {
                     return get();
                 }
+
                 private static final long serialVersionUID = 1L;
             });
         }
@@ -610,6 +616,7 @@ public class SdkInstaller {
             private SdkUnavailableException(String message) {
                 super(message);
             }
+
             private static final long serialVersionUID = 1L;
         }
     }

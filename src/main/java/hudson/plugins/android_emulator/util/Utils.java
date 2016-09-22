@@ -1,57 +1,33 @@
 package hudson.plugins.android_emulator.util;
 
-import hudson.EnvVars;
-import hudson.FilePath;
-import hudson.Functions;
-import hudson.Launcher;
+import hudson.*;
 import hudson.Launcher.ProcStarter;
-import hudson.Proc;
-import hudson.Util;
-import hudson.model.AbstractBuild;
-import hudson.model.BuildListener;
-import hudson.model.Computer;
-import hudson.model.Hudson;
-import hudson.model.Node;
+import hudson.model.*;
 import hudson.plugins.android_emulator.AndroidEmulator.DescriptorImpl;
 import hudson.plugins.android_emulator.Constants;
 import hudson.plugins.android_emulator.Messages;
 import hudson.plugins.android_emulator.SdkInstallationException;
+import hudson.plugins.android_emulator.emulator.EmulatorCommandResult;
+import hudson.plugins.android_emulator.emulator.EmulatorCommandTask;
 import hudson.plugins.android_emulator.sdk.AndroidSdk;
 import hudson.plugins.android_emulator.sdk.Tool;
 import hudson.remoting.Callable;
 import hudson.remoting.Future;
 import hudson.util.ArgumentListBuilder;
+import jenkins.security.MasterToSlaveCallable;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.filefilter.IOFileFilter;
 import org.apache.commons.io.filefilter.NameFileFilter;
 import org.apache.commons.io.filefilter.TrueFileFilter;
 
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileReader;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.OutputStream;
-import java.io.PrintStream;
-import java.io.PrintWriter;
-import java.net.Socket;
+import javax.annotation.Nullable;
+import java.io.*;
 import java.net.SocketException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Properties;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Executors;
-import java.util.concurrent.FutureTask;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
+import java.util.*;
+import java.util.concurrent.*;
 import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-
-import jenkins.security.MasterToSlaveCallable;
 
 import static hudson.plugins.android_emulator.AndroidEmulator.log;
 
@@ -76,7 +52,7 @@ public class Utils {
     /**
      * Gets a combined set of environment variables for the current computer and build.
      *
-     * @param build The build for which we should retrieve environment variables.
+     * @param build    The build for which we should retrieve environment variables.
      * @param listener The listener used to get the environment variables.
      * @return Environment variables for the current computer, with the build variables taking precedence.
      */
@@ -95,6 +71,15 @@ public class Utils {
             // Ignore
         }
 
+        try {
+            Computer computer = Computer.currentComputer();
+            if (computer != null) {
+                EnvVars local = computer.getEnvironment();
+                envVars.putAll(local);
+            }
+        } catch (IOException ignored) {
+        } catch (InterruptedException ignored) {
+        }
         return envVars;
     }
 
@@ -102,13 +87,13 @@ public class Utils {
      * Tries to validate the given Android SDK root directory; otherwise tries to
      * locate a copy of the SDK by checking for common environment variables.
      *
-     * @param launcher The launcher for the remote node.
-     * @param envVars Environment variables for the build.
+     * @param launcher    The launcher for the remote node.
+     * @param envVars     Environment variables for the build.
      * @param androidHome The (variable-expanded) SDK root given in global config.
      * @return Either a discovered SDK path or, if all else fails, the given androidHome value.
      */
     public static String discoverAndroidHome(Launcher launcher, Node node,
-            final EnvVars envVars, final String androidHome) {
+                                             final EnvVars envVars, final String androidHome) {
         final String autoInstallDir = getSdkInstallDirectory(node).getRemote();
 
         Callable<String, InterruptedException> task = new MasterToSlaveCallable<String, InterruptedException>() {
@@ -119,8 +104,8 @@ public class Utils {
                 }
 
                 // Check for common environment variables
-                String[] keys = { "ANDROID_SDK_ROOT", "ANDROID_SDK_HOME",
-                                  "ANDROID_HOME", "ANDROID_SDK" };
+                String[] keys = {"ANDROID_SDK_ROOT", "ANDROID_SDK_HOME",
+                        "ANDROID_HOME", "ANDROID_SDK"};
 
                 // Resolve each variable to its directory name
                 List<String> potentialSdkDirs = new ArrayList<String>();
@@ -166,7 +151,7 @@ public class Utils {
     /**
      * Determines the properties of the SDK installed on the build machine.
      *
-     * @param launcher The launcher for the remote node.
+     * @param launcher       The launcher for the remote node.
      * @param androidSdkRoot The SDK root directory specified in the job/system configuration.
      * @param androidSdkHome The SDK home directory, i.e. the workspace directory.
      * @return AndroidSdk object representing the properties of the installed SDK.
@@ -196,6 +181,7 @@ public class Utils {
                 // Create SDK instance with what we know so far
                 return new AndroidSdk(sdkRoot, androidSdkHome);
             }
+
             private static final long serialVersionUID = 1L;
         };
 
@@ -213,7 +199,7 @@ public class Utils {
     /**
      * Validates whether the given directory looks like a valid Android SDK directory.
      *
-     * @param sdkRoot The directory to validate.
+     * @param sdkRoot       The directory to validate.
      * @param fromWebConfig Whether we are being called from the web config and should be more lax.
      * @return Whether the SDK looks valid or not (or a warning if the SDK install is incomplete).
      */
@@ -228,14 +214,14 @@ public class Utils {
             return ValidationResult.ok();
         }
         if (!sdkRoot.isDirectory()) {
-            if (fromWebConfig && sdkRoot.getPath().matches(".*("+ Constants.REGEX_VARIABLE +").*")) {
+            if (fromWebConfig && sdkRoot.getPath().matches(".*(" + Constants.REGEX_VARIABLE + ").*")) {
                 return ValidationResult.ok();
             }
             return ValidationResult.error(Messages.INVALID_DIRECTORY());
         }
 
         // Ensure that this at least looks like an SDK directory
-        final String[] sdkDirectories = { "tools", "platforms" };
+        final String[] sdkDirectories = {"tools", "platforms"};
         for (String dirName : sdkDirectories) {
             File dir = new File(sdkRoot, dirName);
             if (!dir.exists() || !dir.isDirectory()) {
@@ -245,7 +231,7 @@ public class Utils {
 
         // Search the various tool directories to ensure the basic tools exist
         int toolsFound = 0;
-        final String[] toolDirectories = { "tools", "platform-tools", "build-tools" };
+        final String[] toolDirectories = {"tools", "platform-tools", "build-tools"};
         for (String dir : toolDirectories) {
             File toolsDir = new File(sdkRoot, dir);
             if (!toolsDir.isDirectory()) {
@@ -274,18 +260,18 @@ public class Utils {
      */
     public static File getHomeDirectory(String androidSdkHome) {
         // From git://android.git.kernel.org/platform/external/qemu.git/android/utils/bufprint.c
-        String homeDirPath = System.getenv("ANDROID_SDK_HOME");
+        String homeDirPath = Utils.getenv("ANDROID_SDK_HOME");
         if (homeDirPath == null) {
             if (androidSdkHome != null) {
                 homeDirPath = androidSdkHome;
             } else if (!Functions.isWindows()) {
-                homeDirPath = System.getenv("HOME");
+                homeDirPath = Utils.getenv("HOME");
                 if (homeDirPath == null) {
                     homeDirPath = "/tmp";
                 }
             } else {
                 // The emulator checks Win32 "CSIDL_PROFILE", which should equal USERPROFILE
-                homeDirPath = System.getenv("USERPROFILE");
+                homeDirPath = Utils.getenv("USERPROFILE");
                 if (homeDirPath == null) {
                     // Otherwise fall back to user.home (which should equal USERPROFILE anyway)
                     homeDirPath = System.getProperty("user.home");
@@ -306,18 +292,18 @@ public class Utils {
         String path = null;
         if (Functions.isWindows()) {
             // The emulator queries for the Win32 "CSIDL_PROFILE" path, which should equal USERPROFILE
-            path = System.getenv("USERPROFILE");
+            path = Utils.getenv("USERPROFILE");
 
             // Otherwise, fall back to the Windows equivalent of HOME
             if (path == null) {
-                String homeDrive = System.getenv("HOMEDRIVE");
-                String homePath = System.getenv("HOMEPATH");
+                String homeDrive = Utils.getenv("HOMEDRIVE");
+                String homePath = Utils.getenv("HOMEPATH");
                 if (homeDrive != null && homePath != null) {
                     path = homeDrive + homePath;
                 }
             }
         } else {
-            path = System.getenv("HOME");
+            path = Utils.getenv("HOME");
         }
 
         // Path may not have been discovered
@@ -335,10 +321,10 @@ public class Utils {
      */
     private static String getSdkRootFromPath(boolean isUnix) {
         // List of tools which should be found together in an Android SDK tools directory
-        Tool[] tools = { Tool.ANDROID, Tool.EMULATOR };
+        Tool[] tools = {Tool.ANDROID, Tool.EMULATOR};
 
         // Get list of directories from the PATH environment variable
-        List<String> paths = Arrays.asList(System.getenv("PATH").split(File.pathSeparator));
+        List<String> paths = Arrays.asList(Utils.getenv("PATH").split(File.pathSeparator));
 
         // Examine each directory to see whether it contains the expected Android tools
         for (String path : paths) {
@@ -387,9 +373,9 @@ public class Utils {
      * Generates a ready-to-use ArgumentListBuilder for one of the Android SDK tools.
      *
      * @param androidSdk The Android SDK to use.
-     * @param isUnix Whether the system where this command should run is sane.
-     * @param tool The Android tool to run.
-     * @param args Any extra arguments for the command.
+     * @param isUnix     Whether the system where this command should run is sane.
+     * @param tool       The Android tool to run.
+     * @param args       Any extra arguments for the command.
      * @return Arguments including the full path to the SDK and any extra Windows stuff required.
      */
     public static ArgumentListBuilder getToolCommand(AndroidSdk androidSdk, boolean isUnix, Tool tool, String args) {
@@ -420,31 +406,31 @@ public class Utils {
     /**
      * Runs an Android tool on the remote build node and waits for completion before returning.
      *
-     * @param launcher The launcher for the remote node.
-     * @param stdout The stream to which standard output should be redirected.
-     * @param stderr The stream to which standard error should be redirected.
-     * @param androidSdk The Android SDK to use.
-     * @param tool The Android tool to run.
-     * @param args Any extra arguments for the command.
+     * @param launcher         The launcher for the remote node.
+     * @param stdout           The stream to which standard output should be redirected.
+     * @param stderr           The stream to which standard error should be redirected.
+     * @param androidSdk       The Android SDK to use.
+     * @param tool             The Android tool to run.
+     * @param args             Any extra arguments for the command.
      * @param workingDirectory The directory to run the tool from, or {@code null} if irrelevant
-     * @throws IOException If execution of the tool fails.
+     * @throws IOException          If execution of the tool fails.
      * @throws InterruptedException If execution of the tool is interrupted.
      */
     public static void runAndroidTool(Launcher launcher, OutputStream stdout, OutputStream stderr,
-            AndroidSdk androidSdk, Tool tool, String args, FilePath workingDirectory)
-                throws IOException, InterruptedException {
+                                      AndroidSdk androidSdk, Tool tool, String args, FilePath workingDirectory)
+            throws IOException, InterruptedException {
         runAndroidTool(launcher, new EnvVars(), stdout, stderr, androidSdk, tool, args, workingDirectory);
     }
 
     public static void runAndroidTool(Launcher launcher, EnvVars env, OutputStream stdout, OutputStream stderr,
-            AndroidSdk androidSdk, Tool tool, String args, FilePath workingDirectory)
+                                      AndroidSdk androidSdk, Tool tool, String args, FilePath workingDirectory)
             throws IOException, InterruptedException {
         runAndroidTool(launcher, env, stdout, stderr, androidSdk, tool, args, workingDirectory, 0);
     }
 
     public static void runAndroidTool(Launcher launcher, EnvVars env, OutputStream stdout, OutputStream stderr,
-            AndroidSdk androidSdk, Tool tool, String args, FilePath workingDirectory, long timeoutMs)
-                throws IOException, InterruptedException {
+                                      AndroidSdk androidSdk, Tool tool, String args, FilePath workingDirectory, long timeoutMs)
+            throws IOException, InterruptedException {
 
         ArgumentListBuilder cmd = Utils.getToolCommand(androidSdk, launcher.isUnix(), tool, args);
         ProcStarter procStarter = launcher.launch().stdout(stdout).stderr(stderr).cmds(cmd);
@@ -497,12 +483,12 @@ public class Utils {
      * Expands the variable in the given string to its value in the environment variables available
      * to this build.  The Jenkins-specific build variables for this build are then substituted.
      *
-     * @param build  The build from which to get the build-specific and environment variables.
-     * @param listener  The listener used to get the environment variables.
-     * @param token  The token which may or may not contain variables in the format <tt>${foo}</tt>.
-     * @return  The given token, with applicable variable expansions done.
+     * @param build    The build from which to get the build-specific and environment variables.
+     * @param listener The listener used to get the environment variables.
+     * @param token    The token which may or may not contain variables in the format <tt>${foo}</tt>.
+     * @return The given token, with applicable variable expansions done.
      */
-    public static String expandVariables(AbstractBuild<?,?> build, BuildListener listener, String token) {
+    public static String expandVariables(AbstractBuild<?, ?> build, BuildListener listener, String token) {
         EnvVars envVars;
         Map<String, String> buildVars;
 
@@ -524,14 +510,14 @@ public class Utils {
      * Expands the variable in the given string to its value in the variables available to this build.
      * The Jenkins-specific build variables take precedence over environment variables.
      *
-     * @param envVars  Map of the environment variables.
-     * @param buildVars  Map of the build-specific variables.
-     * @param token  The token which may or may not contain variables in the format <tt>${foo}</tt>.
-     * @return  The given token, with applicable variable expansions done.
+     * @param envVars   Map of the environment variables.
+     * @param buildVars Map of the build-specific variables.
+     * @param token     The token which may or may not contain variables in the format <tt>${foo}</tt>.
+     * @return The given token, with applicable variable expansions done.
      */
-    public static String expandVariables(EnvVars envVars, Map<String,String> buildVars,
-            String token) {
-        final Map<String,String> vars = new HashMap<String,String>(envVars);
+    public static String expandVariables(EnvVars envVars, Map<String, String> buildVars,
+                                         String token) {
+        final Map<String, String> vars = new HashMap<String, String>(envVars);
         if (buildVars != null) {
             // Build-specific variables, if any, take priority over environment variables
             vars.putAll(buildVars);
@@ -547,7 +533,7 @@ public class Utils {
     /**
      * Attempts to kill the given process, timing-out after {@code timeoutMs}.
      *
-     * @param process The process to kill.
+     * @param process   The process to kill.
      * @param timeoutMs How long to wait for before cancelling the attempt to kill the process.
      * @return {@code true} if the process was killed successfully.
      */
@@ -581,17 +567,17 @@ public class Utils {
      * Sends a user command to the running emulator via its telnet interface.<br>
      * Execution will be cancelled if it takes longer than {@code timeoutMs}.
      *
-     * @param logger The build logger.
-     * @param launcher The launcher for the remote node.
-     * @param port The emulator's telnet port.
-     * @param command The command to execute on the emulator's telnet interface.
+     * @param logger    The build logger.
+     * @param launcher  The launcher for the remote node.
+     * @param port      The emulator's telnet port.
+     * @param command   The command to execute on the emulator's telnet interface.
      * @param timeoutMs How long to wait (in ms) for the command to complete before cancelling it.
      * @return Whether sending the command succeeded.
      */
     public static boolean sendEmulatorCommand(final Launcher launcher, final PrintStream logger,
-            final int port, final String command, int timeoutMs) {
-        Boolean result = null;
-        Future<Boolean> future = null;
+                                              final int port, final String command, int timeoutMs) {
+        EmulatorCommandResult result = new EmulatorCommandResult();
+        Future<EmulatorCommandResult> future = null;
         try {
             // Execute the task on the remote machine asynchronously, with a timeout
             EmulatorCommandTask task = new EmulatorCommandTask(port, command);
@@ -607,7 +593,7 @@ public class Utils {
             // Exception thrown while trying to execute command
             if (command.equals("kill") && e.getCause() instanceof SocketException) {
                 // This is expected: sending "kill" causes the emulator process to kill itself
-                result = true;
+                result.setSuccess(true);
             } else {
                 // Otherwise, it was some generic failure
                 log(logger, Messages.SENDING_COMMAND_FAILED(command, e));
@@ -621,15 +607,15 @@ public class Utils {
                 future.cancel(true);
             }
         }
-
-        return Boolean.TRUE.equals(result);
+        logger.print(result.output);
+        return Boolean.TRUE.equals(result.success);
     }
 
     /**
      * Determines the relative path required to get from one path to another.
      *
      * @param from Path to go from.
-     * @param to Path to reach.
+     * @param to   Path to reach.
      * @return The relative path between the two, or {@code null} for invalid input.
      */
     public static String getRelativePath(String from, String to) {
@@ -707,7 +693,7 @@ public class Utils {
      * </ul>
      *
      * @param from Path to go from.
-     * @param to Path to reach.
+     * @param to   Path to reach.
      * @return The relative distance between the two, or {@code -1} for invalid input.
      */
     public static int getRelativePathDistance(String from, String to) {
@@ -748,61 +734,23 @@ public class Utils {
         return apiLevel;
     }
 
-    /** Task that will execute a command on the given emulator's console port, then quit. */
-    private static final class EmulatorCommandTask extends MasterToSlaveCallable<Boolean, IOException> {
-
-        private final int port;
-        private final String command;
-
-        @SuppressWarnings("hiding")
-        EmulatorCommandTask(int port, String command) {
-            this.port = port;
-            this.command = command;
-        }
-
-        @SuppressWarnings("null")
-        public Boolean call() throws IOException {
-            Socket socket = null;
-            BufferedReader in = null;
-            PrintWriter out = null;
-            try {
-                // Connect to the emulator's console port
-                socket = new Socket("127.0.0.1", port);
-                out = new PrintWriter(socket.getOutputStream());
-                in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-
-                // If we didn't get a banner response, give up
-                if (in.readLine() == null) {
-                    return false;
-                }
-
-                // Send command, then exit the console
-                out.write(command);
-                out.write("\r\n");
-                out.flush();
-                out.write("quit\r\n");
-                out.flush();
-
-                // Wait for the commands to return a response
-                while (in.readLine() != null) {
-                    // Ignore
-                }
-            } finally {
-                try {
-                    out.close();
-                } catch (Exception ignore) {}
-                try {
-                    in.close();
-                } catch (Exception ignore) {}
-                try {
-                    socket.close();
-                } catch (Exception ignore) {}
-            }
-
-            return true;
-        }
-
-        private static final long serialVersionUID = 1L;
+    /**
+     * Resolves value environment variable identified by provided key
+     *
+     * @param key - id of environment variable
+     * @return value or null if env variable couldn't be found
+     */
+    private static String getenv(String key) {
+        return EnvVars.masterEnvVars.get(key);
     }
 
+
+    public static void closeStream(@Nullable Closeable buffer) {
+        if (buffer != null) {
+            try {
+                buffer.close();
+            } catch (IOException ignored) {
+            }
+        }
+    }
 }

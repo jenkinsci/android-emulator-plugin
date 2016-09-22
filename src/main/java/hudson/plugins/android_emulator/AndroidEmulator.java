@@ -249,7 +249,7 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
             // Ok, let's download and install the SDK
             log(logger, Messages.INSTALLING_SDK());
             try {
-                androidSdk = SdkInstaller.install(launcher, listener, androidSdkHome);
+                androidSdk = SdkInstaller.install(build, launcher, listener, androidSdkHome);
             } catch (SdkInstallationException e) {
                 log(logger, Messages.SDK_INSTALLATION_FAILED(), e);
                 build.setResult(Result.NOT_BUILT);
@@ -261,26 +261,28 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
 
         // Install the required SDK components for the desired platform, if necessary
         if (descriptor.shouldInstallSdk) {
-            SdkInstaller.installDependencies(logger, launcher, androidSdk, emuConfig);
+            SdkInstaller.installDependencies(logger, build, launcher, androidSdk, emuConfig);
         }
 
         // Ok, everything looks good.. let's go
         String displayHome = androidSdk.hasKnownRoot() ? androidSdk.getSdkRoot() : Messages.USING_PATH();
         log(logger, Messages.USING_SDK(displayHome));
 
-        return doSetUp(build, launcher, listener, androidSdk, emuConfig, expandedProperties);
+        return doSetUp(build, launcher, listener, androidSdk, emuConfig, expandedProperties, envVars);
     }
 
     private Environment doSetUp(final AbstractBuild<?, ?> build, final Launcher launcher,
-            final BuildListener listener, final AndroidSdk androidSdk,
-            final EmulatorConfig emuConfig, final HardwareProperty[] hardwareProperties)
+                                final BuildListener listener, final AndroidSdk androidSdk,
+                                final EmulatorConfig emuConfig, final HardwareProperty[] hardwareProperties,
+                                EnvVars envVars)
                 throws IOException, InterruptedException {
         final PrintStream logger = listener.getLogger();
 
         // First ensure that emulator exists
         final boolean emulatorAlreadyExists;
         try {
-            Callable<Boolean, AndroidEmulatorException> task = emuConfig.getEmulatorCreationTask(androidSdk, listener);
+            Callable<Boolean, AndroidEmulatorException> task = emuConfig.getEmulatorCreationTask(build, androidSdk,
+                    listener);
             emulatorAlreadyExists = launcher.getChannel().call(task);
         } catch (EmulatorDiscoveryException ex) {
             log(logger, Messages.CANNOT_START_EMULATOR(ex.getMessage()));
@@ -294,7 +296,7 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
 
         // Update emulator configuration with desired hardware properties
         if (!emuConfig.isNamedEmulator() && hardwareProperties.length != 0) {
-            Callable<Void, IOException> task = emuConfig.getEmulatorConfigTask(hardwareProperties, listener);
+            Callable<Void, IOException> task = emuConfig.getEmulatorConfigTask(build, hardwareProperties, listener);
             launcher.getChannel().call(task);
         }
 
@@ -321,7 +323,7 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
         // Determine whether we need to create the first snapshot
         final SnapshotState snapshotState;
         if (useSnapshots && androidSdk.supportsSnapshots()) {
-            boolean hasSnapshot = emuConfig.hasExistingSnapshot(launcher, androidSdk);
+            boolean hasSnapshot = emuConfig.hasExistingSnapshot(launcher, androidSdk, envVars);
             if (hasSnapshot) {
                 // Boot from the existing "jenkins" snapshot
                 snapshotState = SnapshotState.BOOT;
