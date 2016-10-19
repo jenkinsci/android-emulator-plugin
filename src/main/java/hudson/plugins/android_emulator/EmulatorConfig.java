@@ -635,16 +635,18 @@ class EmulatorConfig implements Serializable {
                 errOutput = null;
             }
 
-            // Set the screen density
-            setAvdConfigValue(homeDir, "hw.lcd.density", String.valueOf(getScreenDensity().getDpi()));
-
+            // Always log any unrecognised error output. It might be important and helps to debug 
+            if (errOutput != null && errOutput.length() != 0) {
+                AndroidEmulator.log(logger, output, true);
+                AndroidEmulator.log(logger, errOutput, true);
+            }
             // Check everything went ok
             if (!avdCreated) {
-                if (errOutput != null && errOutput.length() != 0) {
-                    AndroidEmulator.log(logger, stderr.toString(), true);
-                }
                 throw new EmulatorCreationException(Messages.AVD_CREATION_FAILED());
             }
+
+            // Set the screen density
+            setAvdConfigValue(homeDir, "hw.lcd.density", String.valueOf(getScreenDensity().getDpi()));
 
             // Done!
             return false;
