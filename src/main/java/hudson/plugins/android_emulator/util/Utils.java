@@ -23,6 +23,7 @@ import org.apache.commons.io.filefilter.TrueFileFilter;
 import javax.annotation.Nullable;
 import java.io.*;
 import java.net.SocketException;
+import java.nio.CharBuffer;
 import java.util.*;
 import java.util.concurrent.*;
 import java.util.logging.Logger;
@@ -467,15 +468,18 @@ public class Utils {
     public static Map<String, String> parseConfigFile(File configFile) throws IOException {
         FileReader fileReader = new FileReader(configFile);
         BufferedReader reader = new BufferedReader(fileReader);
-        Properties properties = new Properties();
-        properties.load(reader);
-        reader.close();
-
         final Map<String, String> values = new HashMap<String, String>();
-        for (final Map.Entry<Object, Object> entry : properties.entrySet()) {
-            values.put((String) entry.getKey(), (String) entry.getValue());
+        try {
+            String line;
+            while ((line = reader.readLine()) != null) {
+                int sepIndex = line.indexOf('=');
+                if(sepIndex >= 0 && sepIndex < line.length()) {
+                    values.put(line.substring(0, sepIndex), line.substring(sepIndex + 1, line.length()));
+                }
+            }
+        } finally {
+            reader.close();
         }
-
         return values;
     }
 

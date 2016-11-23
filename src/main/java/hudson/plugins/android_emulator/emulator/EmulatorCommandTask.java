@@ -51,9 +51,11 @@ public final class EmulatorCommandTask extends MasterToSlaveCallable<EmulatorCom
             socket = new Socket(IP_ADDR_LOCALHOST, port);
             setupConnection(socket);
             waitForInitialBanner();
-            String token = readAuthToken(authTokenPath);
             if (authTokenPath != null) {
-                sender.send(String.format(Locale.US, CMD_AUTH_FORMAT, token));
+                String token = readAuthToken(authTokenPath);
+                if (token != null) {
+                    sender.send(String.format(Locale.US, CMD_AUTH_FORMAT, token));
+                }
             }
             sender.send(command);
             try {
@@ -135,7 +137,8 @@ public final class EmulatorCommandTask extends MasterToSlaveCallable<EmulatorCom
 
     private static final long serialVersionUID = 1L;
 
-    private String readAuthToken(String path) throws IOException {
+    @Nullable
+    private String readAuthToken(@Nonnull String path) throws IOException {
         FileInputStream in = new FileInputStream(path);
         BufferedReader reader = new BufferedReader(new InputStreamReader(in));
         String ret = "";
@@ -166,7 +169,7 @@ public final class EmulatorCommandTask extends MasterToSlaveCallable<EmulatorCom
     @Override
     public void onCommandSent(@Nonnull String command) {
         String commandToPrint = command;
-        if(commandToPrint.startsWith("auth")) {
+        if (commandToPrint.startsWith("auth")) {
             commandToPrint = "auth ****\r\n";
         }
         result.appendOutput("[EMULATOR] >> " + commandToPrint);

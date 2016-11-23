@@ -280,7 +280,7 @@ class EmulatorConfig implements Serializable {
         return new File(getAvdDirectory(homeDir), "config.ini");
     }
 
-    private Map<String, String> parseAvdConfigFile(File homeDir) throws IOException {
+    public Map<String, String> parseAvdConfigFile(File homeDir) throws IOException {
         File configFile = getAvdConfigFile(homeDir);
         return Utils.parseConfigFile(configFile);
     }
@@ -631,6 +631,16 @@ class EmulatorConfig implements Serializable {
                 AndroidEmulator.log(logger, Messages.MORE_THAN_ONE_ABI(osVersion.getTargetName(), output), true);
                 avdCreated = false;
                 errOutput = null;
+            }
+            try {
+                Map<String, String> configValues = parseAvdConfigFile(homeDir);
+                AndroidEmulator.log(logger, "Got " + configValues.size() + " config values", true);
+                for (String key : configValues.keySet()) {
+                    AndroidEmulator.log(logger, "> Key: " + key + ", Value: " + configValues.get(key), true);
+                }
+            } catch (IOException e) {
+                AndroidEmulator.log(logger, "Failed to process config file", true);
+                logger.print(e);
             }
 
             // Set the screen density
