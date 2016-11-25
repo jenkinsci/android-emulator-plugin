@@ -77,6 +77,12 @@ public class InstallBuilder extends AbstractBuilder {
             return false;
         }
 
+        // Check whether a value is relative path
+        if (Util.fixEmptyAndTrim(apkFile).startsWith(File.separator)) {
+            AndroidEmulator.log(logger, Messages.APK_PATH_MUST_BE_RELATIVE());
+            return false;
+        }
+
         // Get absolute path to the APK file
         String apkFileExpanded = Utils.expandVariables(build, listener, apkFile);
         FilePath apkPath = build.getWorkspace().child(apkFileExpanded);
