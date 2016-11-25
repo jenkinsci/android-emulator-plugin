@@ -34,6 +34,8 @@ import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.PrintStream;
 import java.io.PrintWriter;
+import java.io.Reader;
+import java.io.StringReader;
 import java.net.Socket;
 import java.net.SocketException;
 import java.util.ArrayList;
@@ -479,9 +481,9 @@ public class Utils {
      * @throws IOException If the file could not be read.
      */
     public static Map<String, String> parseConfigFile(File configFile) throws IOException {
-        FileReader fileReader = new FileReader(configFile);
-        BufferedReader reader = new BufferedReader(fileReader);
+        String configFileContent = FileUtils.readFileToString(configFile);
         Properties properties = new Properties();
+        Reader reader = new StringReader(configFileContent.replace("\\","\\\\"));
         properties.load(reader);
         reader.close();
 
