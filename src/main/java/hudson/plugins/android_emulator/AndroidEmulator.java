@@ -733,6 +733,8 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
                         return true;
                     }
                 }
+                
+                connectDirectlyToEmulator(emu, timeout);
 
                 Thread.sleep(sleep);
             }
@@ -745,7 +747,17 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
 
         return false;
     }
+    
+    private void connectDirectlyToEmulator(AndroidEmulatorContext emu, int timeout) throws IOException, InterruptedException {
+        final String args = String.format("connect localhost:%s", emu.userPort());
 
+        ArgumentListBuilder bootCheckCmd = emu.getToolCommand(Tool.ADB, args);
+        ByteArrayOutputStream stream = new ByteArrayOutputStream(16);
+        Proc proc = emu.getProcStarter(bootCheckCmd).stdout(stream).start();
+        final long adbTimeout = timeout / 8;
+        proc.joinWithTimeout(adbTimeout, TimeUnit.MILLISECONDS, emu.launcher().getListener());
+    }
+        
     @Extension(ordinal=-100) // Negative ordinal makes us execute after other wrappers (i.e. Xvnc)
     public static final class DescriptorImpl extends BuildWrapperDescriptor implements Serializable {
 
