@@ -3,6 +3,7 @@ package hudson.plugins.android_emulator.util;
 import hudson.*;
 import hudson.Launcher.ProcStarter;
 import hudson.model.*;
+import hudson.plugins.android_emulator.AndroidEmulator;
 import hudson.plugins.android_emulator.AndroidEmulator.DescriptorImpl;
 import hudson.plugins.android_emulator.Constants;
 import hudson.plugins.android_emulator.Messages;
@@ -23,14 +24,11 @@ import org.apache.commons.io.filefilter.TrueFileFilter;
 import javax.annotation.Nullable;
 import java.io.*;
 import java.net.SocketException;
-import java.nio.CharBuffer;
 import java.util.*;
 import java.util.concurrent.*;
 import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-
-import static hudson.plugins.android_emulator.AndroidEmulator.log;
 
 public class Utils {
 
@@ -473,7 +471,7 @@ public class Utils {
             String line;
             while ((line = reader.readLine()) != null) {
                 int sepIndex = line.indexOf('=');
-                if(sepIndex >= 0 && sepIndex < line.length()) {
+                if (sepIndex >= 0 && sepIndex < line.length()) {
                     values.put(line.substring(0, sepIndex), line.substring(sepIndex + 1, line.length()));
                 }
             }
@@ -584,12 +582,12 @@ public class Utils {
         Future<EmulatorCommandResult> future = null;
         try {
             // Execute the task on the remote machine asynchronously, with a timeout
-            EmulatorCommandTask task = new EmulatorCommandTask(port, command);
+            EmulatorCommandTask task = new EmulatorCommandTask(port, command, timeoutMs);
             future = launcher.getChannel().callAsync(task);
-            result = future.get(timeoutMs, TimeUnit.MILLISECONDS);
+            result = future.get(timeoutMs + 5000L, TimeUnit.MILLISECONDS);
         } catch (IOException e) {
             // Slave communication failed
-            log(logger, Messages.SENDING_COMMAND_FAILED(command, e));
+            AndroidEmulator.log(logger, Messages.SENDING_COMMAND_FAILED(command, e));
             e.printStackTrace(logger);
         } catch (InterruptedException e) {
             // Ignore; the caller should handle shutdown
@@ -600,18 +598,20 @@ public class Utils {
                 result.setSuccess(true);
             } else {
                 // Otherwise, it was some generic failure
-                log(logger, Messages.SENDING_COMMAND_FAILED(command, e));
+                AndroidEmulator.log(logger, Messages.SENDING_COMMAND_FAILED(command, e));
                 e.printStackTrace(logger);
             }
         } catch (TimeoutException e) {
-            // Command execution timed-out
-            log(logger, Messages.SENDING_COMMAND_TIMED_OUT(command));
+            AndroidEmulator.log(logger, Messages.SENDING_COMMAND_TIMED_OUT(command));
         } finally {
             if (future != null && !future.isDone()) {
                 future.cancel(true);
             }
         }
-        logger.print(result.output);
+        if (result.timedOut) {
+            AndroidEmulator.log(logger, Messages.SENDING_COMMAND_TIMED_OUT(command));
+        }
+        AndroidEmulator.log(logger, result.output);
         return Boolean.TRUE.equals(result.success);
     }
 

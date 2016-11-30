@@ -531,6 +531,8 @@ class EmulatorConfig implements Serializable {
             args.append(screenResolution.getSkinName());
             args.append(" -n ");
             args.append(getAvdName());
+            args.append(" -g ");
+            args.append("google_apis");
             boolean isUnix = !Functions.isWindows();
             ArgumentListBuilder builder = Utils.getToolCommand(androidSdk, isUnix, Tool.ANDROID, args.toString());
 
@@ -631,16 +633,6 @@ class EmulatorConfig implements Serializable {
                 AndroidEmulator.log(logger, Messages.MORE_THAN_ONE_ABI(osVersion.getTargetName(), output), true);
                 avdCreated = false;
                 errOutput = null;
-            }
-            try {
-                Map<String, String> configValues = parseAvdConfigFile(homeDir);
-                AndroidEmulator.log(logger, "Got " + configValues.size() + " config values", true);
-                for (String key : configValues.keySet()) {
-                    AndroidEmulator.log(logger, "> Key: " + key + ", Value: " + configValues.get(key), true);
-                }
-            } catch (IOException e) {
-                AndroidEmulator.log(logger, "Failed to process config file", true);
-                logger.print(e);
             }
 
             // Set the screen density

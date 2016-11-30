@@ -5,6 +5,7 @@ import java.io.Serializable;
 public class EmulatorCommandResult implements Serializable {
     public boolean success = false;
     public String output = "";
+    public boolean timedOut;
 
     public EmulatorCommandResult setSuccess(boolean value) {
         this.success = value;
