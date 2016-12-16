@@ -287,6 +287,27 @@ class EmulatorConfig implements Serializable {
 
     private void writeAvdConfigFile(File homeDir, Map<String, String> values) throws FileNotFoundException {
         StringBuilder sb = new StringBuilder();
+        values.put("hw.ramSize", "1907");
+        values.put("vm.heapSize", "64");
+        values.put("hw.gps", "yes");
+        values.put("disk.dataPartition.size", "800M");
+        values.put("hw.accelerometer", "yes");
+        values.put("hw.camera.back", "emulated");
+        values.put("hw.camera.front", "emulated");
+        values.put("hw.dPad", "no");
+        values.put("hw.mainKeys", "no");
+        values.put("hw.sensors.orientation", "yes");
+        values.put("hw.sensors.proximity", "yes");
+        values.put("hw.trackBall", "no");
+        values.put("skin.dynamic", "yes");
+        values.put("skin.path", "_no_skin");
+        values.put("skin.path.backup", "_no_skin");
+        values.put("hw.initialOrientation", "Portrait");
+        values.put("hw.gpu.enabled", "no");
+        values.put("hw.cpu.ncore", "1");
+        values.put("runtime.network.latency", "none");
+        values.put("runtime.network.speed", "full");
+        values.put("showDeviceFrame", "no");
 
         for (String key : values.keySet()) {
             sb.append(key);
@@ -338,14 +359,11 @@ class EmulatorConfig implements Serializable {
         //
         // See Android bugs 202762, 202853, 205202 and 205204
         if (emulatorSupportsEngineFlag) {
-            sb.append(" -engine classic");
+//            sb.append(" -engine classic");
         }
 
         // Tell the emulator to use certain ports
         sb.append(String.format(" -ports %s,%s", userPort, adbPort));
-
-        // Ask the emulator to report to us on the given port, once initial startup is complete
-        sb.append(String.format(" -report-console tcp:%s,max=%s", callbackPort, consoleTimeout));
 
         // Set the locale to be used at startup
         if (!isNamedEmulator()) {
@@ -363,10 +381,6 @@ class EmulatorConfig implements Serializable {
         if (snapshotState == SnapshotState.BOOT) {
             // For builds after initial snapshot setup, start directly from the "jenkins" snapshot
             sb.append(" -snapshot " + Constants.SNAPSHOT_NAME);
-            sb.append(" -no-snapshot-save");
-        } else if (sdkSupportsSnapshots) {
-            // For the first boot, or snapshot-free builds, do not load any snapshots that may exist
-            sb.append(" -no-snapshot-load");
             sb.append(" -no-snapshot-save");
         }
 
@@ -450,18 +464,6 @@ class EmulatorConfig implements Serializable {
                 File sdCardFile = new File(getAvdDirectory(homeDir), "sdcard.img");
                 boolean sdCardRequired = getSdCardSize() != null;
 
-                // Check if anything needs to be done for snapshot-enabled builds
-                if (shouldUseSnapshots() && androidSdk.supportsSnapshots()) {
-                    if (!snapshotsFile.exists()) {
-                        createSnapshot = true;
-                    }
-
-                    // We should ensure that we start out with a clean SD card for the build
-                    if (sdCardRequired && sdCardFile.exists()) {
-                        sdCardFile.delete();
-                    }
-                }
-
                 // Flag that we need to generate an SD card, if there isn't one existing
                 if (sdCardRequired && !sdCardFile.exists()) {
                     createSdCard = true;
@@ -483,17 +485,7 @@ class EmulatorConfig implements Serializable {
             if (!sdkRoot.exists()) {
                 throw new EmulatorCreationException(Messages.SDK_NOT_FOUND(androidSdk.getSdkRoot()));
             }
-
-            // If we need to initialise snapshot support for an existing emulator, do so
-            if (createSnapshot) {
-                // Copy the snapshots file into place
-                File snapshotDir = new File(sdkRoot, "tools/lib/emulator");
-                Util.copyFile(new File(snapshotDir, "snapshots.img"), snapshotsFile);
-
-                // Update the AVD config file mark snapshots as enabled
-                setAvdConfigValue(homeDir, "snapshot.present", "true");
-            }
-
+            // Overwrite any existing files
             // If we need create an SD card for an existing emulator, do so
             if (createSdCard) {
                 AndroidEmulator.log(logger, Messages.ADDING_SD_CARD(sdCardSize, getAvdName()));
@@ -514,14 +506,7 @@ class EmulatorConfig implements Serializable {
             final StringBuilder args = new StringBuilder(100);
             args.append("create avd ");
 
-            // Overwrite any existing files
             args.append("-f ");
-
-            // Initialise snapshot support, regardless of whether we will actually use it
-            if (androidSdk.supportsSnapshots()) {
-                args.append("-a ");
-            }
-
             if (sdCardSize != null) {
                 args.append("-c ");
                 args.append(sdCardSize);
@@ -533,6 +518,7 @@ class EmulatorConfig implements Serializable {
             args.append(getAvdName());
             args.append(" -g ");
             args.append("google_apis");
+            args.append(" -d \"Nexus 4\"");
             boolean isUnix = !Functions.isWindows();
             ArgumentListBuilder builder = Utils.getToolCommand(androidSdk, isUnix, Tool.ANDROID, args.toString());
 
