@@ -118,9 +118,17 @@
               default="0" />
           <f:description>${%Wait this many seconds before attempting to start the emulator}</f:description>
         </f:entry>
+        <f:entry title="${%Adb timeout}" help="/plugin/android-emulator/help-adbTimeout.html">
+          <f:textbox name="android-emulator.adbTimeout" value="${instance.adbTimeout}" style="width:4em"/>
+          <f:description>${%Wait this many seconds for ADB to be available}</f:description>
+        </f:entry>
         <f:entry title="${%Startup timeout}" help="/plugin/android-emulator/help-startupTimeout.html">
           <f:textbox name="android-emulator.startupTimeout" value="${instance.startupTimeout}" style="width:4em"/>
           <f:description>${%Wait this many seconds before aborting the startup of the emulator}</f:description>
+        </f:entry>
+        <f:entry title="${%Process kill timeout}" help="/plugin/android-emulator/help-processKillTimeout.html">
+          <f:textbox name="android-emulator.processKillTimeout" value="${instance.processKillTimeout}" style="width:4em"/>
+          <f:description>${%Wait this many seconds for process to be killed}</f:description>
         </f:entry>
         <f:entry title="${%Emulator options}" help="/plugin/android-emulator/help-commandLineOptions.html">
           <f:textbox name="android-emulator.commandLineOptions" value="${instance.commandLineOptions}" />
