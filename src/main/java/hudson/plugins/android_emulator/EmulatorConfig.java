@@ -290,21 +290,9 @@ class EmulatorConfig implements Serializable {
         return Utils.parseConfigFile(configFile);
     }
 
-    private void writeAvdConfigFile(File homeDir, Map<String,String> values) throws FileNotFoundException {
-        StringBuilder sb = new StringBuilder();
-
-        for (String key : values.keySet()) {
-            sb.append(key);
-            sb.append("=");
-            sb.append(values.get(key));
-            sb.append("\r\n");
-        }
-
+    private void writeAvdConfigFile(File homeDir, Map<String,String> values) throws IOException {
         File configFile = new File(getAvdDirectory(homeDir), "config.ini");
-        PrintWriter out = new PrintWriter(configFile);
-        out.print(sb.toString());
-        out.flush();
-        out.close();
+        Utils.writeConfigFile(configFile, values);
     }
 
     /**
