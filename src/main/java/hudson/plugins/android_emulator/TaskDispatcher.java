@@ -4,7 +4,6 @@ import hudson.Extension;
 import hudson.matrix.MatrixConfiguration;
 import hudson.model.BuildableItemWithBuildWrappers;
 import hudson.model.Executor;
-import hudson.model.Hudson;
 import hudson.model.Node;
 import hudson.model.Queue;
 import hudson.model.Queue.BuildableItem;
@@ -15,6 +14,7 @@ import hudson.model.queue.QueueTaskDispatcher;
 import hudson.model.queue.SubTask;
 
 import hudson.plugins.android_emulator.AndroidEmulator.DescriptorImpl;
+import jenkins.model.Jenkins;
 
 /**
  * This QueueTaskDispatcher prevents any one Android emulator instance from being executed more than
@@ -43,13 +43,13 @@ public class TaskDispatcher extends QueueTaskDispatcher {
         }
 
         // If the AndroidEmulator uses workspace-local emulators, we don't care.
-        DescriptorImpl descriptor = Hudson.getInstance().getDescriptorByType(DescriptorImpl.class);
+        DescriptorImpl descriptor = Jenkins.getInstance().getDescriptorByType(DescriptorImpl.class);
         if (descriptor != null && descriptor.shouldKeepInWorkspace) {
           return null;
         }
 
         // Check for builds in the queue which have the same emulator config as this task
-        Queue queue = Hudson.getInstance().getQueue();
+        Queue queue = Jenkins.getInstance().getQueue();
         for (BuildableItem item : queue.getBuildableItems()) {
             Task queuedTask = item.task;
             if (task == queuedTask) {

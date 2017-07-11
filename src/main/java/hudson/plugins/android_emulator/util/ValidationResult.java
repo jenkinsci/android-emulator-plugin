@@ -52,9 +52,10 @@ public class ValidationResult implements Serializable {
             } else {
                 return FormValidation.error(message);
             }
+        case OK:
+        default:
+            return FormValidation.ok();
         }
-
-        return FormValidation.ok();
     }
 
     public boolean isFatal() {

@@ -1,6 +1,5 @@
 package hudson.plugins.android_emulator.snapshot;
 
-import hudson.Extension;
 import hudson.Functions;
 import hudson.model.Descriptor;
 import hudson.plugins.android_emulator.Messages;

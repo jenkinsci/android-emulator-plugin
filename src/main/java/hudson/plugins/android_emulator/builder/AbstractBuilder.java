@@ -7,7 +7,6 @@ import hudson.model.AbstractBuild;
 import hudson.model.BuildListener;
 import hudson.model.Computer;
 import hudson.model.EnvironmentContributingAction;
-import hudson.model.Hudson;
 import hudson.model.Node;
 import hudson.model.TaskListener;
 import hudson.plugins.android_emulator.AndroidEmulator;
@@ -22,6 +21,7 @@ import hudson.remoting.VirtualChannel;
 import hudson.tasks.Builder;
 import hudson.util.ForkOutputStream;
 import jenkins.MasterToSlaveFileCallable;
+import jenkins.model.Jenkins;
 import net.dongliu.apk.parser.ApkParser;
 import net.dongliu.apk.parser.bean.ApkMeta;
 
@@ -55,7 +55,7 @@ public abstract class AbstractBuilder extends Builder {
             BuildListener listener) throws IOException, InterruptedException {
         boolean shouldInstallSdk = true;
         boolean keepInWorkspace = false;
-        DescriptorImpl descriptor = Hudson.getInstance().getDescriptorByType(DescriptorImpl.class);
+        DescriptorImpl descriptor = Jenkins.getInstance().getDescriptorByType(DescriptorImpl.class);
         if (descriptor != null) {
             shouldInstallSdk = descriptor.shouldInstallSdk;
             keepInWorkspace = descriptor.shouldKeepInWorkspace;
@@ -290,6 +290,8 @@ public abstract class AbstractBuilder extends Builder {
      */
     private static String getPackageIdForApk(FilePath apkPath) throws IOException, InterruptedException {
         return apkPath.act(new MasterToSlaveFileCallable<String>() {
+            private static final long serialVersionUID = 1L;
+
             public String invoke(File f, VirtualChannel channel) throws IOException, InterruptedException {
                 return getApkMetadata(f).getPackageName();
             }

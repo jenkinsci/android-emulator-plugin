@@ -51,6 +51,7 @@ import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import jenkins.model.Jenkins;
 import jenkins.security.MasterToSlaveCallable;
 
 import static hudson.plugins.android_emulator.AndroidEmulator.log;
@@ -58,7 +59,6 @@ import static hudson.plugins.android_emulator.AndroidEmulator.log;
 public class Utils {
 
     private static final Logger LOGGER = Logger.getLogger(Utils.class.getName());
-    private static final Pattern REVISION = Pattern.compile("(\\d++).*");
 
     /**
      * Retrieves the configured Android SDK root directory.
@@ -66,7 +66,7 @@ public class Utils {
      * @return The configured Android SDK root, if any. May include un-expanded variables.
      */
     public static String getConfiguredAndroidHome() {
-        DescriptorImpl descriptor = Hudson.getInstance().getDescriptorByType(DescriptorImpl.class);
+        DescriptorImpl descriptor = Jenkins.getInstance().getDescriptorByType(DescriptorImpl.class);
         if (descriptor != null) {
             return descriptor.androidHome;
         }
@@ -219,7 +219,7 @@ public class Utils {
      */
     public static ValidationResult validateAndroidHome(File sdkRoot, boolean fromWebConfig) {
         // This can be used to check the existence of a file on the server, so needs to be protected
-        if (fromWebConfig && !Hudson.getInstance().hasPermission(Hudson.ADMINISTER)) {
+        if (fromWebConfig && !Jenkins.getInstance().hasPermission(Hudson.ADMINISTER)) {
             return ValidationResult.ok();
         }
 
