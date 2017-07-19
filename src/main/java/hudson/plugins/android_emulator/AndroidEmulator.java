@@ -128,7 +128,7 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
 
     /**
      * A hash representing the variables that are used to determine which emulator configuration
-     * should be started to fulfil the job configuration.
+     * should be started to fulfill the job configuration.
      *
      * @param node The Node on which the emulator would be run.
      * @return A hash representing the emulator configuration for this instance.
@@ -139,10 +139,10 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
 
     /**
      * A hash representing the variables that are used to determine which emulator configuration
-     * should be started to fulfil the job configuration.
+     * should be started to fulfill the job configuration.
      *
      * @param node The Node on which the emulator would be run.
-     * @param combination The matrix combination values used to expand emulator config variables.
+     * @param combination The matrix combination values used to expand emulator configuration variables.
      * @return A hash representing the emulator configuration for this instance.
      */
     public String getConfigHash(Node node, Combination combination) {
@@ -358,7 +358,7 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
         // Prepare to capture and log emulator standard output
         ByteArrayOutputStream emulatorOutput = new ByteArrayOutputStream();
         ForkOutputStream emulatorLogger = new ForkOutputStream(logger, emulatorOutput);
-
+        
         final Proc emulatorProcess = emu.getToolProcStarter(emuConfig.getExecutable(), emulatorArgs)
                 .stdout(emulatorLogger).stderr(logger).start();
         emu.setProcess(emulatorProcess);
@@ -371,7 +371,7 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
             log(logger, Messages.EMULATOR_ALREADY_IN_USE(emuConfig.getAvdName()));
             return null;
         }
-
+        
         // Sitting on the socket appears to break adb. If you try and do this you always end up with device offline.
         // A much better way is to use report-console to tell us what the port is (and hence when its available). So
         // we now do this. adb is also now clever enough to figure out that the emulator is booting and will thus
