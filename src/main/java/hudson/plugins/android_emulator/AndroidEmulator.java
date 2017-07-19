@@ -338,9 +338,8 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
 
         // Compile complete command for starting emulator
         final String emulatorArgs = emuConfig.getCommandArguments(snapshotState,
-                androidSdk.supportsSnapshots(), androidSdk.supportsEmulatorEngineFlag(),
-                emu.userPort(), emu.adbPort(), emu.getEmulatorCallbackPort(),
-                ADB_CONNECT_TIMEOUT_MS / 1000);
+                androidSdk.supportsSnapshots(), emu.userPort(), emu.adbPort(),
+                emu.getEmulatorCallbackPort(), ADB_CONNECT_TIMEOUT_MS / 1000);
 
         // Start emulator process
         if (snapshotState == SnapshotState.BOOT) {

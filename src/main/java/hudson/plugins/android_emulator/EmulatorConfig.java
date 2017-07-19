@@ -333,18 +333,8 @@ class EmulatorConfig implements Serializable {
      * @return A string of command line arguments.
      */
     public String getCommandArguments(SnapshotState snapshotState, boolean sdkSupportsSnapshots,
-            boolean emulatorSupportsEngineFlag, int userPort, int adbPort, int callbackPort,
-            int consoleTimeout) {
+            int userPort, int adbPort, int callbackPort, int consoleTimeout) {
         StringBuilder sb = new StringBuilder();
-
-        // Stick to using the original version of the emulator for now, as otherwise we can't use
-        // the "-ports" command line flag, which we need to stay outside of the regular port range,
-        // nor can we use the "-prop" or "-report-console" command line flags that we require.
-        //
-        // See Android bugs 202762, 202853, 205202 and 205204
-        if (emulatorSupportsEngineFlag) {
-            sb.append(" -engine classic");
-        }
 
         // Tell the emulator to use certain ports
         sb.append(String.format(" -ports %s,%s", userPort, adbPort));
@@ -520,8 +510,8 @@ class EmulatorConfig implements Serializable {
             // Overwrite any existing files
             args.append("-f ");
 
-            // Initialise snapshot support, regardless of whether we will actually use it
-            if (androidSdk.supportsSnapshots()) {
+            // Initialise snapshot support
+            if (shouldUseSnapshots() && androidSdk.supportsSnapshots()) {
                 args.append("-a ");
             }
 
