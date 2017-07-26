@@ -338,7 +338,7 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
 
         // Compile complete command for starting emulator
         final String emulatorArgs = emuConfig.getCommandArguments(snapshotState,
-                androidSdk.supportsSnapshots(), androidSdk.supportsEmulatorEngineFlag(),
+                androidSdk.supportsSnapshots(), androidSdk.useEngineClassicFlag(),
                 emu.userPort(), emu.adbPort(), emu.getEmulatorCallbackPort(),
                 ADB_CONNECT_TIMEOUT_MS / 1000);
 
@@ -358,7 +358,7 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
         // Prepare to capture and log emulator standard output
         ByteArrayOutputStream emulatorOutput = new ByteArrayOutputStream();
         ForkOutputStream emulatorLogger = new ForkOutputStream(logger, emulatorOutput);
-        
+
         final Proc emulatorProcess = emu.getToolProcStarter(emuConfig.getExecutable(), emulatorArgs)
                 .stdout(emulatorLogger).stderr(logger).start();
         emu.setProcess(emulatorProcess);
@@ -371,7 +371,7 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
             log(logger, Messages.EMULATOR_ALREADY_IN_USE(emuConfig.getAvdName()));
             return null;
         }
-        
+
         // Sitting on the socket appears to break adb. If you try and do this you always end up with device offline.
         // A much better way is to use report-console to tell us what the port is (and hence when its available). So
         // we now do this. adb is also now clever enough to figure out that the emulator is booting and will thus

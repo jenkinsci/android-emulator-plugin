@@ -333,7 +333,7 @@ class EmulatorConfig implements Serializable {
      * @return A string of command line arguments.
      */
     public String getCommandArguments(SnapshotState snapshotState, boolean sdkSupportsSnapshots,
-            boolean emulatorSupportsEngineFlag, int userPort, int adbPort, int callbackPort,
+            boolean useEngineClassicFlag, int userPort, int adbPort, int callbackPort,
             int consoleTimeout) {
         StringBuilder sb = new StringBuilder();
 
@@ -342,7 +342,7 @@ class EmulatorConfig implements Serializable {
         // nor can we use the "-prop" or "-report-console" command line flags that we require.
         //
         // See Android bugs 202762, 202853, 205202 and 205204
-        if (emulatorSupportsEngineFlag) {
+        if (useEngineClassicFlag) {
             sb.append(" -engine classic");
         }
 

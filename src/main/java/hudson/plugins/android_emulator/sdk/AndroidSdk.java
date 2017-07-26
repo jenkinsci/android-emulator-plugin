@@ -28,9 +28,6 @@ public class AndroidSdk implements Serializable {
 
     /** First version that has an emulator which recognises the "-engine" flag. */
     private static final int SDK_EMULATOR_ENGINE_FLAG = 25;
-    
-    /** First version where classic engine cannot start. */
-    private static final int SDK_EMULATOR_ENGINE_FLAG_NOT_WORKING = 26;
 
     private final String sdkRoot;
     private final String sdkHome;
@@ -98,9 +95,12 @@ public class AndroidSdk implements Serializable {
         return getSdkToolsMajorVersion() >= SDK_SYSTEM_IMAGE_NEW_FORMAT;
     }
 
-    /** @return {@code true} if this SDK has an emulator that supports the "-engine" flag. */
-    public boolean supportsEmulatorEngineFlag() {
-        return getSdkToolsMajorVersion() >= SDK_EMULATOR_ENGINE_FLAG && getSdkToolsMajorVersion() < SDK_EMULATOR_ENGINE_FLAG_NOT_WORKING;
+    /** @return {@code true} if this SDK has an emulator that supports the "-engine" flag
+      * and we can workaround Android bugs 202762, 202853, 205202 and 205204 with the usage
+      * of the classic engine.
+      */
+    public boolean useEngineClassicFlag() {
+        return getSdkToolsMajorVersion() == SDK_EMULATOR_ENGINE_FLAG;
     }
 
     /** {@return true} if we should explicitly select a non-64-bit emulator executable for snapshot-related tasks. */
