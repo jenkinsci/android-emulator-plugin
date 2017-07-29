@@ -26,8 +26,11 @@ public class AndroidSdk implements Serializable {
     /** First version that recognises the "sys-img-[arch]-[tag]-[api]" format. */
     private static final int SDK_SYSTEM_IMAGE_NEW_FORMAT = 23;
 
-    /** First version that has an emulator which recognises the "-engine" flag. */
-    private static final int SDK_EMULATOR_ENGINE_FLAG = 25;
+    /** First version that ships the Android Emulator 2.0. */
+    private static final int SDK_EMULATOR_V2 = 25;
+
+    /** First version that comes with the emulator 2.0 supporting the needed -ports, etc commands. */
+    private static final int SDK_EMULATOR_V2_USABLE = 26;
 
     private final String sdkRoot;
     private final String sdkHome;
@@ -79,8 +82,14 @@ public class AndroidSdk implements Serializable {
         return new VersionNumber(sdkToolsVersion).digit(0);
     }
 
+    /**
+     * Determines if the AndroidSdk supports creation of snapshots to enable persistence,
+     * currently in Android Emulator v2.0 the usage of snapshots leads to an error on creation
+     * of the virtual device. So this option is currently disabled.
+     * @return {@code true} if this SDK supports snapshots in AVD creation
+     */
     public boolean supportsSnapshots() {
-        return getSdkToolsMajorVersion() >= SDK_TOOLS_SNAPSHOTS;
+        return getSdkToolsMajorVersion() >= SDK_TOOLS_SNAPSHOTS && !supportsEmulatorV2Full();
     }
 
     public boolean supportsComponentInstallation() {
@@ -95,9 +104,30 @@ public class AndroidSdk implements Serializable {
         return getSdkToolsMajorVersion() >= SDK_SYSTEM_IMAGE_NEW_FORMAT;
     }
 
+    /** @return {@code true} if this SDK ships the Android Emulator 2.0. */
+    public boolean supportsEmulatorV2() {
+        return getSdkToolsMajorVersion() >= SDK_EMULATOR_V2;
+    }
+
+    /**
+     * @return {@code true} if this SDK ships the Android Emulator 2.0 which supports all needed
+     *  command line options used by the plugin.
+     */
+    public boolean supportsEmulatorV2Full() {
+        return getSdkToolsMajorVersion() >= SDK_EMULATOR_V2_USABLE;
+    }
+
     /** @return {@code true} if this SDK has an emulator that supports the "-engine" flag. */
     public boolean supportsEmulatorEngineFlag() {
-        return getSdkToolsMajorVersion() >= SDK_EMULATOR_ENGINE_FLAG;
+        return supportsEmulatorV2();
+    }
+
+    /**
+     * @return {@code true} if this SDK has an emulator that supports the "-engine" flag (uses the Android
+     * Emulator 2.0) but the version does not support the needed CLI arguments (-ports, -prop, report-console).
+     */
+    public boolean forceClassicEmulatorEngine() {
+        return supportsEmulatorEngineFlag() && !supportsEmulatorV2Full();
     }
 
     /** {@return true} if we should explicitly select a non-64-bit emulator executable for snapshot-related tasks. */

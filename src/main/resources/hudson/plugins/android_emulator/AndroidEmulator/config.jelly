@@ -39,6 +39,10 @@
                       +'&amp;density='+ escape(Form.findMatchingInput(this,'android-emulator.screenDensity').value)
                       +'&amp;osVersion='+ escape(document.getElementById('android-emulator.osVersion').value)" />
             </f:entry>
+            <f:entry title="${%Device Definition}" help="/plugin/android-emulator/help-deviceDefinition.html">
+              <f:textbox name="android-emulator.deviceDefinition" value="${instance.deviceDefinition}" style="width:6em"
+                  checkUrl="'descriptorByName/AndroidEmulator/checkDeviceDefinition?value='+escape(this.value)" />
+            </f:entry>
             <f:entry title="${%Device locale}" help="/plugin/android-emulator/help-deviceLocale.html">
               <f:editableComboBox id="android-emulator.deviceLocale" field="deviceLocale"
                   items="${descriptor.emulatorLocales}"

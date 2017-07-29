@@ -44,7 +44,6 @@ import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.PrintStream;
 import java.io.PrintWriter;
-import java.io.Reader;
 import java.io.Serializable;
 import java.io.StringWriter;
 import java.net.ServerSocket;
@@ -80,6 +79,7 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
     @Exported public final String screenResolution;
     @Exported public final String deviceLocale;
     @Exported public final String targetAbi;
+    @Exported public final String deviceDefinition;
     @Exported public final String sdCardSize;
     @Exported public final String avdNameSuffix;
     @Exported public final HardwareProperty[] hardwareProperties;
@@ -102,7 +102,8 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
             String screenResolution, String deviceLocale, String sdCardSize,
             HardwareProperty[] hardwareProperties, boolean wipeData, boolean showWindow,
             boolean useSnapshots, boolean deleteAfterBuild, int startupDelay, int startupTimeout,
-            String commandLineOptions, String targetAbi, String executable, String avdNameSuffix) {
+            String commandLineOptions, String targetAbi, String deviceDefinition,
+            String executable, String avdNameSuffix) {
         this.avdName = avdName;
         this.osVersion = osVersion;
         this.screenDensity = screenDensity;
@@ -119,6 +120,7 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
         this.startupTimeout = Math.abs(startupTimeout);
         this.commandLineOptions = commandLineOptions;
         this.targetAbi = targetAbi;
+        this.deviceDefinition = deviceDefinition;
         this.avdNameSuffix = avdNameSuffix;
     }
 
@@ -161,10 +163,11 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
         String screenResolution = Utils.expandVariables(envVars, combination, this.screenResolution);
         String deviceLocale = Utils.expandVariables(envVars, combination, this.deviceLocale);
         String targetAbi = Utils.expandVariables(envVars, combination, this.targetAbi);
+        String deviceDefinition = Utils.expandVariables(envVars, combination, this.deviceDefinition);
         String avdNameSuffix = Utils.expandVariables(envVars, combination, this.avdNameSuffix);
 
         return EmulatorConfig.getAvdName(avdName, osVersion, screenDensity, screenResolution,
-                deviceLocale, targetAbi, avdNameSuffix);
+                deviceLocale, targetAbi, deviceDefinition, avdNameSuffix);
     }
 
     @Override
@@ -191,6 +194,7 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
             sdCardSize = sdCardSize.toUpperCase().replaceAll("[ B]", "");
         }
         String targetAbi = Utils.expandVariables(envVars, buildVars, this.targetAbi);
+        String deviceDefinition = Utils.expandVariables(envVars, buildVars, this.deviceDefinition);
         String avdNameSuffix = Utils.expandVariables(envVars, buildVars, this.avdNameSuffix);
 
         // Expand macros within hardware property values
@@ -229,7 +233,7 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
         try {
             emuConfig = EmulatorConfig.create(avdName, osVersion, screenDensity,
                 screenResolution, deviceLocale, sdCardSize, wipeData, showWindow, useSnapshots,
-                commandLineOptions, targetAbi, androidSdkHome, executable, avdNameSuffix);
+                commandLineOptions, targetAbi, deviceDefinition, androidSdkHome, executable, avdNameSuffix);
         } catch (IllegalArgumentException e) {
             log(logger, Messages.EMULATOR_CONFIGURATION_BAD(e.getLocalizedMessage()));
             build.setResult(Result.NOT_BUILT);
@@ -337,8 +341,7 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
         }
 
         // Compile complete command for starting emulator
-        final String emulatorArgs = emuConfig.getCommandArguments(snapshotState,
-                androidSdk.supportsSnapshots(), androidSdk.supportsEmulatorEngineFlag(),
+        final String emulatorArgs = emuConfig.getCommandArguments(snapshotState, androidSdk,
                 emu.userPort(), emu.adbPort(), emu.getEmulatorCallbackPort(),
                 ADB_CONNECT_TIMEOUT_MS / 1000);
 
@@ -791,6 +794,7 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
             String deviceLocale = null;
             String sdCardSize = null;
             String targetAbi = null;
+            String deviceDefinition = null;
             List<HardwareProperty> hardware = new ArrayList<HardwareProperty>();
             boolean wipeData = false;
             boolean showWindow = true;
@@ -814,6 +818,7 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
                 sdCardSize = Util.fixEmptyAndTrim(emulatorData.getString("sdCardSize"));
                 hardware = req.bindJSONToList(HardwareProperty.class, emulatorData.get("hardwareProperties"));
                 targetAbi = Util.fixEmptyAndTrim(emulatorData.getString("targetAbi"));
+                deviceDefinition = Util.fixEmptyAndTrim(emulatorData.getString("deviceDefinition"));
                 avdNameSuffix = Util.fixEmptyAndTrim(emulatorData.getString("avdNameSuffix"));
             }
             wipeData = formData.getBoolean("wipeData");
@@ -833,7 +838,7 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
             return new AndroidEmulator(avdName, osVersion, screenDensity, screenResolution,
                     deviceLocale, sdCardSize, hardware.toArray(new HardwareProperty[0]), wipeData,
                     showWindow, useSnapshots, deleteAfterBuild, startupDelay, startupTimeout, commandLineOptions,
-                    targetAbi, executable, avdNameSuffix);
+                    targetAbi, deviceDefinition, executable, avdNameSuffix);
         }
 
         @Override
@@ -847,8 +852,8 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
         }
 
         /** Used in config.jelly: Lists the OS versions available. */
-        public AndroidPlatform[] getAndroidVersions() {
-            return AndroidPlatform.ALL;
+        public String[] getAndroidVersions() {
+            return AndroidPlatform.getAllPossibleVersionNames();
         }
 
         /** Used in config.jelly: Lists the screen densities available. */
@@ -1008,6 +1013,18 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
                 }
             }
             return ValidationResult.error(Messages.INVALID_TARGET_ABI());
+        }
+
+        public FormValidation doCheckDeviceDefinition(@QueryParameter String value) {
+            return checkDeviceDefinition(value, true).getFormValidation();
+        }
+
+        private ValidationResult checkDeviceDefinition(String value, boolean allowVariables) {
+            if (value == null || "".equals(value.trim())) {
+                return ValidationResult.warning(Messages.EMPTY_DEVICE_DEFINITION());
+            }
+
+            return ValidationResult.ok();
         }
 
         public FormValidation doCheckExecutable(@QueryParameter String value) {

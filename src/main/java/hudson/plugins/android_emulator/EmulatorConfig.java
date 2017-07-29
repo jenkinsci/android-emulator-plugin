@@ -38,6 +38,7 @@ class EmulatorConfig implements Serializable {
     private String deviceLocale;
     private String sdCardSize;
     private String targetAbi;
+    private String deviceDefinition;
     private boolean wipeData;
     private final boolean showWindow;
     private final boolean useSnapshots;
@@ -61,8 +62,8 @@ class EmulatorConfig implements Serializable {
 
     private EmulatorConfig(String osVersion, String screenDensity, String screenResolution,
             String deviceLocale, String sdCardSize, boolean wipeData, boolean showWindow,
-            boolean useSnapshots, String commandLineOptions, String targetAbi, String androidSdkHome,
-            String executable, String avdNameSuffix)
+            boolean useSnapshots, String commandLineOptions, String targetAbi, String deviceDefinition,
+            String androidSdkHome, String executable, String avdNameSuffix)
                 throws IllegalArgumentException {
         if (osVersion == null || screenDensity == null || screenResolution == null) {
             throw new IllegalArgumentException("Valid OS version and screen properties must be supplied.");
@@ -109,6 +110,7 @@ class EmulatorConfig implements Serializable {
             targetAbi = targetAbi.replace("default/", "");
         }
         this.targetAbi = targetAbi;
+        this.deviceDefinition = deviceDefinition;
         this.androidSdkHome = androidSdkHome;
         this.executable = executable;
         this.avdNameSuffix = avdNameSuffix;
@@ -117,10 +119,10 @@ class EmulatorConfig implements Serializable {
     public static final EmulatorConfig create(String avdName, String osVersion, String screenDensity,
             String screenResolution, String deviceLocale, String sdCardSize, boolean wipeData,
             boolean showWindow, boolean useSnapshots, String commandLineOptions, String targetAbi,
-            String androidSdkHome, String executable, String avdNameSuffix) {
+            String deviceDefinition, String androidSdkHome, String executable, String avdNameSuffix) {
         if (Util.fixEmptyAndTrim(avdName) == null) {
             return new EmulatorConfig(osVersion, screenDensity, screenResolution, deviceLocale, sdCardSize, wipeData,
-                    showWindow, useSnapshots, commandLineOptions, targetAbi, androidSdkHome, executable, avdNameSuffix);
+                    showWindow, useSnapshots, commandLineOptions, targetAbi, deviceDefinition, androidSdkHome, executable, avdNameSuffix);
         }
 
         return new EmulatorConfig(avdName, wipeData, showWindow, useSnapshots, commandLineOptions, androidSdkHome, executable,
@@ -128,10 +130,11 @@ class EmulatorConfig implements Serializable {
     }
 
     public static final String getAvdName(String avdName, String osVersion, String screenDensity,
-            String screenResolution, String deviceLocale, String targetAbi, String avdNameSuffix) {
+            String screenResolution, String deviceLocale, String targetAbi, String deviceDefinition,
+            String avdNameSuffix) {
         try {
             return create(avdName, osVersion, screenDensity, screenResolution, deviceLocale, null, false, false, false,
-                    null, targetAbi, null, null, avdNameSuffix).getAvdName();
+                    null, targetAbi, deviceDefinition, null, null, avdNameSuffix).getAvdName();
         } catch (IllegalArgumentException e) {}
         return null;
     }
@@ -157,12 +160,16 @@ class EmulatorConfig implements Serializable {
         if (targetAbi != null && osVersion.requiresAbi()) {
             abi = "_" + targetAbi.replaceAll("[^a-zA-Z0-9._-]", "-");
         }
+        String deviceDef = "";
+        if (deviceDefinition != null && !deviceDefinition.isEmpty()) {
+            deviceDef = "_" + deviceDefinition.replaceAll("[^a-zA-Z0-9._-]", "-");
+        }
         String suffix = "";
         if (avdNameSuffix != null) {
             suffix = "_" + avdNameSuffix.replaceAll("[^a-zA-Z0-9._-]", "-");
         }
 
-        return String.format("hudson_%s_%s_%s_%s%s%s", locale, density, resolution, platform, abi, suffix);
+        return String.format("hudson_%s_%s_%s_%s%s%s%s", locale, density, resolution, platform, abi, deviceDef, suffix);
     }
 
     public AndroidPlatform getOsVersion() {
@@ -170,6 +177,10 @@ class EmulatorConfig implements Serializable {
     }
 
     public String getTargetAbi() { return targetAbi; }
+
+    public String getDeviceDefinition() {
+        return deviceDefinition;
+    }
 
     public ScreenDensity getScreenDensity() {
         return screenDensity;
@@ -332,18 +343,23 @@ class EmulatorConfig implements Serializable {
      *
      * @return A string of command line arguments.
      */
-    public String getCommandArguments(SnapshotState snapshotState, boolean sdkSupportsSnapshots,
-            boolean emulatorSupportsEngineFlag, int userPort, int adbPort, int callbackPort,
-            int consoleTimeout) {
+    public String getCommandArguments(SnapshotState snapshotState, final AndroidSdk androidSdk,
+            int userPort, int adbPort, int callbackPort, int consoleTimeout) {
         StringBuilder sb = new StringBuilder();
 
         // Stick to using the original version of the emulator for now, as otherwise we can't use
         // the "-ports" command line flag, which we need to stay outside of the regular port range,
         // nor can we use the "-prop" or "-report-console" command line flags that we require.
         //
-        // See Android bugs 202762, 202853, 205202 and 205204
-        if (emulatorSupportsEngineFlag) {
+        // See Android bugs 37085830, 37086012, 37090815 and 37090817
+        if (androidSdk.forceClassicEmulatorEngine()) {
             sb.append(" -engine classic");
+        }
+
+        // screen resolution not supported at creation time in Android Emulator 2.0
+        // so it is added here as skin on emulator start
+        if (androidSdk.supportsEmulatorV2()) {
+            sb.append(String.format(" -skin %s", getScreenResolution().getDimensionString()));
         }
 
         // Tell the emulator to use certain ports
@@ -369,7 +385,7 @@ class EmulatorConfig implements Serializable {
             // For builds after initial snapshot setup, start directly from the "jenkins" snapshot
             sb.append(" -snapshot "+ Constants.SNAPSHOT_NAME);
             sb.append(" -no-snapshot-save");
-        } else if (sdkSupportsSnapshots) {
+        } else if (androidSdk.supportsSnapshots()) {
             // For the first boot, or snapshot-free builds, do not load any snapshots that may exist
             sb.append(" -no-snapshot-load");
             sb.append(" -no-snapshot-save");
@@ -530,26 +546,51 @@ class EmulatorConfig implements Serializable {
                 args.append(sdCardSize);
                 args.append(" ");
             }
-            args.append("-s ");
-            args.append(screenResolution.getSkinName());
+
+            // screen resolution not supported at creation time in Android Emulator 2.0
+            // will be added as skin on emulator start
+            if (!androidSdk.supportsEmulatorV2()) {
+                args.append("-s ");
+                args.append(screenResolution.getSkinName());
+            }
+
+            final Tool avdCommand;
+            if (androidSdk.supportsEmulatorV2()) {
+                avdCommand = Tool.AVDMANAGER;
+            } else {
+                avdCommand = Tool.ANDROID;
+            }
+
+            // A device definition needs to be set, if not there would be an prompt of the avdmanager command
+            if (androidSdk.supportsEmulatorV2()) {
+                args.append(" -d ");
+                args.append(deviceDefinition);
+            }
+
             args.append(" -n ");
             args.append(getAvdName());
             boolean isUnix = !Functions.isWindows();
-            ArgumentListBuilder builder = Utils.getToolCommand(androidSdk, isUnix, Tool.ANDROID, args.toString());
+            ArgumentListBuilder builder = Utils.getToolCommand(androidSdk, isUnix, avdCommand, args.toString());
 
-            // Tack on quoted platform name at the end, since it can be anything
-            builder.add("-t");
-            builder.add(osVersion.getTargetName());
+            // Android Emulator 2.0 defines target version and target ABI as package path
+            if (androidSdk.supportsEmulatorV2()) {
+                builder.add("-k");
+                builder.add(osVersion.getPackagePathOfSystemImage(targetAbi));
+            } else {
+                // Tack on quoted platform name at the end, since it can be anything
+                builder.add("-t");
+                builder.add(osVersion.getTargetName());
 
-            if (targetAbi != null && osVersion.requiresAbi()) {
-                // This is an unpleasant side-effect of there being an ABI for android-10,
-                // and that Google renamed the image after its initial release from Intel...
-                // Ideally, as stated in AndroidPlatform#requiresAbi, we should preferably check
-                // via the "android list target" command whether an ABI is actually required.
-                if (osVersion.getSdkLevel() != 10 || targetAbi.equals("armeabi")
-                        || targetAbi.equals("x86")) {
-                    builder.add("--abi");
-                    builder.add(targetAbi);
+                if (targetAbi != null && osVersion.requiresAbi()) {
+                    // This is an unpleasant side-effect of there being an ABI for android-10,
+                    // and that Google renamed the image after its initial release from Intel...
+                    // Ideally, as stated in AndroidPlatform#requiresAbi, we should preferably check
+                    // via the "android list target" command whether an ABI is actually required.
+                    if (osVersion.getSdkLevel() != 10 || targetAbi.equals("armeabi")
+                            || targetAbi.equals("x86")) {
+                        builder.add("--abi");
+                        builder.add(targetAbi);
+                    }
                 }
             }
 

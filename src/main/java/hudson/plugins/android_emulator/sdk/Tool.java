@@ -1,17 +1,20 @@
 package hudson.plugins.android_emulator.sdk;
 
+import java.io.File;
+
 import hudson.plugins.android_emulator.SdkInstallationException;
 
 public enum Tool {
     ADB("adb", ".exe", new PlatformToolLocator()),
     ANDROID("android", ".bat"),
-    EMULATOR("emulator", ".exe"),
-    EMULATOR_ARM("emulator-arm", ".exe"),
-    EMULATOR_MIPS("emulator-mips", ".exe"),
-    EMULATOR_X86("emulator-x86", ".exe"),
-    EMULATOR64_ARM("emulator64-arm", ".exe"),
-    EMULATOR64_MIPS("emulator64-mips", ".exe"),
-    EMULATOR64_X86("emulator64-x86", ".exe"),
+    EMULATOR("emulator", ".exe", new EmulatorToolLocator()),
+    EMULATOR_ARM("emulator-arm", ".exe", new EmulatorToolLocator()),
+    EMULATOR_MIPS("emulator-mips", ".exe", new EmulatorToolLocator()),
+    EMULATOR_X86("emulator-x86", ".exe", new EmulatorToolLocator()),
+    EMULATOR64_ARM("emulator64-arm", ".exe", new EmulatorToolLocator()),
+    EMULATOR64_MIPS("emulator64-mips", ".exe", new EmulatorToolLocator()),
+    EMULATOR64_X86("emulator64-x86", ".exe", new EmulatorToolLocator()),
+    AVDMANAGER("bin" + File.separator + "avdmanager", ".exe"),
     MKSDCARD("mksdcard", ".exe");
 
     public static Tool[] EMULATORS = new Tool[] { EMULATOR,

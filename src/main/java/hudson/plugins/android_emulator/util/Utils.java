@@ -21,6 +21,8 @@ import hudson.plugins.android_emulator.sdk.Tool;
 import hudson.remoting.Callable;
 import hudson.remoting.Future;
 import hudson.util.ArgumentListBuilder;
+import hudson.util.VersionNumber;
+
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.filefilter.IOFileFilter;
 import org.apache.commons.io.filefilter.NameFileFilter;
@@ -725,27 +727,53 @@ public class Utils {
     }
 
     /**
-     * Determines the API level for the given platform name.
+     * Checks whether the version number string represented by the first parameter is older then
+     * the version number string represented by the second parameter. For comparison the utility class
+     * {@code VersionNumber} is used.
      *
-     * @param platform String like "android-4" or "Google:Google APIs:14".
-     * @return The detected version, or {@code -1} if not determined.
+     * @param strVersion the version number to check if older then {@code strVersionToCompare}
+     * @param strVersionToCompare the version number where {@code strVersion} is compared to
+     * @return {@code true} if {@code VersionNumber} representation of {@code strVersion} is older then
+     * {@code VersionNumber} representation of {@code strVersionToCompare}
      */
-    public static int getApiLevelFromPlatform(String platform) {
-        int apiLevel = -1;
-        platform = Util.fixEmptyAndTrim(platform);
-        if (platform == null) {
-            return apiLevel;
+    public static boolean isVersionOlderThan(final String strVersion, final String strVersionToCompare) {
+        final VersionNumber version = new VersionNumber(Util.fixNull(strVersion));
+        final VersionNumber versiontoCompare = new VersionNumber(Util.fixNull(strVersionToCompare));
+        return version.isOlderThan(versiontoCompare);
+    }
+
+    /**
+     * Compares one given string representing a version number ({@code"[:digit:]+(\.[:digit:]+)*"})
+     * to another one and checks for equality. Additionally the number of parts to compare can
+     * be given, this allows comparing only eg: the major and minor numbers. The version number
+     * "1.0.0" would match "1.0.1" if partsToCompare would be 2.
+     *
+     * @param strVersionA version number to compare against {@code strVersionB}
+     * @param strVersionB version number to compare against {@code strVersionA}
+     * @param partsToCompare if > 0 then the number of parts for that version number are compared,
+     * if <= 0 the complete version number is compared
+     * @return {@code true} if the versions number (or if requested parts of the version numbers) are identical,
+     * {@code false} otherwise
+     */
+    public static boolean equalsVersion(final String strVersionA, final String strVersionB, final int partsToCompare) {
+        String versionA = Util.fixNull(strVersionA);
+        String versionB = Util.fixNull(strVersionB);
+
+        if (partsToCompare <= 0) {
+            return (versionA.equals(versionB));
         }
 
-        Matcher matcher = Pattern.compile("[-:]([0-9]{1,2})$").matcher(platform);
-        if (matcher.find()) {
-            String end = matcher.group(1);
-            try {
-                apiLevel = Integer.parseInt(end);
-            } catch (NumberFormatException e) {
+        final String[] splitA = versionA.split("\\.");
+        final String[] splitB = versionB.split("\\.");
+
+        for (int idx = 0; idx < partsToCompare; idx++) {
+            final String a = (idx < splitA.length) ? splitA[idx] : "";
+            final String b = (idx < splitB.length) ? splitB[idx] : "";
+            if (!a.equals(b)) {
+                return false;
             }
         }
-        return apiLevel;
+        return true;
     }
 
     /** Task that will execute a command on the given emulator's console port, then quit. */

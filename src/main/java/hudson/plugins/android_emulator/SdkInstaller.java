@@ -253,14 +253,21 @@ public class SdkInstaller {
      */
     public static void installPlatform(PrintStream logger, Launcher launcher, AndroidSdk sdk,
             String platform, String abi) throws IOException, InterruptedException {
+
+        final AndroidPlatform androidPlatform = AndroidPlatform.valueOf(platform);
+        if (androidPlatform == null) {
+            log(logger, Messages.SDK_PLATFORM_STRING_UNRECOGNISED(platform));
+            return;
+        }
+
         // Check whether this platform is already installed
-        if (isPlatformInstalled(logger, launcher, sdk, platform, abi)) {
+        if (isPlatformInstalled(logger, launcher, sdk, androidPlatform.getName(), abi)) {
             return;
         }
 
         // Check whether we are capable of installing individual components
-        log(logger, Messages.PLATFORM_INSTALL_REQUIRED(platform));
-        if (!launcher.isUnix() && platform.contains(":") && sdk.getSdkToolsMajorVersion() < 16) {
+        log(logger, Messages.PLATFORM_INSTALL_REQUIRED(androidPlatform.getName()));
+        if (!launcher.isUnix() && androidPlatform.isCustomPlatform() && sdk.getSdkToolsMajorVersion() < 16) {
             // SDK add-ons can't be installed on Windows until r16 due to http://b.android.com/18868
             log(logger, Messages.SDK_ADDON_INSTALLATION_UNSUPPORTED());
             return;
@@ -273,12 +280,12 @@ public class SdkInstaller {
         // Automated installation of ABIs (required for android-14+) is not possible until r17, so
         // we should warn the user that we can't automatically set up an AVD with older SDK Tools.
         // See http://b.android.com/21880
-        if ((platform.endsWith("14") || platform.endsWith("15")) && !sdk.supportsSystemImageInstallation()) {
+        if ((androidPlatform.getSdkLevel() == 14 || androidPlatform.getSdkLevel() == 15) && !sdk.supportsSystemImageInstallation()) {
             log(logger, Messages.ABI_INSTALLATION_UNSUPPORTED(), true);
         }
 
         // Determine which individual component(s) need to be installed for this platform
-        List<String> components = getSdkComponentsForPlatform(logger, sdk, platform, abi);
+        List<String> components = getSdkComponentsForPlatform(logger, sdk, androidPlatform, abi);
         if (components == null || components.size() == 0) {
             return;
         }
@@ -328,55 +335,30 @@ public class SdkInstaller {
         return true;
     }
 
-    private static List<String> getSdkComponentsForPlatform(PrintStream logger, AndroidSdk sdk, String platform,
-            String abi) {
+    private static List<String> getSdkComponentsForPlatform(final PrintStream logger,
+            final AndroidSdk sdk, final AndroidPlatform androidPlatform, final String abi) {
         // Gather list of required components
         List<String> components = new ArrayList<String>();
 
-        // Add dependent platform
-        int dependentPlatform = Utils.getApiLevelFromPlatform(platform);
-        if (dependentPlatform > 0) {
-            components.add(String.format("android-%s", dependentPlatform));
+        // Add dependent platform (eg: 'android-17')
+        if (androidPlatform.getSdkLevel() > 0) {
+            components.add(androidPlatform.getTargetName());
         }
 
         // Add system image, if required
         // Even if a system image doesn't exist for this platform, the installer silently ignores it
-        if (dependentPlatform >= 10 && abi != null) {
+        if (androidPlatform.getSdkLevel() >= 10 && abi != null) {
             if (sdk.supportsSystemImageNewFormat()) {
-                String tag = "android";
-                int slash = abi.indexOf('/');
-                if (slash > 0 && slash < abi.length() - 1) {
-                    tag = abi.substring(0, slash);
-                    abi = abi.substring(slash + 1);
-                }
-                components.add(String.format("sys-img-%s-%s-%d", abi, tag, dependentPlatform));
+                components.add(androidPlatform.getSystemImageName(abi));
             } else {
-                components.add(String.format("sysimg-%d", dependentPlatform));
+                components.add(androidPlatform.getSystemImageNameLegacyFormat());
             }
         }
 
-        // If it's a straightforward case like "android-10", we're done
-        if (!platform.contains(":")) {
-            return components;
+        // If it's a non straightforward case like "Google Inc.:Google APIs:10" we need to add the addon as well
+        if (androidPlatform.isCustomPlatform()) {
+            components.add(androidPlatform.getAddonName());
         }
-
-        // As of SDK r17-ish, we can't always map addon names directly to installable components.
-        // But replacing display name "Google Inc." with vendor ID "google" should cover most cases
-        platform = platform.replace("Google Inc.", "google");
-
-        String parts[] = platform.toLowerCase().split(":");
-        if (parts.length != 3) {
-            log(logger, Messages.SDK_ADDON_FORMAT_UNRECOGNISED(platform));
-            return null;
-        }
-
-        // Determine addon name
-        String vendor = parts[0].replaceAll("[^a-z0-9_-]+", "_").replaceAll("_+", "_")
-                .replace("_$", "");
-        String addon = parts[1].replaceAll("[^a-z0-9_-]+", "_").replaceAll("_+", "_")
-                .replace("_$", "");
-        String component = String.format("addon-%s-%s-%s", addon, vendor, parts[2]);
-        components.add(component);
 
         return components;
     }
