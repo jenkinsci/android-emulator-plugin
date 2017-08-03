@@ -121,8 +121,10 @@ public class Utils {
                 }
 
                 // Check for common environment variables
-                String[] keys = { "ANDROID_SDK_ROOT", "ANDROID_SDK_HOME",
-                                  "ANDROID_HOME", "ANDROID_SDK" };
+                String[] keys = { Constants.ENV_VAR_ANDROID_SDK_ROOT,
+                        Constants.ENV_VAR_ANDROID_SDK_HOME,
+                        Constants.ENV_VAR_ANDROID_HOME,
+                        Constants.ENV_VAR_ANDROID_SDK };
 
                 // Resolve each variable to its directory name
                 List<String> potentialSdkDirs = new ArrayList<String>();
@@ -276,18 +278,18 @@ public class Utils {
      */
     public static File getHomeDirectory(String androidSdkHome) {
         // From git://android.git.kernel.org/platform/external/qemu.git/android/utils/bufprint.c
-        String homeDirPath = System.getenv("ANDROID_SDK_HOME");
+        String homeDirPath = System.getenv(Constants.ENV_VAR_ANDROID_SDK_HOME);
         if (homeDirPath == null) {
             if (androidSdkHome != null) {
                 homeDirPath = androidSdkHome;
             } else if (!Functions.isWindows()) {
-                homeDirPath = System.getenv("HOME");
+                homeDirPath = System.getenv(Constants.ENV_VAR_SYSTEM_HOME);
                 if (homeDirPath == null) {
                     homeDirPath = "/tmp";
                 }
             } else {
                 // The emulator checks Win32 "CSIDL_PROFILE", which should equal USERPROFILE
-                homeDirPath = System.getenv("USERPROFILE");
+                homeDirPath = System.getenv(Constants.ENV_VAR_SYSTEM_USERPROFILE);
                 if (homeDirPath == null) {
                     // Otherwise fall back to user.home (which should equal USERPROFILE anyway)
                     homeDirPath = System.getProperty("user.home");
@@ -308,18 +310,18 @@ public class Utils {
         String path = null;
         if (Functions.isWindows()) {
             // The emulator queries for the Win32 "CSIDL_PROFILE" path, which should equal USERPROFILE
-            path = System.getenv("USERPROFILE");
+            path = System.getenv(Constants.ENV_VAR_SYSTEM_USERPROFILE);
 
             // Otherwise, fall back to the Windows equivalent of HOME
             if (path == null) {
-                String homeDrive = System.getenv("HOMEDRIVE");
-                String homePath = System.getenv("HOMEPATH");
+                String homeDrive = System.getenv(Constants.ENV_VAR_SYSTEM_HOMEDRIVE);
+                String homePath = System.getenv(Constants.ENV_VAR_SYSTEM_HOMEPATH);
                 if (homeDrive != null && homePath != null) {
                     path = homeDrive + homePath;
                 }
             }
         } else {
-            path = System.getenv("HOME");
+            path = System.getenv(Constants.ENV_VAR_SYSTEM_HOME);
         }
 
         // Path may not have been discovered
@@ -340,7 +342,7 @@ public class Utils {
         Tool[] tools = { Tool.ANDROID, Tool.EMULATOR };
 
         // Get list of directories from the PATH environment variable
-        List<String> paths = Arrays.asList(System.getenv("PATH").split(File.pathSeparator));
+        List<String> paths = Arrays.asList(System.getenv(Constants.ENV_VAR_SYSTEM_PATH).split(File.pathSeparator));
 
         // Examine each directory to see whether it contains the expected Android tools
         for (String path : paths) {
@@ -453,7 +455,7 @@ public class Utils {
         if (androidSdk.hasKnownHome()) {
             // Copy the old one, so we don't mutate the argument.
             env = new EnvVars((env == null ? new EnvVars() : env));
-            env.put("ANDROID_SDK_HOME", androidSdk.getSdkHome());
+            env.put(Constants.ENV_VAR_ANDROID_SDK_HOME, androidSdk.getSdkHome());
         }
 
         if (env != null) {

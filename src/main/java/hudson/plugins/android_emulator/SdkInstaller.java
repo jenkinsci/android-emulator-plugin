@@ -206,7 +206,7 @@ public class SdkInstaller {
         ProcStarter procStarter = launcher.launch().stderr(logger).readStdout().writeStdin().cmds(cmd);
         if (sdk.hasKnownHome()) {
             EnvVars env = new EnvVars();
-            env.put("ANDROID_SDK_HOME", sdk.getSdkHome());
+            env.put(Constants.ENV_VAR_ANDROID_SDK_HOME, sdk.getSdkHome());
             procStarter = procStarter.envs(env);
         }
 

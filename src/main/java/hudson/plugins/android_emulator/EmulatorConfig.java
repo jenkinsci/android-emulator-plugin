@@ -603,7 +603,7 @@ class EmulatorConfig implements Serializable {
             try {
                 ProcessBuilder procBuilder = new ProcessBuilder(builder.toList());
                 if (androidSdk.hasKnownHome()) {
-                    procBuilder.environment().put("ANDROID_SDK_HOME", androidSdk.getSdkHome());
+                    procBuilder.environment().put(Constants.ENV_VAR_ANDROID_SDK_HOME, androidSdk.getSdkHome());
                 }
                 process = procBuilder.start();
             } catch (IOException ex) {
@@ -701,7 +701,7 @@ class EmulatorConfig implements Serializable {
             try {
                 ProcessBuilder procBuilder = new ProcessBuilder(builder.toList());
                 if (androidSdkHome != null) {
-                    procBuilder.environment().put("ANDROID_SDK_HOME", androidSdkHome);
+                    procBuilder.environment().put(Constants.ENV_VAR_ANDROID_SDK_HOME, androidSdkHome);
                 }
                 procBuilder.start().waitFor();
             } catch (InterruptedException ex) {

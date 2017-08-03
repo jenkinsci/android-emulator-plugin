@@ -50,6 +50,35 @@ public interface Constants {
     static final String REGEX_SD_CARD_SIZE = "(?i)([0-9]{1,12}) ?([KM])[B]?";
     static final String REGEX_SNAPSHOT = "[0-9]+ +"+ SNAPSHOT_NAME +" +[0-9.]+[KMGT] ";
 
+    /** Environment variables the plugin uses **/
+    static final String ENV_VAR_ANDROID_ADB_SERVER_PORT = "ANDROID_ADB_SERVER_PORT";
+    static final String ENV_VAR_ANDROID_AVD_ADB_PORT = "ANDROID_AVD_ADB_PORT";
+    static final String ENV_VAR_ANDROID_AVD_DENSITY = "ANDROID_AVD_DENSITY";
+    // Environment variable set by the plugin to specify the serial of the started AVD.
+    static final String ENV_VAR_ANDROID_AVD_DEVICE = "ANDROID_AVD_DEVICE";
+    static final String ENV_VAR_ANDROID_AVD_LOCALE = "ANDROID_AVD_LOCALE";
+    static final String ENV_VAR_ANDROID_AVD_NAME = "ANDROID_AVD_NAME";
+    static final String ENV_VAR_ANDROID_AVD_OS = "ANDROID_AVD_OS";
+    static final String ENV_VAR_ANDROID_AVD_RESOLUTION = "ANDROID_AVD_RESOLUTION";
+    static final String ENV_VAR_ANDROID_AVD_SKIN = "ANDROID_AVD_SKIN";
+    // Environment variable set by the plugin to specify the telnet interface port.
+    static final String ENV_VAR_ANDROID_AVD_USER_PORT = "ANDROID_AVD_USER_PORT";
+    static final String ENV_VAR_ANDROID_HOME = "ANDROID_HOME";
+    static final String ENV_VAR_ANDROID_SDK = "ANDROID_SDK";
+    static final String ENV_VAR_ANDROID_SDK_HOME = "ANDROID_SDK_HOME";
+    static final String ENV_VAR_ANDROID_SDK_ROOT = "ANDROID_SDK_ROOT";
+    static final String ENV_VAR_ANDROID_SERIAL = "ANDROID_SERIAL";
+    static final String ENV_VAR_ANDROID_TMP_LOGCAT_FILE = "ANDROID_TMP_LOGCAT_FILE";
+    static final String ENV_VAR_JENKINS_ANDROID_HOME = "JENKINS_ANDROID_HOME";
+    static final String ENV_VAR_JENKINS_WORKSPACE = "WORKSPACE";
+    static final String ENV_VAR_LD_LIBRARY_PATH = "LD_LIBRARY_PATH";
+    static final String ENV_VAR_SYSTEM_HOME = "HOME";
+    static final String ENV_VAR_SYSTEM_HOMEDRIVE = "HOMEDRIVE";
+    static final String ENV_VAR_SYSTEM_HOMEPATH = "HOMEPATH";
+    static final String ENV_VAR_SYSTEM_PATH = "PATH";
+    static final String ENV_VAR_SYSTEM_USERPROFILE = "USERPROFILE";
+    static final String ENV_VAR_PATH_SDK_PLATFORM_TOOLS = "PATH+SDK_PLATFORM_TOOLS";
+    static final String ENV_VAR_PATH_SDK_TOOLS = "PATH+SDK_TOOLS";
 }
 
 enum SnapshotState {

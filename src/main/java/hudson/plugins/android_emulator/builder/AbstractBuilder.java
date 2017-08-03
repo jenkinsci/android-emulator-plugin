@@ -12,6 +12,7 @@ import hudson.model.Node;
 import hudson.model.TaskListener;
 import hudson.plugins.android_emulator.AndroidEmulator;
 import hudson.plugins.android_emulator.AndroidEmulator.DescriptorImpl;
+import hudson.plugins.android_emulator.Constants;
 import hudson.plugins.android_emulator.Messages;
 import hudson.plugins.android_emulator.SdkInstallationException;
 import hudson.plugins.android_emulator.SdkInstaller;
@@ -36,12 +37,6 @@ public abstract class AbstractBuilder extends Builder {
 
     /** Maximum time to wait, in milliseconds, for an APK to be uninstalled. */
     private static final int UNINSTALL_TIMEOUT = 60 * 1000;
-
-    /** Environment variable set by the plugin to specify the serial of the started AVD. */
-    private static final String DEVICE_SERIAL_VARIABLE = "ANDROID_AVD_DEVICE";
-
-    /** Environment variable set by the plugin to specify the telnet interface port. */
-    private static final String DEVICE_USER_PORT_VARIABLE = "ANDROID_AVD_USER_PORT";
 
     /**
      * Gets an Android SDK instance, ready for use.
@@ -73,7 +68,7 @@ public abstract class AbstractBuilder extends Builder {
 
         // Get Android SDK object from the given root (or locate on PATH)
         final String androidSdkHome = (envVars != null && keepInWorkspace ? envVars
-                .get("WORKSPACE") : null);
+                .get(Constants.ENV_VAR_JENKINS_WORKSPACE) : null);
         AndroidSdk androidSdk = Utils
                 .getAndroidSdk(launcher, discoveredAndroidHome, androidSdkHome);
 
@@ -108,7 +103,7 @@ public abstract class AbstractBuilder extends Builder {
 
             public void buildEnvVars(AbstractBuild<?, ?> build, EnvVars envVars) {
                 if (envVars != null) {
-                    envVars.put("ANDROID_HOME", sdkRoot);
+                    envVars.put(Constants.ENV_VAR_ANDROID_HOME, sdkRoot);
                 }
             }
 
@@ -136,7 +131,7 @@ public abstract class AbstractBuilder extends Builder {
      * @return The device identifier (defaulting to the value of "<tt>-s $ANDROID_AVD_DEVICE</tt>").
      */
     protected static String getDeviceIdentifier(AbstractBuild<?, ?> build, BuildListener listener) {
-        String deviceSerial = expandVariable(build, listener, DEVICE_SERIAL_VARIABLE);
+        String deviceSerial = expandVariable(build, listener, Constants.ENV_VAR_ANDROID_AVD_DEVICE);
         if (deviceSerial == null) {
             // No emulator was started by this plugin; assume only one device is attached
             return "";
@@ -154,7 +149,7 @@ public abstract class AbstractBuilder extends Builder {
      * @return The device identifier (defaulting to the value of "<tt>-s $ANDROID_AVD_DEVICE</tt>").
      */
     protected static int getDeviceTelnetPort(AbstractBuild<?, ?> build, BuildListener listener) {
-        String devicePort = expandVariable(build, listener, DEVICE_USER_PORT_VARIABLE);
+        String devicePort = expandVariable(build, listener, Constants.ENV_VAR_ANDROID_AVD_USER_PORT);
         if (devicePort == null) {
             // No emulator was started by this plugin; assume only one device is attached
             return 5554;

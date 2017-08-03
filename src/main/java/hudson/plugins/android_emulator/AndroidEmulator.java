@@ -229,7 +229,7 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
         // Build emulator config, ensuring that variables expand to valid SDK values
         EmulatorConfig emuConfig;
         boolean shouldKeepInWorkspace = descriptor.shouldKeepInWorkspace && Util.fixEmptyAndTrim(avdName) == null;
-        final String androidSdkHome = (envVars != null && shouldKeepInWorkspace ? envVars.get("WORKSPACE") : null);
+        final String androidSdkHome = (envVars != null && shouldKeepInWorkspace ? envVars.get(Constants.ENV_VAR_JENKINS_WORKSPACE) : null);
         try {
             emuConfig = EmulatorConfig.create(avdName, osVersion, screenDensity,
                 screenResolution, deviceLocale, sdCardSize, wipeData, showWindow, useSnapshots,
@@ -505,27 +505,27 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
         return new Environment() {
             @Override
             public void buildEnvVars(Map<String, String> env) {
-                env.put("ANDROID_SERIAL", emu.serial());
-                env.put("ANDROID_AVD_DEVICE", emu.serial());
-                env.put("ANDROID_AVD_ADB_PORT", Integer.toString(emu.adbPort()));
-                env.put("ANDROID_AVD_USER_PORT", Integer.toString(emu.userPort()));
-                env.put("ANDROID_AVD_NAME", emuConfig.getAvdName());
-                env.put("ANDROID_ADB_SERVER_PORT", Integer.toString(emu.adbServerPort()));
-                env.put("ANDROID_TMP_LOGCAT_FILE", logcatFile.getRemote());
+                env.put(Constants.ENV_VAR_ANDROID_SERIAL, emu.serial());
+                env.put(Constants.ENV_VAR_ANDROID_AVD_DEVICE, emu.serial());
+                env.put(Constants.ENV_VAR_ANDROID_AVD_ADB_PORT, Integer.toString(emu.adbPort()));
+                env.put(Constants.ENV_VAR_ANDROID_AVD_USER_PORT, Integer.toString(emu.userPort()));
+                env.put(Constants.ENV_VAR_ANDROID_AVD_NAME, emuConfig.getAvdName());
+                env.put(Constants.ENV_VAR_ANDROID_ADB_SERVER_PORT, Integer.toString(emu.adbServerPort()));
+                env.put(Constants.ENV_VAR_ANDROID_TMP_LOGCAT_FILE, logcatFile.getRemote());
                 if (!emuConfig.isNamedEmulator()) {
-                    env.put("ANDROID_AVD_OS", emuConfig.getOsVersion().toString());
-                    env.put("ANDROID_AVD_DENSITY", emuConfig.getScreenDensity().toString());
-                    env.put("ANDROID_AVD_RESOLUTION", emuConfig.getScreenResolution().toString());
-                    env.put("ANDROID_AVD_SKIN", emuConfig.getScreenResolution().getSkinName());
-                    env.put("ANDROID_AVD_LOCALE", emuConfig.getDeviceLocale());
+                    env.put(Constants.ENV_VAR_ANDROID_AVD_OS, emuConfig.getOsVersion().toString());
+                    env.put(Constants.ENV_VAR_ANDROID_AVD_DENSITY, emuConfig.getScreenDensity().toString());
+                    env.put(Constants.ENV_VAR_ANDROID_AVD_RESOLUTION, emuConfig.getScreenResolution().toString());
+                    env.put(Constants.ENV_VAR_ANDROID_AVD_SKIN, emuConfig.getScreenResolution().getSkinName());
+                    env.put(Constants.ENV_VAR_ANDROID_AVD_LOCALE, emuConfig.getDeviceLocale());
                 }
                 if (androidSdk.hasKnownRoot()) {
-                    env.put("JENKINS_ANDROID_HOME", androidSdk.getSdkRoot());
-                    env.put("ANDROID_HOME", androidSdk.getSdkRoot());
+                    env.put(Constants.ENV_VAR_JENKINS_ANDROID_HOME, androidSdk.getSdkRoot());
+                    env.put(Constants.ENV_VAR_ANDROID_HOME, androidSdk.getSdkRoot());
 
                     // Prepend the commonly-used Android tools to the start of the PATH for this build
-                    env.put("PATH+SDK_TOOLS", androidSdk.getSdkRoot() + "/tools/");
-                    env.put("PATH+SDK_PLATFORM_TOOLS", androidSdk.getSdkRoot() + "/platform-tools/");
+                    env.put(Constants.ENV_VAR_PATH_SDK_TOOLS, androidSdk.getSdkRoot() + "/tools/");
+                    env.put(Constants.ENV_VAR_PATH_SDK_PLATFORM_TOOLS, androidSdk.getSdkRoot() + "/platform-tools/");
                     // TODO: Export the newest build-tools folder as well, so aapt and friends can be used
                 }
             }
