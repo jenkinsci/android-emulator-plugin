@@ -1,6 +1,9 @@
 package hudson.plugins.android_emulator.util;
 
-import junit.framework.TestCase;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 
 import java.io.File;
 import java.io.PrintWriter;
@@ -8,8 +11,12 @@ import java.util.Map;
 
 import org.junit.Test;
 
-@SuppressWarnings("static-method")
-public class UtilsTest extends TestCase {
+import hudson.EnvVars;
+
+public class UtilsTest {
+
+    private static final String ENV_VAR_NAME_QEMU_AUDIO_DRIVER = "QEMU_AUDIO_DRV";
+    private static final String ENV_VAR_VALUE_QEMU_AUDIO_DRIVER_NONE = "none";
 
     @Test
     public void testRelativeSubdirectory() {
@@ -118,5 +125,45 @@ public class UtilsTest extends TestCase {
 
         assertFalse(Utils.equalsVersion(null, "2.3.4", 3));
         assertTrue(Utils.equalsVersion(null, null, 9));
+    }
+
+
+    // Workaround for Bug 64356053 ('-no-audio'-, '-noaudio'- and '-audio none'-options ignored)
+    @Test
+    public void testQemu2AudioEnvSettingFromCommandLine() {
+        assertEnvironmentDisablesAudioDriver(Utils.getEnvironmentVarsFromEmulatorArgs("--test -no-audio --xx"));
+        assertEnvironmentDisablesAudioDriver(Utils.getEnvironmentVarsFromEmulatorArgs("-noaudio --xx"));
+        assertEnvironmentDisablesAudioDriver(Utils.getEnvironmentVarsFromEmulatorArgs("something -noaudio"));
+        assertEnvironmentDisablesAudioDriver(Utils.getEnvironmentVarsFromEmulatorArgs("-audio none"));
+
+        assertEnvironmentNoAudioDriverSetting(Utils.getEnvironmentVarsFromEmulatorArgs("--no-audio --xx"));
+        assertEnvironmentNoAudioDriverSetting(Utils.getEnvironmentVarsFromEmulatorArgs("--test --noaudio"));
+        assertEnvironmentNoAudioDriverSetting(Utils.getEnvironmentVarsFromEmulatorArgs("-test -audio something"));
+        assertEnvironmentNoAudioDriverSetting(Utils.getEnvironmentVarsFromEmulatorArgs("--audio"));
+        assertEnvironmentNoAudioDriverSetting(Utils.getEnvironmentVarsFromEmulatorArgs("-audio"));
+        assertEnvironmentNoAudioDriverSetting(Utils.getEnvironmentVarsFromEmulatorArgs(""));
+        assertEnvironmentNoAudioDriverSetting(Utils.getEnvironmentVarsFromEmulatorArgs("-something"));
+        assertEnvironmentNoAudioDriverSetting(Utils.getEnvironmentVarsFromEmulatorArgs(null));
+    }
+
+    /**
+     * Checks if given {@code EnvVars} contain 'QEMU_AUDIO_DRV=none' which would disable audio
+     *
+     * @param envDisableAudio environment variables to check if they contain 'QEMU_AUDIO_DRV=none'
+     */
+    private void assertEnvironmentDisablesAudioDriver(final EnvVars envDisableAudio) {
+        assertTrue(envDisableAudio.containsKey(ENV_VAR_NAME_QEMU_AUDIO_DRIVER));
+        assertEquals(ENV_VAR_VALUE_QEMU_AUDIO_DRIVER_NONE, envDisableAudio.get(ENV_VAR_NAME_QEMU_AUDIO_DRIVER));
+    }
+
+    /**
+     * Checks if given {@code EnvVars} does not contain the 'QEMU_AUDIO_DRV' option, so audio would not
+     * be influenced by environment
+     *
+     * @param envDisableAudio environment variables to check if they does not contain 'QEMU_AUDIO_DRV'
+     */
+    private void assertEnvironmentNoAudioDriverSetting(final EnvVars envDisableAudio) {
+        assertFalse(envDisableAudio.containsKey(ENV_VAR_NAME_QEMU_AUDIO_DRIVER));
+        assertNull(envDisableAudio.get(ENV_VAR_NAME_QEMU_AUDIO_DRIVER));
     }
 }

@@ -79,6 +79,9 @@ public interface Constants {
     static final String ENV_VAR_SYSTEM_USERPROFILE = "USERPROFILE";
     static final String ENV_VAR_PATH_SDK_PLATFORM_TOOLS = "PATH+SDK_PLATFORM_TOOLS";
     static final String ENV_VAR_PATH_SDK_TOOLS = "PATH+SDK_TOOLS";
+    static final String ENV_VAR_QEMU_AUDIO_DRV = "QEMU_AUDIO_DRV";
+
+    static final String ENV_VALUE_QEMU_AUDIO_DRV_NONE = "none";
 }
 
 enum SnapshotState {

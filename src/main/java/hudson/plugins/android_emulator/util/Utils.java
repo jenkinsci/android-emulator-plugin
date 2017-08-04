@@ -388,6 +388,32 @@ public class Utils {
     }
 
     /**
+     * Parse the given command-line and return the appropriate environment variables if known
+     * options are found.
+     *
+     * Currently this method is only used to workaround Android Emulator Bug 64356053, where
+     * the '-no-audio', '-noaudio', '-audio none' option does not work for the qemu2-emulator.
+     * If one of the options is found the environment variable 'QEMU_AUDIO_DRV=none' is set.
+     *
+     * @param commandLineOptions CLI-parameters to parse
+     * @return {@code EnvVars} (Map) of additional environment variables based on given commandLine,
+     * empty if no recognized option was found or parameters is {@code null}
+     */
+    public static EnvVars getEnvironmentVarsFromEmulatorArgs(final String commandLineOptions) {
+        final EnvVars env = new EnvVars();
+
+        if (commandLineOptions == null || commandLineOptions.isEmpty()) {
+            return env;
+        }
+
+        if (commandLineOptions.matches(".*(\\s|^)-no-?audio.*")
+                || commandLineOptions.matches(".*(\\s|^)-audio none(\\s|$).*")) {
+            env.put(Constants.ENV_VAR_QEMU_AUDIO_DRV, Constants.ENV_VALUE_QEMU_AUDIO_DRV_NONE);
+        }
+        return env;
+    }
+
+    /**
      * Generates a ready-to-use ArgumentListBuilder for one of the Android SDK tools.
      *
      * @param androidSdk The Android SDK to use.

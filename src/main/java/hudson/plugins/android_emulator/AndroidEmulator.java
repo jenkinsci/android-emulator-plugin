@@ -345,6 +345,9 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
                 emu.userPort(), emu.adbPort(), emu.getEmulatorCallbackPort(),
                 ADB_CONNECT_TIMEOUT_MS / 1000);
 
+        // Workaround bug 64356053 and set QEMU environment if audio should be disabled
+        final EnvVars additionalEnvVars = Utils.getEnvironmentVarsFromEmulatorArgs(emulatorArgs);
+
         // Start emulator process
         if (snapshotState == SnapshotState.BOOT) {
             log(logger, Messages.STARTING_EMULATOR_FROM_SNAPSHOT());
@@ -362,7 +365,7 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
         ByteArrayOutputStream emulatorOutput = new ByteArrayOutputStream();
         ForkOutputStream emulatorLogger = new ForkOutputStream(logger, emulatorOutput);
 
-        final Proc emulatorProcess = emu.getToolProcStarter(emuConfig.getExecutable(), emulatorArgs)
+        final Proc emulatorProcess = emu.getToolProcStarter(emuConfig.getExecutable(), emulatorArgs, additionalEnvVars)
                 .stdout(emulatorLogger).stderr(logger).start();
         emu.setProcess(emulatorProcess);
 

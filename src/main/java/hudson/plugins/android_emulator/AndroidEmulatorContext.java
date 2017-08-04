@@ -135,12 +135,15 @@ public class AndroidEmulatorContext {
 	/**
 	 * Sets up a standard {@link ProcStarter} for the current context. 
 	 * 
+	 * @param command What command to run
+	 * @param env Additional environment variables to set
 	 * @return A ready ProcStarter
 	 * 
 	 * @throws IOException
 	 * @throws InterruptedException
 	 */
-	public ProcStarter getProcStarter() throws IOException, InterruptedException {
+	public ProcStarter getProcStarter(final ArgumentListBuilder command, final EnvVars env)
+			throws IOException, InterruptedException {
 		final EnvVars buildEnvironment = build.getEnvironment(TaskListener.NULL);
 		buildEnvironment.put(Constants.ENV_VAR_ANDROID_ADB_SERVER_PORT, Integer.toString(adbServerPort));
 		if (sdk.hasKnownHome()) {
@@ -149,7 +152,16 @@ public class AndroidEmulatorContext {
 		if (launcher.isUnix()) {
 			buildEnvironment.put(Constants.ENV_VAR_LD_LIBRARY_PATH, String.format("%s/tools/lib", sdk.getSdkRoot()));
 		}
-		return launcher.launch().stdout(new NullStream()).stderr(logger()).envs(buildEnvironment);
+		if (env != null) {
+			buildEnvironment.putAll(env);
+		}
+
+		final ProcStarter procStarter = launcher.launch().stdout(new NullStream()).stderr(logger());
+		procStarter.envs(buildEnvironment);
+		if (command != null) {
+			procStarter.cmds(command);
+		}
+		return procStarter;
 	}
 
 	/**
@@ -165,7 +177,7 @@ public class AndroidEmulatorContext {
 	 */
 	public ProcStarter getProcStarter(ArgumentListBuilder command)
 			throws IOException, InterruptedException {
-		return getProcStarter().cmds(command);
+		return getProcStarter(command, null);
 	}
 
         /**
@@ -178,6 +190,22 @@ public class AndroidEmulatorContext {
 	public ArgumentListBuilder getToolCommand(Tool tool, String args) {
 		return Utils.getToolCommand(sdk, launcher.isUnix(), tool, args);
 	}
+
+        /**
+         * Generates a ready-to-use ProcStarter for one of the Android SDK tools, based on the current context.
+         *
+         * @param tool The Android tool to run.
+         * @param args Any extra arguments for the command.
+         * @param env Additional environment variables to set
+         * @return A ready ProcStarter
+         *
+         * @throws IOException
+         * @throws InterruptedException
+         */
+        public ProcStarter getToolProcStarter(final Tool tool, final String args, final EnvVars env)
+                throws IOException, InterruptedException {
+            return getProcStarter(Utils.getToolCommand(sdk, launcher.isUnix(), tool, args), env);
+        }
 
         /**
          * Generates a ready-to-use ProcStarter for one of the Android SDK tools, based on the current context.
