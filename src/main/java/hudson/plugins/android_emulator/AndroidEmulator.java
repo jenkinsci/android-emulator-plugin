@@ -128,7 +128,7 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
 
     /**
      * A hash representing the variables that are used to determine which emulator configuration
-     * should be started to fulfil the job configuration.
+     * should be started to fulfill the job configuration.
      *
      * @param node The Node on which the emulator would be run.
      * @return A hash representing the emulator configuration for this instance.
@@ -139,10 +139,10 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
 
     /**
      * A hash representing the variables that are used to determine which emulator configuration
-     * should be started to fulfil the job configuration.
+     * should be started to fulfill the job configuration.
      *
      * @param node The Node on which the emulator would be run.
-     * @param combination The matrix combination values used to expand emulator config variables.
+     * @param combination The matrix combination values used to expand emulator configuration variables.
      * @return A hash representing the emulator configuration for this instance.
      */
     public String getConfigHash(Node node, Combination combination) {
@@ -338,7 +338,7 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
 
         // Compile complete command for starting emulator
         final String emulatorArgs = emuConfig.getCommandArguments(snapshotState,
-                androidSdk.supportsSnapshots(), androidSdk.supportsEmulatorEngineFlag(),
+                androidSdk.supportsSnapshots(), androidSdk.useEngineClassicFlag(),
                 emu.userPort(), emu.adbPort(), emu.getEmulatorCallbackPort(),
                 ADB_CONNECT_TIMEOUT_MS / 1000);
 
