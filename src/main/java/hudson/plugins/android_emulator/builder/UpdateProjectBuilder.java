@@ -7,6 +7,7 @@ import hudson.Functions;
 import hudson.Launcher;
 import hudson.model.BuildListener;
 import hudson.model.Descriptor;
+import hudson.model.TaskListener;
 import hudson.model.AbstractBuild;
 import hudson.plugins.android_emulator.Messages;
 import hudson.plugins.android_emulator.sdk.AndroidSdk;
@@ -152,7 +153,7 @@ public class UpdateProjectBuilder extends AbstractBuilder {
                 shortPath = project.path.substring(workspace.length() + 1);
             }
             log(logger, Messages.CREATING_BUILD_FILES(project.type.name.toString(), shortPath));
-            Utils.runAndroidTool(launcher, logger, logger, androidSdk, Tool.ANDROID, args, dir);
+            Utils.runAndroidTool(launcher, build.getEnvironment(TaskListener.NULL), logger, logger, androidSdk, Tool.ANDROID, args, dir);
         }
 
         // Done!

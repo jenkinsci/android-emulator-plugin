@@ -1,9 +1,11 @@
 package hudson.plugins.android_emulator;
 
+import hudson.EnvVars;
 import hudson.FilePath;
 import hudson.Functions;
 import hudson.Launcher;
 import hudson.Util;
+import hudson.model.AbstractBuild;
 import hudson.model.BuildListener;
 import hudson.model.TaskListener;
 import hudson.plugins.android_emulator.AndroidEmulator.HardwareProperty;
@@ -230,9 +232,9 @@ class EmulatorConfig implements Serializable {
      * @param listener The listener to use for logging.
      * @return A Callable that will handle the detection/creation of an appropriate AVD.
      */
-    public Callable<Boolean, AndroidEmulatorException> getEmulatorCreationTask(AndroidSdk androidSdk,
-                                                                               BuildListener listener) {
-        return new EmulatorCreationTask(androidSdk, listener);
+    public Callable<Boolean, AndroidEmulatorException> getEmulatorCreationTask(AbstractBuild<?, ?> build, AndroidSdk androidSdk, 
+                                                                               BuildListener listener) throws IOException, InterruptedException{
+		return new EmulatorCreationTask(build.getEnvironment(listener), androidSdk, listener);
     }
 
     /**
@@ -420,12 +422,14 @@ class EmulatorConfig implements Serializable {
     private final class EmulatorCreationTask extends MasterToSlaveCallable<Boolean, AndroidEmulatorException> {
 
         private static final long serialVersionUID = 1L;
+        private final EnvVars env;
         private final AndroidSdk androidSdk;
 
         private final BuildListener listener;
         private transient PrintStream logger;
 
-        public EmulatorCreationTask(AndroidSdk androidSdk, BuildListener listener) {
+        public EmulatorCreationTask(EnvVars env, AndroidSdk androidSdk, BuildListener listener) {
+        	this.env = env;
             this.androidSdk = androidSdk;
             this.listener = listener;
         }
@@ -561,6 +565,9 @@ class EmulatorConfig implements Serializable {
             final Process process;
             try {
                 ProcessBuilder procBuilder = new ProcessBuilder(builder.toList());
+                if (env != null) {
+            		procBuilder.environment().putAll(env);
+            	}
                 if (androidSdk.hasKnownHome()) {
                     procBuilder.environment().put("ANDROID_SDK_HOME", androidSdk.getSdkHome());
                 }

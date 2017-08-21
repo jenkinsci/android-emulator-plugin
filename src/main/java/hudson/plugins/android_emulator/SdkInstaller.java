@@ -5,9 +5,11 @@ import hudson.FilePath;
 import hudson.Launcher;
 import hudson.Launcher.ProcStarter;
 import hudson.Proc;
+import hudson.model.AbstractBuild;
 import hudson.model.BuildListener;
 import hudson.model.Computer;
 import hudson.model.Node;
+import hudson.model.TaskListener;
 import hudson.plugins.android_emulator.SdkInstaller.AndroidInstaller.SdkUnavailableException;
 import hudson.plugins.android_emulator.sdk.AndroidSdk;
 import hudson.plugins.android_emulator.sdk.Tool;
@@ -60,17 +62,17 @@ public class SdkInstaller {
      *
      * @return An {@code AndroidSdk} object for the newly-installed SDK.
      */
-    public static AndroidSdk install(Launcher launcher, BuildListener listener, String androidSdkHome)
+    public static AndroidSdk install(AbstractBuild<?, ?> build, Launcher launcher, BuildListener listener, String androidSdkHome)
             throws SdkInstallationException, IOException, InterruptedException {
         Semaphore semaphore = acquireLock();
         try {
-            return doInstall(launcher, listener, androidSdkHome);
+            return doInstall(build, launcher, listener, androidSdkHome);
         } finally {
             semaphore.release();
         }
     }
 
-    private static AndroidSdk doInstall(Launcher launcher, BuildListener listener, String androidSdkHome)
+    private static AndroidSdk doInstall(AbstractBuild<?, ?> build, Launcher launcher, BuildListener listener, String androidSdkHome)
             throws SdkInstallationException, IOException, InterruptedException {
         // We should install the SDK on the current build machine
         Node node = Computer.currentComputer().getNode();
@@ -92,12 +94,12 @@ public class SdkInstaller {
             AndroidSdk sdk = getAndroidSdkForNode(node, androidHome, androidSdkHome);
 
             // Get the latest platform-tools
-            installComponent(logger, launcher, sdk, "platform-tool");
+            installComponent(logger, build, launcher, sdk, "platform-tool");
 
             // Upgrade the tools if necessary and add the latest build-tools component
             List<String> components = new ArrayList<String>(4);
             components.add("tool");
-            String buildTools = getBuildToolsPackageName(logger, launcher, sdk);
+            String buildTools = getBuildToolsPackageName(logger, build, launcher, sdk);
             if (buildTools != null) {
                 components.add(buildTools);
             }
@@ -107,7 +109,7 @@ public class SdkInstaller {
             components.add("extra-google-m2repository");
 
             // Install the lot
-            installComponent(logger, launcher, sdk, components.toArray(new String[0]));
+            installComponent(logger, build, launcher, sdk, components.toArray(new String[0]));
 
             // If we made it this far, confirm completion by writing our our metadata file
             getInstallationInfoFilename(node).write(SDK_VERSION, "UTF-8");
@@ -131,10 +133,10 @@ public class SdkInstaller {
         });
     }
 
-    private static String getBuildToolsPackageName(PrintStream logger, Launcher launcher, AndroidSdk sdk)
+    private static String getBuildToolsPackageName(PrintStream logger, AbstractBuild<?,?> build, Launcher launcher, AndroidSdk sdk)
     throws IOException, InterruptedException {
         ByteArrayOutputStream output = new ByteArrayOutputStream();
-        Utils.runAndroidTool(launcher, output, logger, sdk, Tool.ANDROID, "list sdk --extended", null);
+        Utils.runAndroidTool(launcher, build.getEnvironment(TaskListener.NULL), output, logger, sdk, Tool.ANDROID, "list sdk --extended", null);
         Matcher m = Pattern.compile("\"(build-tools-.*?)\"").matcher(output.toString());
         if (!m.find()) {
             return null;
@@ -193,7 +195,7 @@ public class SdkInstaller {
      * @param sdk Root of the SDK installation to install components for.
      * @param components Name of the component(s) to install.
      */
-    private static void installComponent(PrintStream logger, Launcher launcher, AndroidSdk sdk,
+    private static void installComponent(PrintStream logger, AbstractBuild<?, ?> build, Launcher launcher, AndroidSdk sdk,
             String... components) throws IOException, InterruptedException {
         String proxySettings = getProxySettings();
 
@@ -204,11 +206,12 @@ public class SdkInstaller {
         String upgradeArgs = String.format("update sdk -u %s %s -t %s", all, proxySettings, list);
         ArgumentListBuilder cmd = Utils.getToolCommand(sdk, launcher.isUnix(), Tool.ANDROID, upgradeArgs);
         ProcStarter procStarter = launcher.launch().stderr(logger).readStdout().writeStdin().cmds(cmd);
+        EnvVars env = new EnvVars();
+        env.putAll(build.getEnvironment(TaskListener.NULL));
         if (sdk.hasKnownHome()) {
-            EnvVars env = new EnvVars();
             env.put("ANDROID_SDK_HOME", sdk.getSdkHome());
-            procStarter = procStarter.envs(env);
         }
+        procStarter = procStarter.envs(env);
 
         // Run the command and accept any licence requests during installation
         Proc proc = procStarter.start();
@@ -231,7 +234,7 @@ public class SdkInstaller {
      * @param sdk SDK installation to install components for.
      * @param emuConfig Specifies the platform to be installed.
      */
-    static void installDependencies(PrintStream logger, Launcher launcher,
+    static void installDependencies(PrintStream logger, AbstractBuild<?, ?> build, Launcher launcher,
             AndroidSdk sdk, EmulatorConfig emuConfig) throws IOException, InterruptedException {
         // Get AVD platform from emulator config
         String platform = getPlatformForEmulator(launcher, emuConfig);
@@ -239,7 +242,7 @@ public class SdkInstaller {
         // Install platform and any dependencies it may have
         boolean requiresAbi = !emuConfig.isNamedEmulator() && emuConfig.getOsVersion().requiresAbi();
         String abi = requiresAbi ? emuConfig.getTargetAbi() : null;
-        installPlatform(logger, launcher, sdk, platform, abi);
+        installPlatform(logger, build, launcher, sdk, platform, abi);
     }
 
     /**
@@ -251,10 +254,10 @@ public class SdkInstaller {
      * @param platform Specifies the platform to be installed.
      * @param abi Specifies the ABI to be installed; may be {@code null}.
      */
-    public static void installPlatform(PrintStream logger, Launcher launcher, AndroidSdk sdk,
+    public static void installPlatform(PrintStream logger, AbstractBuild<?, ?> build, Launcher launcher, AndroidSdk sdk,
             String platform, String abi) throws IOException, InterruptedException {
         // Check whether this platform is already installed
-        if (isPlatformInstalled(logger, launcher, sdk, platform, abi)) {
+        if (isPlatformInstalled(logger, build, launcher, sdk, platform, abi)) {
             return;
         }
 
@@ -288,7 +291,7 @@ public class SdkInstaller {
         if (components.size() > 1) {
             for (Iterator<String> it = components.iterator(); it.hasNext(); ) {
                 String component = it.next();
-                if (isPlatformInstalled(logger, launcher, sdk, component, null)) {
+                if (isPlatformInstalled(logger, build, launcher, sdk, component, null)) {
                     it.remove();
                 }
             }
@@ -297,18 +300,18 @@ public class SdkInstaller {
         // Grab the lock and attempt installation
         Semaphore semaphore = acquireLock();
         try {
-            installComponent(logger, launcher, sdk, components.toArray(new String[0]));
+            installComponent(logger, build, launcher, sdk, components.toArray(new String[0]));
         } finally {
             semaphore.release();
         }
     }
 
-    private static boolean isPlatformInstalled(PrintStream logger, Launcher launcher,
+    private static boolean isPlatformInstalled(PrintStream logger, AbstractBuild<?, ?> build, Launcher launcher,
             AndroidSdk sdk, String platform, String abi) throws IOException, InterruptedException {
         ByteArrayOutputStream targetList = new ByteArrayOutputStream();
         // Preferably we'd use the "--compact" flag here, but it wasn't added until r12,
         // nor does it give any information about which system images are installed...
-        Utils.runAndroidTool(launcher, targetList, logger, sdk, Tool.ANDROID, "list target", null);
+        Utils.runAndroidTool(launcher, build.getEnvironment(TaskListener.NULL), targetList, logger, sdk, Tool.ANDROID, "list target", null);
         boolean platformInstalled = targetList.toString().contains('"'+ platform +'"');
         if (!platformInstalled) {
             return false;

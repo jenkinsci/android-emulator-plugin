@@ -249,7 +249,7 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
             // Ok, let's download and install the SDK
             log(logger, Messages.INSTALLING_SDK());
             try {
-                androidSdk = SdkInstaller.install(launcher, listener, androidSdkHome);
+                androidSdk = SdkInstaller.install(build, launcher, listener, androidSdkHome);
             } catch (SdkInstallationException e) {
                 log(logger, Messages.SDK_INSTALLATION_FAILED(), e);
                 build.setResult(Result.NOT_BUILT);
@@ -261,7 +261,7 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
 
         // Install the required SDK components for the desired platform, if necessary
         if (descriptor.shouldInstallSdk) {
-            SdkInstaller.installDependencies(logger, launcher, androidSdk, emuConfig);
+            SdkInstaller.installDependencies(logger, build, launcher, androidSdk, emuConfig);
         }
 
         // Ok, everything looks good.. let's go
@@ -280,7 +280,7 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
         // First ensure that emulator exists
         final boolean emulatorAlreadyExists;
         try {
-            Callable<Boolean, AndroidEmulatorException> task = emuConfig.getEmulatorCreationTask(androidSdk, listener);
+            Callable<Boolean, AndroidEmulatorException> task = emuConfig.getEmulatorCreationTask(build, androidSdk, listener);
             emulatorAlreadyExists = launcher.getChannel().call(task);
         } catch (EmulatorDiscoveryException ex) {
             log(logger, Messages.CANNOT_START_EMULATOR(ex.getMessage()));

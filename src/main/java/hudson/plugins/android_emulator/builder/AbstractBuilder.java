@@ -89,7 +89,7 @@ public abstract class AbstractBuilder extends Builder {
             // Ok, let's download and install the SDK
             log(logger, Messages.INSTALLING_SDK());
             try {
-                androidSdk = SdkInstaller.install(launcher, listener, null);
+                androidSdk = SdkInstaller.install(build, launcher, listener, null);
             } catch (SdkInstallationException e) {
                 log(logger, Messages.SDK_INSTALLATION_FAILED(), e);
                 return null;
