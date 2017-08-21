@@ -403,7 +403,7 @@ class EmulatorConfig implements Serializable {
         // List available snapshots for this emulator
         ByteArrayOutputStream listOutput = new ByteArrayOutputStream();
         String args = String.format("-snapshot-list -no-window -avd %s", getAvdName());
-        Tool executable = androidSdk.requiresAndroidBug34233Workaround() ? Tool.EMULATOR_ARM : Tool.EMULATOR;
+        Tool executable = androidSdk.requiresAndroidBug34233Workaround() ? Tool.EMULATOR_ARM : getExecutable();
         Utils.runAndroidTool(launcher, listOutput, logger, androidSdk, executable, args, null);
 
         // Check whether a Jenkins snapshot was listed in the output
