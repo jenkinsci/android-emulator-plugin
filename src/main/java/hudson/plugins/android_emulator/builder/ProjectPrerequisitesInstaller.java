@@ -1,12 +1,12 @@
 package hudson.plugins.android_emulator.builder;
 
-import static hudson.plugins.android_emulator.AndroidEmulator.log;
+import hudson.EnvVars;
 import hudson.Extension;
 import hudson.Functions;
 import hudson.Launcher;
+import hudson.model.AbstractBuild;
 import hudson.model.BuildListener;
 import hudson.model.Descriptor;
-import hudson.model.AbstractBuild;
 import hudson.plugins.android_emulator.Messages;
 import hudson.plugins.android_emulator.SdkInstaller;
 import hudson.plugins.android_emulator.sdk.AndroidSdk;
@@ -14,6 +14,8 @@ import hudson.plugins.android_emulator.util.Utils;
 import hudson.remoting.VirtualChannel;
 import hudson.tasks.Builder;
 import jenkins.MasterToSlaveFileCallable;
+import org.apache.tools.ant.DirectoryScanner;
+import org.kohsuke.stapler.DataBoundConstructor;
 
 import java.io.File;
 import java.io.IOException;
@@ -22,10 +24,11 @@ import java.io.Serializable;
 import java.util.Collection;
 import java.util.HashSet;
 
-import org.apache.tools.ant.DirectoryScanner;
-import org.kohsuke.stapler.DataBoundConstructor;
+import static hudson.plugins.android_emulator.AndroidEmulator.log;
 
 public class ProjectPrerequisitesInstaller extends AbstractBuilder {
+
+    private EnvVars envVars;
 
     @DataBoundConstructor
     public ProjectPrerequisitesInstaller() {
@@ -55,14 +58,21 @@ public class ProjectPrerequisitesInstaller extends AbstractBuilder {
         // Install platform(s)
         log(logger, Messages.ENSURING_PLATFORMS_INSTALLED(platforms));
         for (String platform : platforms) {
-            SdkInstaller.installPlatform(logger, launcher, androidSdk, platform, null);
+            SdkInstaller.installPlatform(logger, build, launcher, androidSdk, platform, null);
         }
 
         // Done!
         return true;
     }
 
-    /** FileCallable to determine Android target projects specified in a given directory. */
+    public ProjectPrerequisitesInstaller setEnv(EnvVars envVars) {
+        this.envVars = envVars;
+        return this;
+    }
+
+    /**
+     * FileCallable to determine Android target projects specified in a given directory.
+     */
     private static final class ProjectPlatformFinder extends MasterToSlaveFileCallable<Collection<String>> {
 
         private final BuildListener listener;
@@ -79,7 +89,7 @@ public class ProjectPrerequisitesInstaller extends AbstractBuilder {
             }
 
             // Find the appropriate file: project.properties or default.properties
-            final String[] filePatterns = { "**/default.properties", "**/project.properties" };
+            final String[] filePatterns = {"**/default.properties", "**/project.properties"};
             DirectoryScanner scanner = new DirectoryScanner();
             scanner.setBasedir(workspace);
             scanner.setIncludes(filePatterns);

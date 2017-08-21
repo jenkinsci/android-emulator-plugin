@@ -1,23 +1,13 @@
 package hudson.plugins.android_emulator;
 
 
-import hudson.EnvVars;
-import hudson.Extension;
-import hudson.FilePath;
-import hudson.Functions;
-import hudson.Launcher;
-import hudson.Proc;
-import hudson.Util;
+import hudson.*;
 import hudson.matrix.Combination;
-import hudson.model.AbstractBuild;
-import hudson.model.AbstractProject;
-import hudson.model.BuildListener;
-import hudson.model.Computer;
-import hudson.model.Hudson;
-import hudson.model.Node;
-import hudson.model.Result;
+import hudson.model.*;
+import hudson.plugins.android_emulator.builder.ADBPortInstance;
 import hudson.plugins.android_emulator.sdk.AndroidSdk;
 import hudson.plugins.android_emulator.sdk.Tool;
+import hudson.plugins.android_emulator.util.OutputConsumer;
 import hudson.plugins.android_emulator.util.Utils;
 import hudson.plugins.android_emulator.util.ValidationResult;
 import hudson.remoting.Callable;
@@ -29,26 +19,14 @@ import hudson.util.FormValidation;
 import hudson.util.NullStream;
 import jenkins.security.MasterToSlaveCallable;
 import net.sf.json.JSONObject;
-import org.apache.commons.io.IOUtils;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.QueryParameter;
 import org.kohsuke.stapler.StaplerRequest;
 import org.kohsuke.stapler.export.Exported;
 import org.kohsuke.stapler.export.ExportedBean;
 
-import java.io.BufferedReader;
-import java.io.ByteArrayOutputStream;
-import java.io.File;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.OutputStream;
-import java.io.PrintStream;
-import java.io.PrintWriter;
-import java.io.Reader;
-import java.io.Serializable;
-import java.io.StringWriter;
-import java.net.ServerSocket;
-import java.net.Socket;
+import javax.annotation.Nonnull;
+import java.io.*;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -60,49 +38,72 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
 
     private static final long serialVersionUID = 1L;
 
-    /** Duration by which the emulator should start being available via adb. */
+    /**
+     * Duration by which the emulator should start being available via adb.
+     */
     private static final int ADB_CONNECT_TIMEOUT_MS = 60 * 1000;
 
-    /** Duration by which emulator booting should normally complete. */
+    /**
+     * Duration by which emulator booting should normally complete.
+     */
     private static final int BOOT_COMPLETE_TIMEOUT_MS = 360 * 1000;
 
-    /** Interval during which killing a process should complete. */
+    /**
+     * Interval during which killing a process should complete.
+     */
     private static final int KILL_PROCESS_TIMEOUT_MS = 10 * 1000;
 
     private DescriptorImpl descriptor;
 
     // Config properties: AVD name
-    @Exported public final String avdName;
+    @Exported
+    public final String avdName;
 
     // Custom emulator properties
-    @Exported public final String osVersion;
-    @Exported public final String screenDensity;
-    @Exported public final String screenResolution;
-    @Exported public final String deviceLocale;
-    @Exported public final String targetAbi;
-    @Exported public final String sdCardSize;
-    @Exported public final String avdNameSuffix;
-    @Exported public final HardwareProperty[] hardwareProperties;
+    @Exported
+    public final String osVersion;
+    @Exported
+    public final String screenDensity;
+    @Exported
+    public final String screenResolution;
+    @Exported
+    public final String deviceLocale;
+    @Exported
+    public final String targetAbi;
+    @Exported
+    public final String sdCardSize;
+    @Exported
+    public final String avdNameSuffix;
+    @Exported
+    public final HardwareProperty[] hardwareProperties;
 
     // Common properties
-    @Exported public final boolean wipeData;
-    @Exported public final boolean showWindow;
-    @Exported public final boolean useSnapshots;
+    @Exported
+    public final boolean wipeData;
+    @Exported
+    public final boolean showWindow;
+    @Exported
+    public final boolean useSnapshots;
 
     // Advanced properties
-    @Exported public final boolean deleteAfterBuild;
-    @Exported public final int startupDelay;
-    @Exported public final int startupTimeout;
-    @Exported public final String commandLineOptions;
-    @Exported public final String executable;
+    @Exported
+    public final boolean deleteAfterBuild;
+    @Exported
+    public final int startupDelay;
+    @Exported
+    public final int startupTimeout;
+    @Exported
+    public final String commandLineOptions;
+    @Exported
+    public final String executable;
 
 
     @DataBoundConstructor
     public AndroidEmulator(String avdName, String osVersion, String screenDensity,
-            String screenResolution, String deviceLocale, String sdCardSize,
-            HardwareProperty[] hardwareProperties, boolean wipeData, boolean showWindow,
-            boolean useSnapshots, boolean deleteAfterBuild, int startupDelay, int startupTimeout,
-            String commandLineOptions, String targetAbi, String executable, String avdNameSuffix) {
+                           String screenResolution, String deviceLocale, String sdCardSize,
+                           HardwareProperty[] hardwareProperties, boolean wipeData, boolean showWindow,
+                           boolean useSnapshots, boolean deleteAfterBuild, int startupDelay, int startupTimeout,
+                           String commandLineOptions, String targetAbi, String executable, String avdNameSuffix) {
         this.avdName = avdName;
         this.osVersion = osVersion;
         this.screenDensity = screenDensity;
@@ -141,7 +142,7 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
      * A hash representing the variables that are used to determine which emulator configuration
      * should be started to fulfil the job configuration.
      *
-     * @param node The Node on which the emulator would be run.
+     * @param node        The Node on which the emulator would be run.
      * @param combination The matrix combination values used to expand emulator config variables.
      * @return A hash representing the emulator configuration for this instance.
      */
@@ -228,8 +229,8 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
         final String androidSdkHome = (envVars != null && shouldKeepInWorkspace ? envVars.get("WORKSPACE") : null);
         try {
             emuConfig = EmulatorConfig.create(avdName, osVersion, screenDensity,
-                screenResolution, deviceLocale, sdCardSize, wipeData, showWindow, useSnapshots,
-                commandLineOptions, targetAbi, androidSdkHome, executable, avdNameSuffix);
+                    screenResolution, deviceLocale, sdCardSize, wipeData, showWindow, useSnapshots,
+                    commandLineOptions, targetAbi, androidSdkHome, executable, avdNameSuffix);
         } catch (IllegalArgumentException e) {
             log(logger, Messages.EMULATOR_CONFIGURATION_BAD(e.getLocalizedMessage()));
             build.setResult(Result.NOT_BUILT);
@@ -249,7 +250,7 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
             // Ok, let's download and install the SDK
             log(logger, Messages.INSTALLING_SDK());
             try {
-                androidSdk = SdkInstaller.install(launcher, listener, androidSdkHome);
+                androidSdk = SdkInstaller.install(build, launcher, listener, androidSdkHome);
             } catch (SdkInstallationException e) {
                 log(logger, Messages.SDK_INSTALLATION_FAILED(), e);
                 build.setResult(Result.NOT_BUILT);
@@ -261,26 +262,29 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
 
         // Install the required SDK components for the desired platform, if necessary
         if (descriptor.shouldInstallSdk) {
-            SdkInstaller.installDependencies(logger, launcher, androidSdk, emuConfig);
+            SdkInstaller.installDependencies(logger, build, launcher, androidSdk, emuConfig);
         }
 
         // Ok, everything looks good.. let's go
         String displayHome = androidSdk.hasKnownRoot() ? androidSdk.getSdkRoot() : Messages.USING_PATH();
         log(logger, Messages.USING_SDK(displayHome));
 
-        return doSetUp(build, launcher, listener, androidSdk, emuConfig, expandedProperties);
+        return doSetUp(build, launcher, listener, androidSdk, emuConfig, expandedProperties, envVars);
     }
 
     private Environment doSetUp(final AbstractBuild<?, ?> build, final Launcher launcher,
-            final BuildListener listener, final AndroidSdk androidSdk,
-            final EmulatorConfig emuConfig, final HardwareProperty[] hardwareProperties)
-                throws IOException, InterruptedException {
+                                final BuildListener listener, final AndroidSdk androidSdk,
+                                final EmulatorConfig emuConfig, final HardwareProperty[] hardwareProperties,
+                                EnvVars envVars)
+            throws IOException, InterruptedException {
         final PrintStream logger = listener.getLogger();
+        final ADBPortInstance portInstance = new ADBPortInstance();
 
         // First ensure that emulator exists
         final boolean emulatorAlreadyExists;
         try {
-            Callable<Boolean, AndroidEmulatorException> task = emuConfig.getEmulatorCreationTask(androidSdk, listener);
+            Callable<Boolean, AndroidEmulatorException> task = emuConfig.getEmulatorCreationTask(build, androidSdk,
+                    listener);
             emulatorAlreadyExists = launcher.getChannel().call(task);
         } catch (EmulatorDiscoveryException ex) {
             log(logger, Messages.CANNOT_START_EMULATOR(ex.getMessage()));
@@ -294,13 +298,13 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
 
         // Update emulator configuration with desired hardware properties
         if (!emuConfig.isNamedEmulator() && hardwareProperties.length != 0) {
-            Callable<Void, IOException> task = emuConfig.getEmulatorConfigTask(hardwareProperties, listener);
+            Callable<Void, IOException> task = emuConfig.getEmulatorConfigTask(build, hardwareProperties, listener);
             launcher.getChannel().call(task);
         }
 
         // Write the auth token file for the emulator
-        Callable<Void, IOException> authFileTask = emuConfig.getEmulatorAuthFileTask();
-        launcher.getChannel().callAsync(authFileTask);
+//        Callable<Void, IOException> authFileTask = emuConfig.getEmulatorAuthFileTask();
+//        launcher.getChannel().callAsync(authFileTask);
 
         // Delay start up by the configured amount of time
         final int delaySecs = startupDelay;
@@ -311,17 +315,10 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
 
         final AndroidEmulatorContext emu = new AndroidEmulatorContext(build, launcher, listener, androidSdk);
 
-        // We manually start the adb-server so that later commands will not have to start it,
-        // allowing them to complete faster.
-        Proc adbStart = emu.getToolProcStarter(Tool.ADB, "start-server").stdout(logger).stderr(logger).start();
-        adbStart.joinWithTimeout(5L, TimeUnit.SECONDS, listener);
-        Proc adbStart2 = emu.getToolProcStarter(Tool.ADB, "start-server").stdout(logger).stderr(logger).start();
-        adbStart2.joinWithTimeout(5L, TimeUnit.SECONDS, listener);
-
         // Determine whether we need to create the first snapshot
         final SnapshotState snapshotState;
         if (useSnapshots && androidSdk.supportsSnapshots()) {
-            boolean hasSnapshot = emuConfig.hasExistingSnapshot(launcher, androidSdk);
+            boolean hasSnapshot = emuConfig.hasExistingSnapshot(launcher, androidSdk, envVars);
             if (hasSnapshot) {
                 // Boot from the existing "jenkins" snapshot
                 snapshotState = SnapshotState.BOOT;
@@ -335,6 +332,13 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
             // If snapshots are disabled or not supported, there's nothing to do
             snapshotState = SnapshotState.NONE;
         }
+
+
+        Proc adbKill = emu.getToolProcStarter(Tool.ADB, "kill-server").stdout(logger).stderr(logger).start();
+        adbKill.joinWithTimeout(10L, TimeUnit.SECONDS, listener);
+
+        Proc adbKill5037 = emu.getToolProcStarter(Tool.ADB, "-P 5037 kill-server").stdout(logger).stderr(logger).start();
+        adbKill5037.joinWithTimeout(10L, TimeUnit.SECONDS, listener);
 
         // Compile complete command for starting emulator
         final String emulatorArgs = emuConfig.getCommandArguments(snapshotState,
@@ -364,13 +368,33 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
         emu.setProcess(emulatorProcess);
 
         // Give the emulator process a chance to initialise
-        Thread.sleep(5 * 1000);
+        Thread.sleep(10 * 1000);
 
         // Check whether a failure was reported on stdout
         if (emulatorOutput.toString().contains("image is used by another emulator")) {
             log(logger, Messages.EMULATOR_ALREADY_IN_USE(emuConfig.getAvdName()));
             return null;
         }
+
+        final Pattern portPattern = Pattern.compile(".*now on port (\\d+).*");
+
+        Proc adbStartStart = emu.getToolProcStarter(Tool.ADB, "devices").stdout(new OutputConsumer() {
+            @Override
+            public void onLineRead(@Nonnull String line) {
+                try {
+                    logger.write(line.getBytes());
+                    Matcher matcher = portPattern.matcher(line);
+                    if (matcher.find()) {
+                        portInstance.port = matcher.group(1);
+                    }
+                } catch (IOException ignored) {
+                }
+            }
+        }).stderr(logger).start();
+        adbStartStart.joinWithTimeout(10L, TimeUnit.SECONDS, listener);
+
+        String adbPort = portInstance.port;
+        log(logger, "ADB port is : " + adbPort);
 
         // Sitting on the socket appears to break adb. If you try and do this you always end up with device offline.
         // A much better way is to use report-console to tell us what the port is (and hence when its available). So
@@ -379,20 +403,8 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
 
         // Wait for TCP socket to become available
         int socket = waitForSocket(launcher, emu.getEmulatorCallbackPort(), ADB_CONNECT_TIMEOUT_MS);
-        if (socket < 0) {
-            log(logger, Messages.EMULATOR_DID_NOT_START());
-            build.setResult(Result.NOT_BUILT);
-            cleanUp(emuConfig, emu);
-            return null;
-        }
         log(logger, Messages.EMULATOR_CONSOLE_REPORT(socket));
 
-        // As of SDK Tools r12, "emulator" is no longer the main process; it just starts a certain
-        // child process depending on the AVD architecture.  Therefore on Windows, checking the
-        // status of this original process will not work, as it ends after it has started the child.
-        //
-        // With the adb socket open we know the correct process is running, so we set this flag to
-        // indicate that any methods wanting to check the "emulator" process state should ignore it.
         boolean ignoreProcess = !launcher.isUnix() && androidSdk.getSdkToolsMajorVersion() >= 12;
 
         // Monitor device for boot completion signal
@@ -400,11 +412,10 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
         int bootTimeout = BOOT_COMPLETE_TIMEOUT_MS;
         if (startupTimeout > 0) {
             bootTimeout = startupTimeout * 1000;
-        }
-        else if (!emulatorAlreadyExists || emuConfig.shouldWipeData() || snapshotState == SnapshotState.INITIALISE) {
+        } else if (!emulatorAlreadyExists || emuConfig.shouldWipeData() || snapshotState == SnapshotState.INITIALISE) {
             bootTimeout *= 2;
         }
-        boolean bootSucceeded = waitForBootCompletion(ignoreProcess, bootTimeout, emuConfig, emu);
+        boolean bootSucceeded = waitForBootCompletion(ignoreProcess, bootTimeout, emuConfig, emu, logger, adbPort);
         if (!bootSucceeded) {
             if ((System.currentTimeMillis() - bootTime) < bootTimeout) {
                 log(logger, Messages.EMULATOR_STOPPED_DURING_BOOT());
@@ -420,7 +431,7 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
         final File artifactsDir = build.getArtifactsDir();
         final FilePath logcatFile = build.getWorkspace().createTextTempFile("logcat_", ".log", "", false);
         final OutputStream logcatStream = logcatFile.write();
-        final String logcatArgs = String.format("-s %s logcat -v time", emu.serial());
+        final String logcatArgs = String.format("-P %s -s %s logcat -v time", adbPort, emu.serial());
         final Proc logWriter = emu.getToolProcStarter(Tool.ADB, logcatArgs)
                 .stdout(logcatStream).stderr(new NullStream()).start();
 
@@ -435,11 +446,12 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
 
             log(logger, Messages.UNLOCKING_SCREEN());
             final long adbTimeout = BOOT_COMPLETE_TIMEOUT_MS / 16;
-            final String keyEventTemplate = String.format("-s %s shell input keyevent %%d", emu.serial());
+            final String keyEventTemplate = String.format("-P %s -s %s shell input keyevent %%d", adbPort,
+                    emu.serial());
             final String unlockArgs;
             if (emuConfig.getOsVersion() != null && emuConfig.getOsVersion().getSdkLevel() >= 23) {
                 // Android 6.0 introduced a command to dismiss the keyguard on unsecured devices
-                unlockArgs = String.format("-s %s shell wm dismiss-keyguard", emu.serial());
+                unlockArgs = String.format("-P %s -s %s shell wm dismiss-keyguard", adbPort, emu.serial());
             } else {
                 unlockArgs = String.format(keyEventTemplate, 82);
             }
@@ -464,11 +476,12 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
             Thread.sleep((long) (bootDuration * 0.8));
 
             // Clear main log before creating snapshot
-            final String clearArgs = String.format("-s %s logcat -c", emu.serial());
+            final String clearArgs = String.format("-P %s -s %s logcat -c", adbPort, emu.serial());
             ArgumentListBuilder adbCmd = emu.getToolCommand(Tool.ADB, clearArgs);
             emu.getProcStarter(adbCmd).join();
             final String msg = Messages.LOG_CREATING_SNAPSHOT();
-            final String logArgs = String.format("-s %s shell log -p v -t Jenkins '%s'", emu.serial(), msg);
+            final String logArgs = String.format("-P %s -s %s shell log -p v -t Jenkins '%s'", adbPort, emu.serial(),
+                    msg);
             adbCmd = emu.getToolCommand(Tool.ADB, logArgs);
             emu.getProcStarter(adbCmd).join();
 
@@ -478,7 +491,7 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
                 // Attempt snapshot generation
                 log(logger, Messages.EMULATOR_PAUSED_SNAPSHOT());
                 int creationTimeout = AndroidEmulatorContext.EMULATOR_COMMAND_TIMEOUT_MS * 4;
-                boolean success = emu.sendCommand("avd snapshot save "+ Constants.SNAPSHOT_NAME, creationTimeout);
+                boolean success = emu.sendCommand("avd snapshot save " + Constants.SNAPSHOT_NAME, creationTimeout);
                 if (!success) {
                     log(logger, Messages.SNAPSHOT_CREATION_FAILED());
                 }
@@ -503,6 +516,7 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
             @Override
             public void buildEnvVars(Map<String, String> env) {
                 env.put("ANDROID_SERIAL", emu.serial());
+                env.put("ANDROID_ADB_PORT", portInstance.port);
                 env.put("ANDROID_AVD_DEVICE", emu.serial());
                 env.put("ANDROID_AVD_ADB_PORT", Integer.toString(emu.adbPort()));
                 env.put("ANDROID_AVD_USER_PORT", Integer.toString(emu.userPort()));
@@ -531,6 +545,15 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
             @SuppressWarnings("rawtypes")
             public boolean tearDown(AbstractBuild build, BuildListener listener)
                     throws IOException, InterruptedException {
+                Proc adbKill = emu.getToolProcStarter(Tool.ADB, "kill-server")
+                        .stdout(emu.logger())
+                        .stderr(emu.logger()).start();
+                adbKill.joinWithTimeout(10L, TimeUnit.SECONDS, listener);
+                Proc adbKillWithPort = emu.getToolProcStarter(Tool.ADB,
+                        String.format("-P %s kill-server", portInstance.port))
+                        .stdout(emu.logger())
+                        .stderr(emu.logger()).start();
+                adbKillWithPort.joinWithTimeout(10L, TimeUnit.SECONDS, listener);
                 cleanUp(emuConfig, emu, logWriter, logcatFile, logcatStream, artifactsDir);
 
                 return true;
@@ -538,12 +561,16 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
         };
     }
 
-    /** Helper method for writing to the build log in a consistent manner. */
+    /**
+     * Helper method for writing to the build log in a consistent manner.
+     */
     public synchronized static void log(final PrintStream logger, final String message) {
         log(logger, message, false);
     }
 
-    /** Helper method for writing to the build log in a consistent manner. */
+    /**
+     * Helper method for writing to the build log in a consistent manner.
+     */
     public synchronized static void log(final PrintStream logger, final String message, final Throwable t) {
         log(logger, message, false);
         StringWriter s = new StringWriter();
@@ -551,7 +578,9 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
         log(logger, s.toString(), false);
     }
 
-    /** Helper method for writing to the build log in a consistent manner. */
+    /**
+     * Helper method for writing to the build log in a consistent manner.
+     */
     synchronized static void log(final PrintStream logger, String message, boolean indent) {
         if (indent) {
             message = '\t' + message.replace("\n", "\n\t");
@@ -563,8 +592,9 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
 
     /**
      * Called when this wrapper needs to exit, so we need to clean up some processes etc.
+     *
      * @param emulatorConfig The emulator being run.
-     * @param emu The emulator context
+     * @param emu            The emulator context
      */
     private void cleanUp(EmulatorConfig emulatorConfig, AndroidEmulatorContext emu) throws IOException, InterruptedException {
         cleanUp(emulatorConfig, emu, null, null, null, null);
@@ -572,15 +602,16 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
 
     /**
      * Called when this wrapper needs to exit, so we need to clean up some processes etc.
+     *
      * @param emulatorConfig The emulator being run.
-     * @param emu The emulator context
-     * @param logcatProcess The adb logcat process.
-     * @param logcatFile The file the logcat output is being written to.
-     * @param logcatStream The stream the logcat output is being written to.
-     * @param artifactsDir The directory where build artifacts should go.
+     * @param emu            The emulator context
+     * @param logcatProcess  The adb logcat process.
+     * @param logcatFile     The file the logcat output is being written to.
+     * @param logcatStream   The stream the logcat output is being written to.
+     * @param artifactsDir   The directory where build artifacts should go.
      */
     private void cleanUp(EmulatorConfig emulatorConfig, AndroidEmulatorContext emu, Proc logcatProcess,
-            FilePath logcatFile, OutputStream logcatStream, File artifactsDir) throws IOException, InterruptedException {
+                         FilePath logcatFile, OutputStream logcatStream, File artifactsDir) throws IOException, InterruptedException {
         // FIXME: Sometimes on Windows neither the emulator.exe nor the adb.exe processes die.
         //        Launcher.kill(EnvVars) does not appear to help either.
         //        This is (a) inconsistent; (b) very annoying.
@@ -611,7 +642,8 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
             }
             try {
                 logcatStream.close();
-            } catch (Exception ignore) {}
+            } catch (Exception ignore) {
+            }
 
             // Archive the logs
             if (logcatFile.length() != 0) {
@@ -620,10 +652,6 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
             }
             logcatFile.delete();
         }
-
-        ArgumentListBuilder adbKillCmd = emu.getToolCommand(Tool.ADB, "kill-server");
-        emu.getProcStarter(adbKillCmd).join();
-
         emu.cleanUp();
 
         // Delete the emulator, if required
@@ -644,7 +672,7 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
      * @return A human-readable error message, or <code>null</code> if the config is valid.
      */
     private String isConfigValid(String avdName, String osVersion, String screenDensity,
-            String screenResolution, String deviceLocale, String sdCardSize) {
+                                 String screenResolution, String deviceLocale, String sdCardSize) {
         if (getUseNamedEmulator()) {
             ValidationResult result = descriptor.doCheckAvdName(avdName, false);
             if (result.isFatal()) {
@@ -680,8 +708,8 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
      * Waits for an emulator to tell us which port it is using, or times out.
      *
      * @param launcher The launcher for the remote node.
-     * @param port The port to listen on.
-     * @param timeout How long to keep waiting (in milliseconds) before giving up.
+     * @param port     The port to listen on.
+     * @param timeout  How long to keep waiting (in milliseconds) before giving up.
      * @return The port number of the emulator's telnet interface, or {@code -1} in case of failure.
      */
     private int waitForSocket(Launcher launcher, int port, int timeout) throws InterruptedException {
@@ -695,13 +723,16 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
 
     /**
      * Checks whether the emulator running on the given port has finished booting yet, or times out.
+     *
      * @param ignoreProcess Whether to bypass checking that the process is alive (e.g. on Windows).
-     * @param timeout How long to keep trying (in milliseconds) before giving up.
-     * @param emu The emulator context
+     * @param timeout       How long to keep trying (in milliseconds) before giving up.
+     * @param emu           The emulator context
      * @return <code>true</code> if the emulator has booted, <code>false</code> if we timed-out.
      */
     private boolean waitForBootCompletion(final boolean ignoreProcess,
-            final int timeout, EmulatorConfig config, AndroidEmulatorContext emu) {
+                                          final int timeout, EmulatorConfig config,
+                                          AndroidEmulatorContext emu,
+                                          final PrintStream logger, String adbPort) throws IOException, InterruptedException {
         long start = System.currentTimeMillis();
         int sleep = timeout / (int) (Math.sqrt(timeout / 1000) * 2);
 
@@ -713,40 +744,50 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
         // though this doesn't appear to be available on Android 1.5, while it should work fine on Android 1.6+
         final boolean isOldApi = apiLevel > 0 && apiLevel < 4;
         final String cmd = isOldApi ? "dev.bootcomplete" : "init.svc.bootanim";
-        final String expectedAnswer = isOldApi ? "1" :"stopped";
-        final String args = String.format("-s %s wait-for-device shell getprop %s", emu.serial(), cmd);
+        final String expectedAnswer = isOldApi ? "1" : "stopped";
+        final String args = String.format("-P %s -s %s wait-for-device shell getprop %s", adbPort, emu.serial(), cmd);
+        log(logger, "Waiting for boot completition. Started at " + start + " with timeout " + timeout);
         ArgumentListBuilder bootCheckCmd = emu.getToolCommand(Tool.ADB, args);
+        for (int i = 0; i < 3 && System.currentTimeMillis() < start + timeout && emu.process().isAlive(); i++) {
+            try {
+                final long adbTimeout = timeout / 8;
+                while (System.currentTimeMillis() < start + timeout && (ignoreProcess || emu.process().isAlive())) {
+                    ByteArrayOutputStream stream = new ByteArrayOutputStream(16);
 
-        try {
-            final long adbTimeout = timeout / 8;
-            while (System.currentTimeMillis() < start + timeout && (ignoreProcess || emu.process().isAlive())) {
-                ByteArrayOutputStream stream = new ByteArrayOutputStream(16);
-
-                // Run "getprop", timing-out in case adb hangs
-                Proc proc = emu.getProcStarter(bootCheckCmd).stdout(stream).start();
-                int retVal = proc.joinWithTimeout(adbTimeout, TimeUnit.MILLISECONDS, emu.launcher().getListener());
-                if (retVal == 0) {
-                    // If boot is complete, our work here is done
-                    String result = stream.toString().trim();
-                    log(emu.logger(), Messages.EMULATOR_STATE_REPORT(result));
-                    if (result.equals(expectedAnswer)) {
-                        return true;
+                    // Run "getprop", timing-out in case adb hangs
+                    Proc proc = emu.getProcStarter(bootCheckCmd).stdout(stream).start();
+                    int retVal = proc.joinWithTimeout(adbTimeout, TimeUnit.MILLISECONDS, emu.launcher().getListener());
+                    if (retVal == 0) {
+                        // If boot is complete, our work here is done
+                        String result = stream.toString().trim();
+                        log(logger, Messages.EMULATOR_STATE_REPORT(result));
+                        if (result.equals(expectedAnswer)) {
+                            return true;
+                        }
                     }
+                    Thread.sleep(sleep);
                 }
-
-                Thread.sleep(sleep);
+            } catch (InterruptedException ex) {
+                log(logger, Messages.INTERRUPTED_DURING_BOOT_COMPLETION());
+            } catch (IOException ex) {
+                log(logger, Messages.COULD_NOT_CHECK_BOOT_COMPLETION());
+                ex.printStackTrace(emu.logger());
+            } catch (Exception e) {
+                log(logger, "Unexpected failure");
+                e.printStackTrace(emu.logger());
             }
-        } catch (InterruptedException ex) {
-            log(emu.logger(), Messages.INTERRUPTED_DURING_BOOT_COMPLETION());
-        } catch (IOException ex) {
-            log(emu.logger(), Messages.COULD_NOT_CHECK_BOOT_COMPLETION());
-            ex.printStackTrace(emu.logger());
+            log(logger, "Attemp " + (i + 1) + " failed, waiting few seconds");
+            try {
+                Thread.sleep(10000);
+            } catch (InterruptedException ignored) {
+
+            }
         }
 
         return false;
     }
 
-    @Extension(ordinal=-100) // Negative ordinal makes us execute after other wrappers (i.e. Xvnc)
+    @Extension(ordinal = -100) // Negative ordinal makes us execute after other wrappers (i.e. Xvnc)
     public static final class DescriptorImpl extends BuildWrapperDescriptor implements Serializable {
 
         private static final long serialVersionUID = 1L;
@@ -757,10 +798,14 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
          */
         public String androidHome;
 
-        /** Whether the SDK should be automatically installed where it's not found. */
+        /**
+         * Whether the SDK should be automatically installed where it's not found.
+         */
         public boolean shouldInstallSdk = true;
 
-        /** Whether the emulators should be kept in the workspace. */
+        /**
+         * Whether the emulators should be kept in the workspace.
+         */
         public boolean shouldKeepInWorkspace = false;
 
         public DescriptorImpl() {
@@ -825,10 +870,12 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
 
             try {
                 startupDelay = Integer.parseInt(formData.getString("startupDelay"));
-            } catch (NumberFormatException e) {}
+            } catch (NumberFormatException e) {
+            }
             try {
                 startupTimeout = Integer.parseInt(formData.getString("startupTimeout"));
-            } catch (NumberFormatException e) {}
+            } catch (NumberFormatException e) {
+            }
 
             return new AndroidEmulator(avdName, osVersion, screenDensity, screenResolution,
                     deviceLocale, sdCardSize, hardware.toArray(new HardwareProperty[0]), wipeData,
@@ -846,32 +893,44 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
             return true;
         }
 
-        /** Used in config.jelly: Lists the OS versions available. */
+        /**
+         * Used in config.jelly: Lists the OS versions available.
+         */
         public AndroidPlatform[] getAndroidVersions() {
             return AndroidPlatform.ALL;
         }
 
-        /** Used in config.jelly: Lists the screen densities available. */
+        /**
+         * Used in config.jelly: Lists the screen densities available.
+         */
         public ScreenDensity[] getDeviceDensities() {
             return ScreenDensity.PRESETS;
         }
 
-        /** Used in config.jelly: Lists the screen resolutions available. */
+        /**
+         * Used in config.jelly: Lists the screen resolutions available.
+         */
         public ScreenResolution[] getDeviceResolutions() {
             return ScreenResolution.PRESETS;
         }
 
-        /** Used in config.jelly: Lists the locales available. */
+        /**
+         * Used in config.jelly: Lists the locales available.
+         */
         public String[] getEmulatorLocales() {
             return Constants.EMULATOR_LOCALES;
         }
 
-        /** Used in config.jelly: Lists common hardware properties that can be set. */
+        /**
+         * Used in config.jelly: Lists common hardware properties that can be set.
+         */
         public String[] getHardwareProperties() {
             return Constants.HARDWARE_PROPERTIES;
         }
 
-        /** Used in config.jelly: Lists common ABIs that can be set. */
+        /**
+         * Used in config.jelly: Lists common ABIs that can be set.
+         */
         public String[] getTargetAbis() {
             return Constants.TARGET_ABIS;
         }
@@ -890,7 +949,7 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
             }
             String regex = Constants.REGEX_AVD_NAME;
             if (allowVariables) {
-                regex = "(("+ Constants.REGEX_AVD_NAME +")*("+ Constants.REGEX_VARIABLE +")*)+";
+                regex = "((" + Constants.REGEX_AVD_NAME + ")*(" + Constants.REGEX_VARIABLE + ")*)+";
             }
             if (!avdName.matches(regex)) {
                 return ValidationResult.error(Messages.INVALID_AVD_NAME());
@@ -925,7 +984,7 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
             }
             String regex = Constants.REGEX_SCREEN_DENSITY;
             if (allowVariables) {
-                regex += "|"+ Constants.REGEX_VARIABLE;
+                regex += "|" + Constants.REGEX_VARIABLE;
             }
             if (!density.matches(regex)) {
                 return ValidationResult.error(Messages.SCREEN_DENSITY_NOT_NUMERIC());
@@ -935,18 +994,18 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
         }
 
         public FormValidation doCheckScreenResolution(@QueryParameter String value,
-                @QueryParameter String density, @QueryParameter String osVersion) {
+                                                      @QueryParameter String density, @QueryParameter String osVersion) {
             return doCheckScreenResolution(value, density, osVersion, true).getFormValidation();
         }
 
         private ValidationResult doCheckScreenResolution(String resolution, String density,
-                String osVersion, boolean allowVariables) {
+                                                         String osVersion, boolean allowVariables) {
             if (resolution == null || resolution.equals("")) {
                 return ValidationResult.error(Messages.SCREEN_RESOLUTION_REQUIRED());
             }
             String regex = Constants.REGEX_SCREEN_RESOLUTION_FULL;
             if (allowVariables) {
-                regex += "|"+ Constants.REGEX_VARIABLE;
+                regex += "|" + Constants.REGEX_VARIABLE;
             }
             if (!resolution.matches(regex)) {
                 return ValidationResult.warning(Messages.INVALID_RESOLUTION_FORMAT());
@@ -980,7 +1039,7 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
             }
             String regex = Constants.REGEX_LOCALE;
             if (allowVariables) {
-                regex += "|"+ Constants.REGEX_VARIABLE;
+                regex += "|" + Constants.REGEX_VARIABLE;
             }
             if (!locale.matches(regex)) {
                 return ValidationResult.error(Messages.LOCALE_FORMAT_WARNING());
@@ -1034,7 +1093,7 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
             }
             String regex = Constants.REGEX_SD_CARD_SIZE;
             if (allowVariables) {
-                regex += "|"+ Constants.REGEX_VARIABLE;
+                regex += "|" + Constants.REGEX_VARIABLE;
             }
             if (!sdCardSize.matches(regex)) {
                 return ValidationResult.error(Messages.INVALID_SD_CARD_SIZE());
@@ -1076,7 +1135,7 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
         private final int timeout;
 
         /**
-         * @param port The local TCP port to listen on.
+         * @param port    The local TCP port to listen on.
          * @param timeout How many milliseconds to wait for an emulator connection before giving up.
          */
         public ReceiveEmulatorPortTask(int port, int timeout) {
@@ -1085,29 +1144,8 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
         }
 
         public Integer call() throws InterruptedException {
-            ServerSocket socket = null;
-            try {
-                // TODO: Find a better way to allow the build to be interrupted.
-                // ServerSocket#accept() blocks and cannot be interrupted, which means that any
-                // attempts to stop the build will fail.  The best we can do here is to set the
-                // SO_TIMEOUT, so at least if an emulator fails to start, we won't wait here forever
-                socket = new ServerSocket(port);
-                socket.setSoTimeout(timeout);
 
-                // Wait for the emulator to connect to us
-                Socket completed = socket.accept();
-
-                // Parse and return the port number the emulator sent us
-                BufferedReader reader = new BufferedReader(new InputStreamReader(completed.getInputStream()));
-                String port = reader.readLine();
-                reader.close();
-                completed.close();
-                return Integer.parseInt(port);
-            } catch (IOException ignore) {
-            } catch (NumberFormatException ignore) {
-            } finally {
-                IOUtils.closeQuietly(socket);
-            }
+            Thread.sleep(10000);
 
             // Timed out
             return -1;

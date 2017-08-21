@@ -23,6 +23,23 @@ public class AndroidEmulatorContext {
     /** Interval during which an emulator command should complete. */
     public static final int EMULATOR_COMMAND_TIMEOUT_MS = 60 * 1000;
 
+	// See http://b.android.com/205197
+	// ADB allows up to 64 local devices, each of which uses two consecutive ports: one for the
+	// user telnet interface, and one to communicate with ADB.  These pairs start at port 5554.
+	// http://android.googlesource.com/platform/system/core/+/d387acc/adb/adb.h#206
+	// http://android.googlesource.com/platform/system/core/+/d387acc/adb/transport_local.cpp#44
+	//
+	// So long as the ADB server automatically registers itself with any emulators in the
+	// standard port range of 5555–5861, then we should avoid using that port range.
+	// Otherwise, when we run multiple ADB servers and emulators at the same time, each of the
+	// ADB servers will race to register with each emulator, meaning that each build will most
+	// likely end up with an emulator that always ends up appearing to be "offline".
+
+	// When using the emulator `-port` option, the first port must be even, so here we reserve
+	// three consecutive ports, ensuring that we will get an even port followed by an odd
+	private static final int PORT_RANGE_START = 5555;
+	private static final int PORT_RANGE_END = PORT_RANGE_START + 31;
+
 	private int adbPort, userPort, adbServerPort, emulatorCallbackPort;
 	private String serial;
 
@@ -46,23 +63,6 @@ public class AndroidEmulatorContext {
         // Use the Port Allocator plugin to reserve the ports we need
         final Computer computer = Computer.currentComputer();
         portAllocator = PortAllocationManager.getManager(computer);
-
-        // ADB allows up to 64 local devices, each of which uses two consecutive ports: one for the
-        // user telnet interface, and one to communicate with ADB.  These pairs start at port 5554.
-        // http://android.googlesource.com/platform/system/core/+/d387acc/adb/adb.h#206
-        // http://android.googlesource.com/platform/system/core/+/d387acc/adb/transport_local.cpp#44
-        //
-        // So long as the ADB server automatically registers itself with any emulators in the
-        // standard port range of 5555–5861, then we should avoid using that port range.
-        // Otherwise, when we run multiple ADB servers and emulators at the same time, each of the
-        // ADB servers will race to register with each emulator, meaning that each build will most
-        // likely end up with an emulator that always ends up appearing to be "offline".
-        // See http://b.android.com/205197
-        final int PORT_RANGE_START = 5554 + (2 * 64);
-        final int PORT_RANGE_END = PORT_RANGE_START + (2 * 64);
-
-        // When using the emulator `-port` option, the first port must be even, so here we reserve
-        // three consecutive ports, ensuring that we will get an even port followed by an odd
         int[] ports = portAllocator.allocatePortRange(build, PORT_RANGE_START, PORT_RANGE_END, 3, true);
 
         // Assign the ports the user and ADB interfaces should use, such that the user port is even

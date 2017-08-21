@@ -1,36 +1,17 @@
 package hudson.plugins.android_emulator.builder;
 
-import static hudson.plugins.android_emulator.AndroidEmulator.log;
-import hudson.Extension;
-import hudson.FilePath;
-import hudson.Functions;
-import hudson.Launcher;
+import hudson.*;
+import hudson.model.AbstractBuild;
 import hudson.model.BuildListener;
 import hudson.model.Descriptor;
-import hudson.model.AbstractBuild;
+import hudson.model.TaskListener;
 import hudson.plugins.android_emulator.Messages;
 import hudson.plugins.android_emulator.sdk.AndroidSdk;
 import hudson.plugins.android_emulator.sdk.Tool;
 import hudson.plugins.android_emulator.util.Utils;
 import hudson.remoting.VirtualChannel;
 import hudson.tasks.Builder;
-
-import java.io.File;
-import java.io.FileReader;
-import java.io.IOException;
-import java.io.PrintStream;
-import java.io.Serializable;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-
-import javax.xml.xpath.XPath;
-import javax.xml.xpath.XPathConstants;
-import javax.xml.xpath.XPathExpressionException;
-import javax.xml.xpath.XPathFactory;
-
+import jenkins.MasterToSlaveFileCallable;
 import org.apache.commons.lang.builder.EqualsBuilder;
 import org.apache.commons.lang.builder.HashCodeBuilder;
 import org.apache.tools.ant.DirectoryScanner;
@@ -38,13 +19,28 @@ import org.jvnet.localizer.Localizable;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.w3c.dom.NodeList;
 import org.xml.sax.InputSource;
-import jenkins.MasterToSlaveFileCallable;
+
+import javax.xml.xpath.XPath;
+import javax.xml.xpath.XPathConstants;
+import javax.xml.xpath.XPathExpressionException;
+import javax.xml.xpath.XPathFactory;
+import java.io.*;
+import java.util.*;
+
+import static hudson.plugins.android_emulator.AndroidEmulator.log;
 
 public class UpdateProjectBuilder extends AbstractBuilder {
+
+    private EnvVars envVars;
 
     @DataBoundConstructor
     public UpdateProjectBuilder() {
         // No configuration required
+    }
+
+    public UpdateProjectBuilder setEnv(EnvVars envVars) {
+        this.envVars = envVars;
+        return this;
     }
 
     private static final class Project implements Serializable {
@@ -92,6 +88,7 @@ public class UpdateProjectBuilder extends AbstractBuilder {
             throws InterruptedException, IOException {
         final PrintStream logger = listener.getLogger();
 
+        setEnv(Utils.getEnvironment(build, listener));
         // Ensure we have an SDK, and export ANDROID_HOME
         AndroidSdk androidSdk = getAndroidSdk(build, launcher, listener);
         if (androidSdk == null) {
@@ -109,7 +106,7 @@ public class UpdateProjectBuilder extends AbstractBuilder {
         log(logger, Messages.FOUND_PROJECTS_TO_UPDATE(projects.size()));
 
         // Calling "update project" doesn't work unless the target platform is installed
-        new ProjectPrerequisitesInstaller().perform(build, launcher, listener);
+        new ProjectPrerequisitesInstaller().setEnv(envVars).perform(build, launcher, listener);
 
         // Run the appropriate command for each project found
         final String workspace = getWorkspacePath(build.getWorkspace());
@@ -152,14 +149,17 @@ public class UpdateProjectBuilder extends AbstractBuilder {
                 shortPath = project.path.substring(workspace.length() + 1);
             }
             log(logger, Messages.CREATING_BUILD_FILES(project.type.name.toString(), shortPath));
-            Utils.runAndroidTool(launcher, logger, logger, androidSdk, Tool.ANDROID, args, dir);
+            Utils.runAndroidTool(launcher, build.getEnvironment(TaskListener.NULL), logger, logger, androidSdk,
+                    Tool.ANDROID, args, dir);
         }
 
         // Done!
         return true;
     }
 
-    /** Determines the canonical path to the current build's workspace. */
+    /**
+     * Determines the canonical path to the current build's workspace.
+     */
     private static String getWorkspacePath(FilePath workspace) throws IOException,
             InterruptedException {
         return workspace.act(new MasterToSlaveFileCallable<String>() {
@@ -169,7 +169,9 @@ public class UpdateProjectBuilder extends AbstractBuilder {
         });
     }
 
-    /** FileCallable to determine Android target projects specified in a given directory. */
+    /**
+     * FileCallable to determine Android target projects specified in a given directory.
+     */
     private static final class ProjectFinder extends MasterToSlaveFileCallable<List<Project>> {
 
         private final BuildListener listener;
@@ -186,7 +188,7 @@ public class UpdateProjectBuilder extends AbstractBuilder {
             }
 
             // Find the appropriate file: project.properties or default.properties
-            final String[] filePatterns = { "**/default.properties", "**/project.properties" };
+            final String[] filePatterns = {"**/default.properties", "**/project.properties"};
             DirectoryScanner scanner = new DirectoryScanner();
             scanner.setBasedir(workspace);
             scanner.setIncludes(filePatterns);
@@ -207,7 +209,9 @@ public class UpdateProjectBuilder extends AbstractBuilder {
             return new ArrayList<Project>(projects);
         }
 
-        /** Determines the type of an Android project from its directory. */
+        /**
+         * Determines the type of an Android project from its directory.
+         */
         private static Project getProjectFromProjectFile(PrintStream logger, File projectFile) {
             String dir;
             ProjectType type;
@@ -233,7 +237,9 @@ public class UpdateProjectBuilder extends AbstractBuilder {
             return new Project(dir, type);
         }
 
-        /** Determines whether the given directory contains an Android test project. */
+        /**
+         * Determines whether the given directory contains an Android test project.
+         */
         private static boolean isTestProject(PrintStream logger, File projectDir) {
             File manifest = new File(projectDir, "AndroidManifest.xml");
             try {
