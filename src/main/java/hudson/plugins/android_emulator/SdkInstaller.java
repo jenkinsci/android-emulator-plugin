@@ -343,7 +343,9 @@ public class SdkInstaller {
         // Even if a system image doesn't exist for this platform, the installer silently ignores it
         if (dependentPlatform >= 10 && abi != null) {
             if (sdk.supportsSystemImageNewFormat()) {
-                String tag = "android";
+                // Adjust for API levels >= 25, where only images with Google API support are
+                // available, and the naming convention changes slightly
+                String tag = dependentPlatform >= 25 ? "google_apis" : "android";
                 int slash = abi.indexOf('/');
                 if (slash > 0 && slash < abi.length() - 1) {
                     tag = abi.substring(0, slash);
