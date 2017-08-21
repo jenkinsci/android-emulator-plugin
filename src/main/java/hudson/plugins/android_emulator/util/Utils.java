@@ -493,6 +493,19 @@ public class Utils {
         return values;
     }
 
+    public static void writeConfigFile(File configFile, Map<String, String> values) throws IOException {
+        Properties sb = new Properties();
+
+        for (String key : values.keySet()) {
+            sb.setProperty(key, values.get(key));
+        }
+
+        PrintWriter out = new PrintWriter(configFile);
+        sb.store(out, null);
+        out.flush();
+        out.close();
+    }
+
     /**
      * Expands the variable in the given string to its value in the environment variables available
      * to this build.  The Jenkins-specific build variables for this build are then substituted.
