@@ -360,7 +360,7 @@ class EmulatorConfig implements Serializable {
 
         // screen resolution not supported at creation time in Android Emulator 2.0
         // so it is added here as skin on emulator start
-        if (androidSdk.supportsEmulatorV2()) {
+        if (androidSdk.supportsEmulatorV2() && getScreenResolution() != null) {
             sb.append(String.format(" -skin %s", getScreenResolution().getDimensionString()));
         }
 
