@@ -9,6 +9,8 @@ import hudson.model.TaskListener;
 import hudson.plugins.android_emulator.AndroidEmulator.HardwareProperty;
 import hudson.plugins.android_emulator.sdk.AndroidSdk;
 import hudson.plugins.android_emulator.sdk.Tool;
+import hudson.plugins.android_emulator.sdk.cli.SdkCliCommand;
+import hudson.plugins.android_emulator.sdk.cli.SdkCliCommandFactory;
 import hudson.plugins.android_emulator.util.Utils;
 import hudson.remoting.Callable;
 import hudson.util.ArgumentListBuilder;
@@ -418,9 +420,10 @@ class EmulatorConfig implements Serializable {
 
         // List available snapshots for this emulator
         ByteArrayOutputStream listOutput = new ByteArrayOutputStream();
-        String args = String.format("-snapshot-list -no-window -avd %s", getAvdName());
-        Tool executable = androidSdk.requiresAndroidBug34233Workaround() ? Tool.EMULATOR_ARM : Tool.EMULATOR;
-        Utils.runAndroidTool(launcher, listOutput, logger, androidSdk, executable, args, null);
+
+        final SdkCliCommand sdkEmulatorListSnapshotsCmd = SdkCliCommandFactory.getCommandsForSdk(androidSdk)
+                .getEmulatorListSnapshotsCommand(getAvdName(), androidSdk.requiresAndroidBug34233Workaround());
+        Utils.runAndroidTool(launcher, listOutput, logger, androidSdk, sdkEmulatorListSnapshotsCmd, null);
 
         // Check whether a Jenkins snapshot was listed in the output
         return Pattern.compile(Constants.REGEX_SNAPSHOT).matcher(listOutput.toString()).find();
@@ -529,48 +532,11 @@ class EmulatorConfig implements Serializable {
                 return true;
             }
 
-            // Build up basic arguments to `android` command
-            final StringBuilder args = new StringBuilder(100);
-            args.append("create avd ");
-
-            // Overwrite any existing files
-            args.append("-f ");
-
-            // Initialise snapshot support, regardless of whether we will actually use it
-            if (androidSdk.supportsSnapshots()) {
-                args.append("-a ");
-            }
-
-            if (sdCardSize != null) {
-                args.append("-c ");
-                args.append(sdCardSize);
-                args.append(" ");
-            }
-
-            // screen resolution not supported at creation time in Android Emulator 2.0
-            // will be added as skin on emulator start
-            if (!androidSdk.supportsEmulatorV2()) {
-                args.append("-s ");
-                args.append(screenResolution.getSkinName());
-            }
-
-            final Tool avdCommand;
-            if (androidSdk.supportsEmulatorV2()) {
-                avdCommand = Tool.AVDMANAGER;
-            } else {
-                avdCommand = Tool.ANDROID;
-            }
-
-            // A device definition needs to be set, if not there would be an prompt of the avdmanager command
-            if (androidSdk.supportsEmulatorV2()) {
-                args.append(" -d ");
-                args.append(deviceDefinition);
-            }
-
-            args.append(" -n ");
-            args.append(getAvdName());
+            final SdkCliCommand sdkCreateAvdCmd = SdkCliCommandFactory.getCommandsForSdk(androidSdk)
+                    .getCreatedAvdCommand(getAvdName(), androidSdk.supportsSnapshots(),
+                            sdCardSize, screenResolution.getSkinName(), deviceDefinition);
             boolean isUnix = !Functions.isWindows();
-            ArgumentListBuilder builder = Utils.getToolCommand(androidSdk, isUnix, avdCommand, args.toString());
+            ArgumentListBuilder builder = Utils.getToolCommand(androidSdk, isUnix, sdkCreateAvdCmd);
 
             // Android Emulator 2.0 defines target version and target ABI as package path
             if (androidSdk.supportsEmulatorV2()) {
@@ -692,10 +658,11 @@ class EmulatorConfig implements Serializable {
         }
 
         private boolean createSdCard(File homeDir) {
-            // Build command: mksdcard 32M /home/foo/.android/avd/whatever.avd/sdcard.img
-            ArgumentListBuilder builder = Utils.getToolCommand(androidSdk, !Functions.isWindows(), Tool.MKSDCARD, null);
-            builder.add(sdCardSize);
-            builder.add(new File(getAvdDirectory(homeDir), "sdcard.img"));
+            final String absoluteSdCardName = new File(getAvdDirectory(homeDir), "sdcard.img").getAbsolutePath();
+            final SdkCliCommand mksdcardCmd = SdkCliCommandFactory.getCommandsForSdk(androidSdk)
+                    .getCreateSdkCardCommand(absoluteSdCardName, sdCardSize);
+
+            ArgumentListBuilder builder = Utils.getToolCommand(androidSdk, !Functions.isWindows(), mksdcardCmd);
 
             // Run!
             try {

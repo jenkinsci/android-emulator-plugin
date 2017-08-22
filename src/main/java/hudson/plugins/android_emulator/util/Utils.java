@@ -15,9 +15,9 @@ import hudson.model.Node;
 import hudson.plugins.android_emulator.AndroidEmulator.DescriptorImpl;
 import hudson.plugins.android_emulator.Constants;
 import hudson.plugins.android_emulator.Messages;
-import hudson.plugins.android_emulator.SdkInstallationException;
 import hudson.plugins.android_emulator.sdk.AndroidSdk;
 import hudson.plugins.android_emulator.sdk.Tool;
+import hudson.plugins.android_emulator.sdk.cli.SdkCliCommand;
 import hudson.remoting.Callable;
 import hudson.remoting.Future;
 import hudson.util.ArgumentListBuilder;
@@ -177,6 +177,7 @@ public class Utils {
      */
     public static AndroidSdk getAndroidSdk(Launcher launcher, final String androidSdkRoot, final String androidSdkHome) {
         final boolean isUnix = launcher.isUnix();
+        final PrintStream logger = launcher.getListener().getLogger();
 
         Callable<AndroidSdk, IOException> task = new MasterToSlaveCallable<AndroidSdk, IOException>() {
             public AndroidSdk call() throws IOException {
@@ -193,6 +194,7 @@ public class Utils {
                     // Validate given SDK root
                     ValidationResult result = Utils.validateAndroidHome(new File(sdkRoot), false);
                     if (result.isFatal()) {
+                        log(logger, "Validate Android Home failed: " + result.getMessage());
                         return null;
                     }
                 }
@@ -239,7 +241,7 @@ public class Utils {
         }
 
         // Ensure that this at least looks like an SDK directory
-        final String[] sdkDirectories = { "tools", "platforms" };
+        final String[] sdkDirectories = { "tools", "platform-tools" };
         for (String dirName : sdkDirectories) {
             File dir = new File(sdkRoot, dirName);
             if (!dir.exists() || !dir.isDirectory()) {
@@ -264,7 +266,7 @@ public class Utils {
 
         // Give the user a nice warning (not error) if they've not downloaded any platforms yet
         File platformsDir = new File(sdkRoot, "platforms");
-        if (platformsDir.list().length == 0) {
+        if (platformsDir.list() == null || platformsDir.list().length == 0) {
             return ValidationResult.warning(Messages.SDK_PLATFORMS_EMPTY());
         }
 
@@ -339,7 +341,7 @@ public class Utils {
      */
     private static String getSdkRootFromPath(boolean isUnix) {
         // List of tools which should be found together in an Android SDK tools directory
-        Tool[] tools = { Tool.ANDROID, Tool.EMULATOR };
+        Tool[] tools = { Tool.ANDROID_LEGACY, Tool.EMULATOR };
 
         // Get list of directories from the PATH environment variable
         List<String> paths = Arrays.asList(System.getenv(Constants.ENV_VAR_SYSTEM_PATH).split(File.pathSeparator));
@@ -418,20 +420,15 @@ public class Utils {
      *
      * @param androidSdk The Android SDK to use.
      * @param isUnix Whether the system where this command should run is sane.
-     * @param tool The Android tool to run.
-     * @param args Any extra arguments for the command.
+     * @param sdkCmd The Android tool and any extra arguments for the command to run.
      * @return Arguments including the full path to the SDK and any extra Windows stuff required.
      */
-    public static ArgumentListBuilder getToolCommand(AndroidSdk androidSdk, boolean isUnix, Tool tool, String args) {
+    public static ArgumentListBuilder getToolCommand(AndroidSdk androidSdk, boolean isUnix, final SdkCliCommand sdkCmd) {
         // Determine the path to the desired tool
+        final Tool tool = sdkCmd.getTool();
         String androidToolsDir;
         if (androidSdk.hasKnownRoot()) {
-            try {
-                androidToolsDir = androidSdk.getSdkRoot() + tool.findInSdk(androidSdk);
-            } catch (SdkInstallationException e) {
-                LOGGER.warning("A build-tools directory was found but there were no build-tools installed. Assuming command is on the PATH");
-                androidToolsDir = "";
-            }
+            androidToolsDir = androidSdk.getSdkRoot() + tool.findInSdk(androidSdk);
         } else {
             LOGGER.warning("SDK root not found. Assuming command is on the PATH");
             androidToolsDir = "";
@@ -440,6 +437,7 @@ public class Utils {
         // Build tool command
         final String executable = tool.getExecutable(isUnix);
         ArgumentListBuilder builder = new ArgumentListBuilder(androidToolsDir + executable);
+        final String args = sdkCmd.getArgs();
         if (args != null) {
             builder.add(Util.tokenize(args));
         }
@@ -454,29 +452,28 @@ public class Utils {
      * @param stdout The stream to which standard output should be redirected.
      * @param stderr The stream to which standard error should be redirected.
      * @param androidSdk The Android SDK to use.
-     * @param tool The Android tool to run.
-     * @param args Any extra arguments for the command.
+     * @param sdkCmd The Android tool and any extra arguments for the command to run.
      * @param workingDirectory The directory to run the tool from, or {@code null} if irrelevant
      * @throws IOException If execution of the tool fails.
      * @throws InterruptedException If execution of the tool is interrupted.
      */
     public static void runAndroidTool(Launcher launcher, OutputStream stdout, OutputStream stderr,
-            AndroidSdk androidSdk, Tool tool, String args, FilePath workingDirectory)
+            AndroidSdk androidSdk, final SdkCliCommand sdkCmd, FilePath workingDirectory)
                 throws IOException, InterruptedException {
-        runAndroidTool(launcher, new EnvVars(), stdout, stderr, androidSdk, tool, args, workingDirectory);
+        runAndroidTool(launcher, new EnvVars(), stdout, stderr, androidSdk, sdkCmd, workingDirectory);
     }
 
     public static void runAndroidTool(Launcher launcher, EnvVars env, OutputStream stdout, OutputStream stderr,
-            AndroidSdk androidSdk, Tool tool, String args, FilePath workingDirectory)
+            AndroidSdk androidSdk, final SdkCliCommand sdkCmd, FilePath workingDirectory)
             throws IOException, InterruptedException {
-        runAndroidTool(launcher, env, stdout, stderr, androidSdk, tool, args, workingDirectory, 0);
+        runAndroidTool(launcher, env, stdout, stderr, androidSdk, sdkCmd, workingDirectory, 0);
     }
 
     public static void runAndroidTool(Launcher launcher, EnvVars env, OutputStream stdout, OutputStream stderr,
-            AndroidSdk androidSdk, Tool tool, String args, FilePath workingDirectory, long timeoutMs)
+            AndroidSdk androidSdk, final SdkCliCommand sdkCmd, FilePath workingDirectory, long timeoutMs)
                 throws IOException, InterruptedException {
 
-        ArgumentListBuilder cmd = Utils.getToolCommand(androidSdk, launcher.isUnix(), tool, args);
+        ArgumentListBuilder cmd = Utils.getToolCommand(androidSdk, launcher.isUnix(), sdkCmd);
         ProcStarter procStarter = launcher.launch().stdout(stdout).stderr(stderr).cmds(cmd);
         if (androidSdk.hasKnownHome()) {
             // Copy the old one, so we don't mutate the argument.
@@ -768,6 +765,36 @@ public class Utils {
         final VersionNumber version = new VersionNumber(Util.fixNull(strVersion));
         final VersionNumber versiontoCompare = new VersionNumber(Util.fixNull(strVersionToCompare));
         return version.isOlderThan(versiontoCompare);
+    }
+
+    /**
+     * Looks up the input for the given pattern with an attached version number. The pattern
+     * with the highest version found is returned. The delimiter between pattern and version
+     * may be ';' or '-'.
+     *
+     * @param multiLine multi-line input string to look up pattern + version
+     * @param pattern the pattern to look for
+     * @return The pattern found with the highest version number, or null if pattern is not found
+     */
+    public static String getPatternWithHighestSuffixedVersionNumberInMultiLineInput(final String multiLine, final String pattern) {
+        String result = null;
+        String currentMaxVersion = "0";
+
+        final String lines[] = multiLine.split("(\r\n|\r|\n)");
+        for (int pos = 0; pos < lines.length; pos++) {
+            final String line = lines[pos];
+            final String patternAndVersionRegex = "(" + pattern + "[-;][0-9\\.]+)";
+            final Matcher m = Pattern.compile(patternAndVersionRegex).matcher(line);
+            if (m.find()) {
+                final String patternAndVersion = m.group(0);
+                final String lineVersion = patternAndVersion.replaceAll("^(.*?)([0-9\\.]*)$", "$2");
+                if (isVersionOlderThan(currentMaxVersion, lineVersion)) {
+                    result = patternAndVersion;
+                    currentMaxVersion = lineVersion;
+                }
+            }
+        }
+        return result;
     }
 
     /**

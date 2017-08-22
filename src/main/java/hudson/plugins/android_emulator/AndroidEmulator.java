@@ -18,6 +18,9 @@ import hudson.model.Node;
 import hudson.model.Result;
 import hudson.plugins.android_emulator.sdk.AndroidSdk;
 import hudson.plugins.android_emulator.sdk.Tool;
+import hudson.plugins.android_emulator.sdk.cli.AdbShellCommands;
+import hudson.plugins.android_emulator.sdk.cli.SdkCliCommand;
+import hudson.plugins.android_emulator.sdk.cli.SdkCliCommandFactory;
 import hudson.plugins.android_emulator.util.Utils;
 import hudson.plugins.android_emulator.util.ValidationResult;
 import hudson.remoting.Callable;
@@ -317,9 +320,10 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
 
         // We manually start the adb-server so that later commands will not have to start it,
         // allowing them to complete faster.
-        Proc adbStart = emu.getToolProcStarter(Tool.ADB, "start-server").stdout(logger).stderr(logger).start();
+        final SdkCliCommand adbStartCmd = SdkCliCommandFactory.getCommandsForSdk(androidSdk).getAdbStartServerCommand();
+        Proc adbStart = emu.getToolProcStarter(adbStartCmd).stdout(logger).stderr(logger).start();
         adbStart.joinWithTimeout(5L, TimeUnit.SECONDS, listener);
-        Proc adbStart2 = emu.getToolProcStarter(Tool.ADB, "start-server").stdout(logger).stderr(logger).start();
+        Proc adbStart2 = emu.getToolProcStarter(adbStartCmd).stdout(logger).stderr(logger).start();
         adbStart2.joinWithTimeout(5L, TimeUnit.SECONDS, listener);
 
         // Determine whether we need to create the first snapshot
@@ -365,7 +369,8 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
         ByteArrayOutputStream emulatorOutput = new ByteArrayOutputStream();
         ForkOutputStream emulatorLogger = new ForkOutputStream(logger, emulatorOutput);
 
-        final Proc emulatorProcess = emu.getToolProcStarter(emuConfig.getExecutable(), emulatorArgs, additionalEnvVars)
+        final SdkCliCommand cmd = new SdkCliCommand(emuConfig.getExecutable(), emulatorArgs);
+        final Proc emulatorProcess = emu.getToolProcStarter(cmd, additionalEnvVars)
                 .stdout(emulatorLogger).stderr(logger).start();
         emu.setProcess(emulatorProcess);
 
@@ -388,7 +393,7 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
         if (socket < 0) {
             log(logger, Messages.EMULATOR_DID_NOT_START());
             build.setResult(Result.NOT_BUILT);
-            cleanUp(emuConfig, emu);
+            cleanUp(emuConfig, emu, androidSdk);
             return null;
         }
         log(logger, Messages.EMULATOR_CONSOLE_REPORT(socket));
@@ -418,16 +423,19 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
                 log(logger, Messages.BOOT_COMPLETION_TIMED_OUT(bootTimeout / 1000));
             }
             build.setResult(Result.NOT_BUILT);
-            cleanUp(emuConfig, emu);
+            cleanUp(emuConfig, emu, androidSdk);
             return null;
         }
+
+        final int emulatorAPILevel = (emuConfig.getOsVersion() != null) ? emuConfig.getOsVersion().getSdkLevel() : 0;
+        final AdbShellCommands adbShellCmds = SdkCliCommandFactory.getAdbShellCommandForAPILevel(emulatorAPILevel);
 
         // Start dumping logcat to temporary file
         final File artifactsDir = build.getArtifactsDir();
         final FilePath logcatFile = build.getWorkspace().createTextTempFile("logcat_", ".log", "", false);
         final OutputStream logcatStream = logcatFile.write();
-        final String logcatArgs = String.format("-s %s logcat -v time", emu.serial());
-        final Proc logWriter = emu.getToolProcStarter(Tool.ADB, logcatArgs)
+        final SdkCliCommand adbSetLogCatFormatCmd = adbShellCmds.getSetLogCatFormatToTimeCommand(emu.serial());
+        final Proc logWriter = emu.getToolProcStarter(adbSetLogCatFormatCmd)
                 .stdout(logcatStream).stderr(new NullStream()).start();
 
         // Unlock emulator by pressing the Menu key once, if required.
@@ -441,15 +449,9 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
 
             log(logger, Messages.UNLOCKING_SCREEN());
             final long adbTimeout = BOOT_COMPLETE_TIMEOUT_MS / 16;
-            final String keyEventTemplate = String.format("-s %s shell input keyevent %%d", emu.serial());
-            final String unlockArgs;
-            if (emuConfig.getOsVersion() != null && emuConfig.getOsVersion().getSdkLevel() >= 23) {
-                // Android 6.0 introduced a command to dismiss the keyguard on unsecured devices
-                unlockArgs = String.format("-s %s shell wm dismiss-keyguard", emu.serial());
-            } else {
-                unlockArgs = String.format(keyEventTemplate, 82);
-            }
-            ArgumentListBuilder unlockCmd = emu.getToolCommand(Tool.ADB, unlockArgs);
+
+            final SdkCliCommand adbUnlockCmd = adbShellCmds.getDismissKeyguardCommand(emu.serial());
+            ArgumentListBuilder unlockCmd = emu.getToolCommand(adbUnlockCmd);
             Proc proc = emu.getProcStarter(unlockCmd).start();
             proc.joinWithTimeout(adbTimeout, TimeUnit.MILLISECONDS, emu.launcher().getListener());
 
@@ -457,8 +459,8 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
             // wouldn't be locked.  Similarly, an non-named emulator may have already booted the
             // first time without us knowing.  In both cases, we press Back after attempting to
             // unlock the screen to compensate
-            final String backArgs = String.format(keyEventTemplate, 4);
-            ArgumentListBuilder backCmd = emu.getToolCommand(Tool.ADB, backArgs);
+            final SdkCliCommand adbSendBackKeyCmd = adbShellCmds.getSendBackKeyEventCommand(emu.serial());
+            ArgumentListBuilder backCmd = emu.getToolCommand(adbSendBackKeyCmd);
             proc = emu.getProcStarter(backCmd).start();
             proc.joinWithTimeout(adbTimeout, TimeUnit.MILLISECONDS, emu.launcher().getListener());
         }
@@ -470,12 +472,14 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
             Thread.sleep((long) (bootDuration * 0.8));
 
             // Clear main log before creating snapshot
-            final String clearArgs = String.format("-s %s logcat -c", emu.serial());
-            ArgumentListBuilder adbCmd = emu.getToolCommand(Tool.ADB, clearArgs);
+            final SdkCliCommand adbClearLogCmd = adbShellCmds.getClearMainLogCommand(emu.serial());
+            ArgumentListBuilder adbCmd = emu.getToolCommand(adbClearLogCmd);
             emu.getProcStarter(adbCmd).join();
+
+            // Log creation of snapshot
             final String msg = Messages.LOG_CREATING_SNAPSHOT();
-            final String logArgs = String.format("-s %s shell log -p v -t Jenkins '%s'", emu.serial(), msg);
-            adbCmd = emu.getToolCommand(Tool.ADB, logArgs);
+            final SdkCliCommand adbLogCmd = adbShellCmds.getLogMessageCommand(emu.serial(), msg);
+            adbCmd = emu.getToolCommand(adbLogCmd);
             emu.getProcStarter(adbCmd).join();
 
             // Pause execution of the emulator
@@ -493,7 +497,7 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
                 boolean restarted = emu.sendCommand("avd start");
                 if (!restarted) {
                     log(logger, Messages.EMULATOR_RESUME_FAILED());
-                    cleanUp(emuConfig, emu, logWriter, logcatFile, logcatStream, artifactsDir);
+                    cleanUp(emuConfig, emu, androidSdk, logWriter, logcatFile, logcatStream, artifactsDir);
                 }
             } else {
                 log(logger, Messages.SNAPSHOT_CREATION_FAILED());
@@ -537,7 +541,7 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
             @SuppressWarnings("rawtypes")
             public boolean tearDown(AbstractBuild build, BuildListener listener)
                     throws IOException, InterruptedException {
-                cleanUp(emuConfig, emu, logWriter, logcatFile, logcatStream, artifactsDir);
+                cleanUp(emuConfig, emu, androidSdk, logWriter, logcatFile, logcatStream, artifactsDir);
 
                 return true;
             }
@@ -571,21 +575,23 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
      * Called when this wrapper needs to exit, so we need to clean up some processes etc.
      * @param emulatorConfig The emulator being run.
      * @param emu The emulator context
+     * @param androidSdk The current android SDK
      */
-    private void cleanUp(EmulatorConfig emulatorConfig, AndroidEmulatorContext emu) throws IOException, InterruptedException {
-        cleanUp(emulatorConfig, emu, null, null, null, null);
+    private void cleanUp(EmulatorConfig emulatorConfig, AndroidEmulatorContext emu, final AndroidSdk androidSdk) throws IOException, InterruptedException {
+        cleanUp(emulatorConfig, emu, androidSdk, null, null, null, null);
     }
 
     /**
      * Called when this wrapper needs to exit, so we need to clean up some processes etc.
      * @param emulatorConfig The emulator being run.
      * @param emu The emulator context
+     * @param androidSdk The current android SDK
      * @param logcatProcess The adb logcat process.
      * @param logcatFile The file the logcat output is being written to.
      * @param logcatStream The stream the logcat output is being written to.
      * @param artifactsDir The directory where build artifacts should go.
      */
-    private void cleanUp(EmulatorConfig emulatorConfig, AndroidEmulatorContext emu, Proc logcatProcess,
+    private void cleanUp(EmulatorConfig emulatorConfig, AndroidEmulatorContext emu, final AndroidSdk androidSdk, Proc logcatProcess,
             FilePath logcatFile, OutputStream logcatStream, File artifactsDir) throws IOException, InterruptedException {
         // FIXME: Sometimes on Windows neither the emulator.exe nor the adb.exe processes die.
         //        Launcher.kill(EnvVars) does not appear to help either.
@@ -627,7 +633,8 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
             logcatFile.delete();
         }
 
-        ArgumentListBuilder adbKillCmd = emu.getToolCommand(Tool.ADB, "kill-server");
+        final SdkCliCommand killCmd = SdkCliCommandFactory.getCommandsForSdk(androidSdk).getAdbKillServerCommand();
+        ArgumentListBuilder adbKillCmd = emu.getToolCommand(killCmd);
         emu.getProcStarter(adbKillCmd).join();
 
         emu.cleanUp();
@@ -715,13 +722,11 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
         if (!config.isNamedEmulator()) {
             apiLevel = config.getOsVersion().getSdkLevel();
         }
-        // Other tools use the "bootanim" variant, which supposedly signifies the system has booted a bit further;
-        // though this doesn't appear to be available on Android 1.5, while it should work fine on Android 1.6+
-        final boolean isOldApi = apiLevel > 0 && apiLevel < 4;
-        final String cmd = isOldApi ? "dev.bootcomplete" : "init.svc.bootanim";
-        final String expectedAnswer = isOldApi ? "1" :"stopped";
-        final String args = String.format("-s %s wait-for-device shell getprop %s", emu.serial(), cmd);
-        ArgumentListBuilder bootCheckCmd = emu.getToolCommand(Tool.ADB, args);
+
+        final AdbShellCommands adbShellCmds = SdkCliCommandFactory.getAdbShellCommandForAPILevel(apiLevel);
+        final SdkCliCommand adbDevicesStartCmd = adbShellCmds.getWaitForDeviceStartupCommand(emu.serial());
+        final String expectedAnswer = adbShellCmds.getWaitForDeviceStartupExpectedAnswer();
+        ArgumentListBuilder bootCheckCmd = emu.getToolCommand(adbDevicesStartCmd);
 
         try {
             final long adbTimeout = timeout / 8;

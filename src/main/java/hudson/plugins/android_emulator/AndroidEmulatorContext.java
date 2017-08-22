@@ -14,7 +14,7 @@ import hudson.model.BuildListener;
 import hudson.model.Computer;
 import hudson.model.TaskListener;
 import hudson.plugins.android_emulator.sdk.AndroidSdk;
-import hudson.plugins.android_emulator.sdk.Tool;
+import hudson.plugins.android_emulator.sdk.cli.SdkCliCommand;
 import hudson.plugins.android_emulator.util.Utils;
 import hudson.util.ArgumentListBuilder;
 import hudson.util.NullStream;
@@ -183,42 +183,39 @@ public class AndroidEmulatorContext {
         /**
          * Generates a ready-to-use ArgumentListBuilder for one of the Android SDK tools, based on the current context.
          *
-         * @param tool The Android tool to run.
-         * @param args Any extra arguments for the command.
+         * @param sdkCmd The Android tool and any extra arguments for the command to run.
          * @return Arguments including the full path to the SDK and any extra Windows stuff required.
          */
-	public ArgumentListBuilder getToolCommand(Tool tool, String args) {
-		return Utils.getToolCommand(sdk, launcher.isUnix(), tool, args);
+	public ArgumentListBuilder getToolCommand(final SdkCliCommand sdkCmd) {
+		return Utils.getToolCommand(sdk, launcher.isUnix(), sdkCmd);
 	}
 
         /**
          * Generates a ready-to-use ProcStarter for one of the Android SDK tools, based on the current context.
          *
-         * @param tool The Android tool to run.
-         * @param args Any extra arguments for the command.
+         * @param sdkCmd The Android tool and any extra arguments for the command to run.
          * @param env Additional environment variables to set
          * @return A ready ProcStarter
          *
          * @throws IOException
          * @throws InterruptedException
          */
-        public ProcStarter getToolProcStarter(final Tool tool, final String args, final EnvVars env)
+        public ProcStarter getToolProcStarter(final SdkCliCommand sdkCmd, final EnvVars env)
                 throws IOException, InterruptedException {
-            return getProcStarter(Utils.getToolCommand(sdk, launcher.isUnix(), tool, args), env);
+            return getProcStarter(Utils.getToolCommand(sdk, launcher.isUnix(), sdkCmd), env);
         }
 
         /**
          * Generates a ready-to-use ProcStarter for one of the Android SDK tools, based on the current context.
          *
-         * @param tool The Android tool to run.
-         * @param args Any extra arguments for the command.
+         * @param sdkCmd The Android tool and any extra arguments for the command to run.
          * @return A ready ProcStarter
 	 * @throws IOException
 	 * @throws InterruptedException
          */
-	public ProcStarter getToolProcStarter(Tool tool, String args)
+	public ProcStarter getToolProcStarter(final SdkCliCommand sdkCmd)
 			throws IOException, InterruptedException {
-		return getProcStarter(Utils.getToolCommand(sdk, launcher.isUnix(), tool, args));
+		return getProcStarter(Utils.getToolCommand(sdk, launcher.isUnix(), sdkCmd));
 	}
 
 	/**

@@ -1,11 +1,12 @@
 package hudson.plugins.android_emulator.sdk;
 
 public class EmulatorToolLocator implements ToolLocator {
-    public String findInSdk(AndroidSdk androidSdk, Tool tool) {
+    @Override
+    public String findInSdk(AndroidSdk androidSdk) {
         if (androidSdk.supportsEmulatorV2()) {
-            return "/emulator/";
+            return ToolLocator.EMULATOR_DIR;
         } else {
-            return "/tools/";
+            return ToolLocator.TOOLS_DIR;
         }
     }
 }

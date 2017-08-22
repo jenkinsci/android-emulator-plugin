@@ -17,7 +17,8 @@ import hudson.plugins.android_emulator.Messages;
 import hudson.plugins.android_emulator.SdkInstallationException;
 import hudson.plugins.android_emulator.SdkInstaller;
 import hudson.plugins.android_emulator.sdk.AndroidSdk;
-import hudson.plugins.android_emulator.sdk.Tool;
+import hudson.plugins.android_emulator.sdk.cli.SdkCliCommand;
+import hudson.plugins.android_emulator.sdk.cli.SdkCliCommandFactory;
 import hudson.plugins.android_emulator.util.Utils;
 import hudson.remoting.VirtualChannel;
 import hudson.tasks.Builder;
@@ -128,7 +129,7 @@ public abstract class AbstractBuilder extends Builder {
      *
      * @param build The build for which we should retrieve the SDK instance.
      * @param listener The listener used to get the environment variables.
-     * @return The device identifier (defaulting to the value of "<tt>-s $ANDROID_AVD_DEVICE</tt>").
+     * @return The device identifier (defaulting to the value of "<tt>$ANDROID_AVD_DEVICE</tt>").
      */
     protected static String getDeviceIdentifier(AbstractBuild<?, ?> build, BuildListener listener) {
         String deviceSerial = expandVariable(build, listener, Constants.ENV_VAR_ANDROID_AVD_DEVICE);
@@ -138,7 +139,7 @@ public abstract class AbstractBuilder extends Builder {
         }
 
         // Use the serial of the emulator started by this plugin
-        return String.format("-s %s", deviceSerial);
+        return deviceSerial;
     }
 
     /**
@@ -194,7 +195,8 @@ public abstract class AbstractBuilder extends Builder {
         final int sleep = timeout / (int) (Math.sqrt(timeout / 1000) * 2);
 
         // Run the "ps" command in a loop until we find the desired process
-        final String adbArgs = String.format("%s shell ps", deviceIdentifier);
+        final SdkCliCommand adbCmd = SdkCliCommandFactory.getAdbShellCommandForAPILevel(androidSdk.getSdkToolsMajorVersion())
+                .getListProcessesCommand(deviceIdentifier);
         try {
             long start = System.currentTimeMillis();
             final ByteArrayOutputStream stdout = new ByteArrayOutputStream(8192);
@@ -204,7 +206,7 @@ public abstract class AbstractBuilder extends Builder {
 
                 // Get the process list from the device
                 Utils.runAndroidTool(launcher, build.getEnvironment(TaskListener.NULL), stdout, null, androidSdk,
-                        Tool.ADB, adbArgs, null, adbTimeout);
+                        adbCmd, null, adbTimeout);
 
                 // Check whether the core process has started
                 if (stdout.toString().contains("android.process.acore")) {
@@ -267,9 +269,10 @@ public abstract class AbstractBuilder extends Builder {
 
         ByteArrayOutputStream stdout = new ByteArrayOutputStream();
         ForkOutputStream forkStream = new ForkOutputStream(logger, stdout);
-        String adbArgs = String.format("%s uninstall %s", deviceIdentifier, packageId);
+        final SdkCliCommand adbCmd = SdkCliCommandFactory.getCommandsForSdk(androidSdk).
+                getAdbUninstallPackageCommand(deviceIdentifier, packageId);
         Utils.runAndroidTool(launcher, build.getEnvironment(TaskListener.NULL),
-                forkStream, logger, androidSdk, Tool.ADB, adbArgs, null, UNINSTALL_TIMEOUT);
+                forkStream, logger, androidSdk, adbCmd, null, UNINSTALL_TIMEOUT);
 
         // The package manager simply returns "Success" or "Failure" on stdout
         return stdout.toString().contains("Success");

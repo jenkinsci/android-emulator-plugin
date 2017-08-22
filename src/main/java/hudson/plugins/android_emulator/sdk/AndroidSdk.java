@@ -29,6 +29,11 @@ public class AndroidSdk implements Serializable {
     /** First version that ships the Android Emulator 2.0. */
     private static final int SDK_EMULATOR_V2 = 25;
 
+    /** First version where the 'android' command is deprecated
+     * and replaced by 'avdmanager' and 'sdkmanager'
+     */
+    private static final int SDK_TOOLS_ANDROID_CMD_DEPRECATED = 26;
+
     /** First version that comes with the emulator 2.0 supporting the needed -ports, etc commands. */
     private static final int SDK_EMULATOR_V2_USABLE = 26;
 
@@ -128,6 +133,10 @@ public class AndroidSdk implements Serializable {
      */
     public boolean forceClassicEmulatorEngine() {
         return supportsEmulatorEngineFlag() && !supportsEmulatorV2Full();
+    }
+
+    public boolean isAndroidCmdDeprecated() {
+        return getSdkToolsMajorVersion() >= SDK_TOOLS_ANDROID_CMD_DEPRECATED;
     }
 
     /** {@return true} if we should explicitly select a non-64-bit emulator executable for snapshot-related tasks. */

@@ -10,7 +10,9 @@ import hudson.model.Computer;
 import hudson.model.Node;
 import hudson.plugins.android_emulator.SdkInstaller.AndroidInstaller.SdkUnavailableException;
 import hudson.plugins.android_emulator.sdk.AndroidSdk;
-import hudson.plugins.android_emulator.sdk.Tool;
+import hudson.plugins.android_emulator.sdk.cli.SdkCliCommandFactory;
+import hudson.plugins.android_emulator.sdk.cli.SdkToolsCommands;
+import hudson.plugins.android_emulator.sdk.cli.SdkCliCommand;
 import hudson.plugins.android_emulator.util.Utils;
 import hudson.plugins.android_emulator.util.ValidationResult;
 import hudson.remoting.Callable;
@@ -47,7 +49,7 @@ import static hudson.plugins.android_emulator.AndroidEmulator.log;
 public class SdkInstaller {
 
     /** Recent version of the Android SDK that will be installed. */
-    private static final String SDK_VERSION = "24.4.1";
+    private static final String SDK_VERSION = "3859397"; //26.0.1
 
     /** Filename to write some metadata to about our automated installation. */
     private static final String SDK_INFO_FILENAME = ".jenkins-install-info";
@@ -134,12 +136,10 @@ public class SdkInstaller {
     private static String getBuildToolsPackageName(PrintStream logger, Launcher launcher, AndroidSdk sdk)
     throws IOException, InterruptedException {
         ByteArrayOutputStream output = new ByteArrayOutputStream();
-        Utils.runAndroidTool(launcher, output, logger, sdk, Tool.ANDROID, "list sdk --extended", null);
-        Matcher m = Pattern.compile("\"(build-tools-.*?)\"").matcher(output.toString());
-        if (!m.find()) {
-            return null;
-        }
-        return m.group(0);
+        final SdkCliCommand sdkListComponentsCmd = SdkCliCommandFactory.getCommandsForSdk(sdk)
+                .getListSdkComponentsCommand();
+        Utils.runAndroidTool(launcher, output, logger, sdk, sdkListComponentsCmd, null);
+        return Utils.getPatternWithHighestSuffixedVersionNumberInMultiLineInput(output.toString(), "build-tools");
     }
 
     /**
@@ -159,23 +159,25 @@ public class SdkInstaller {
         AndroidInstaller installer = AndroidInstaller.fromNode(node);
         final URL downloadUrl = installer.getUrl(SDK_VERSION);
 
+        final FilePath toolsSubdir = installDir.child("tools");
+
         // Download the SDK, if required
         boolean wasNowInstalled = installDir.act(new MasterToSlaveFileCallable<Boolean>() {
             public Boolean invoke(File f, VirtualChannel channel)
                     throws InterruptedException, IOException {
                 String msg = Messages.DOWNLOADING_SDK_FROM(downloadUrl);
-                return installDir.installIfNecessaryFrom(downloadUrl, listener, msg);
+                return toolsSubdir.installIfNecessaryFrom(downloadUrl, listener, msg);
             }
             private static final long serialVersionUID = 1L;
         });
 
         if (wasNowInstalled) {
             // If the SDK was required, pull files up from the intermediate directory
-            installDir.listDirectories().get(0).moveAllChildrenTo(installDir);
+            toolsSubdir.listDirectories().get(0).moveAllChildrenTo(toolsSubdir);
 
             // Java's ZipEntry doesn't preserve the executable bit...
             if (installer == AndroidInstaller.MAC_OS_X) {
-                setPermissions(installDir.child("tools"));
+                setPermissions(toolsSubdir);
             }
 
             // Success!
@@ -200,15 +202,17 @@ public class SdkInstaller {
         // Build the command to install the given component(s)
         String list = StringUtils.join(components, ',');
         log(logger, Messages.INSTALLING_SDK_COMPONENTS(list));
-        String all = sdk.getSdkToolsMajorVersion() < 17 ? "-o" : "-a";
-        String upgradeArgs = String.format("update sdk -u %s %s -t %s", all, proxySettings, list);
-        ArgumentListBuilder cmd = Utils.getToolCommand(sdk, launcher.isUnix(), Tool.ANDROID, upgradeArgs);
+        final SdkCliCommand sdkInstallAndUpdateCmd = SdkCliCommandFactory.getCommandsForSdk(sdk)
+                .getSdkInstallAndUpdateCommand(proxySettings, list);
+        ArgumentListBuilder cmd = Utils.getToolCommand(sdk, launcher.isUnix(), sdkInstallAndUpdateCmd);
         ProcStarter procStarter = launcher.launch().stderr(logger).readStdout().writeStdin().cmds(cmd);
+
+        final EnvVars env = new EnvVars();
+        env.put(Constants.ENV_VAR_ANDROID_USE_SDK_WRAPPER, "y");
         if (sdk.hasKnownHome()) {
-            EnvVars env = new EnvVars();
             env.put(Constants.ENV_VAR_ANDROID_SDK_HOME, sdk.getSdkHome());
-            procStarter = procStarter.envs(env);
         }
+        procStarter = procStarter.envs(env);
 
         // Run the command and accept any licence requests during installation
         Proc proc = procStarter.start();
@@ -216,7 +220,8 @@ public class SdkInstaller {
         String line;
         while (proc.isAlive() && (line = r.readLine()) != null) {
             logger.println(line);
-            if (line.toLowerCase(Locale.ENGLISH).startsWith("license id: ")) {
+            if (line.toLowerCase(Locale.ENGLISH).startsWith("license id: ") ||
+                    line.toLowerCase(Locale.ENGLISH).startsWith("license android-sdk-license:")) {
                 proc.getStdin().write("y\r\n".getBytes());
                 proc.getStdin().flush();
             }
@@ -313,20 +318,23 @@ public class SdkInstaller {
     private static boolean isPlatformInstalled(PrintStream logger, Launcher launcher,
             AndroidSdk sdk, String platform, String abi) throws IOException, InterruptedException {
         ByteArrayOutputStream targetList = new ByteArrayOutputStream();
-        // Preferably we'd use the "--compact" flag here, but it wasn't added until r12,
-        // nor does it give any information about which system images are installed...
-        Utils.runAndroidTool(launcher, targetList, logger, sdk, Tool.ANDROID, "list target", null);
+        final SdkCliCommand sdkListTargets = SdkCliCommandFactory.getCommandsForSdk(sdk)
+                .getListExistingTargetsCommand();
+        Utils.runAndroidTool(launcher, targetList, logger, sdk, sdkListTargets, null);
         boolean platformInstalled = targetList.toString().contains('"'+ platform +'"');
         if (!platformInstalled) {
             return false;
         }
 
         if (abi != null) {
-            // Check whether the desired ABI is included in the output
-            Pattern regex = Pattern.compile(String.format("\"%s\".+?%s", platform, abi), Pattern.DOTALL);
-            Matcher matcher = regex.matcher(targetList.toString());
-            if (!matcher.find() || matcher.group(0).contains("---")) {
-                // We did not find the desired ABI within the section for the given platform
+            final ByteArrayOutputStream systemImagesList = new ByteArrayOutputStream();
+            final SdkToolsCommands sdkToolsCommand = SdkCliCommandFactory.getCommandsForSdk(sdk);
+
+            final SdkCliCommand sdkListSystemImages = sdkToolsCommand.getListSystemImagesCommand();
+            Utils.runAndroidTool(launcher, systemImagesList, logger, sdk, sdkListSystemImages, null);
+            final boolean isAbiImageInstalled = sdkToolsCommand.isImageForPlatformAndABIInstalled(
+                    systemImagesList.toString(), platform, abi);
+            if (!isAbiImageInstalled) {
                 return false;
             }
         }
@@ -543,11 +551,11 @@ public class SdkInstaller {
     /** Helper for getting platform-specific SDK installation information. */
     enum AndroidInstaller {
 
-        LINUX("linux", "tgz"),
-        MAC_OS_X("macosx", "zip"),
+        LINUX("linux", "zip"),
+        MAC_OS_X("darwin", "zip"),
         WINDOWS("windows", "zip");
 
-        private static final String PATTERN = "http://dl.google.com/android/android-sdk_r%s-%s.%s";
+        private static final String PATTERN = "http://dl.google.com/android/repository/sdk-tools-%s-%s.%s";
         private final String platform;
         private final String extension;
 
@@ -558,7 +566,7 @@ public class SdkInstaller {
 
         URL getUrl(String version) {
             try {
-                return new URL(String.format(PATTERN, version, platform, extension));
+                return new URL(String.format(PATTERN, platform, version, extension));
             } catch (MalformedURLException e) {}
             return null;
         }

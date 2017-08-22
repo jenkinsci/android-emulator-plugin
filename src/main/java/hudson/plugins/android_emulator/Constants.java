@@ -69,6 +69,7 @@ public interface Constants {
     static final String ENV_VAR_ANDROID_SDK_ROOT = "ANDROID_SDK_ROOT";
     static final String ENV_VAR_ANDROID_SERIAL = "ANDROID_SERIAL";
     static final String ENV_VAR_ANDROID_TMP_LOGCAT_FILE = "ANDROID_TMP_LOGCAT_FILE";
+    static final String ENV_VAR_ANDROID_USE_SDK_WRAPPER = "USE_SDK_WRAPPER";
     static final String ENV_VAR_JENKINS_ANDROID_HOME = "JENKINS_ANDROID_HOME";
     static final String ENV_VAR_JENKINS_WORKSPACE = "WORKSPACE";
     static final String ENV_VAR_LD_LIBRARY_PATH = "LD_LIBRARY_PATH";

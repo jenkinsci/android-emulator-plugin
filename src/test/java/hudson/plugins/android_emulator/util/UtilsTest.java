@@ -127,6 +127,41 @@ public class UtilsTest {
         assertTrue(Utils.equalsVersion(null, null, 9));
     }
 
+    @Test
+    public void testfindPatternWithHighestVersionSuffix() {
+        final String versions1 = "build-tools-3.3\nbuild-tools-0.1\rbuild-tools-1\r\nbuild-tools-3.1";
+        final String result1 = Utils.getPatternWithHighestSuffixedVersionNumberInMultiLineInput(versions1, "build-tools");
+        assertEquals("build-tools-3.3", result1);
+
+
+        final String versions2 = "build-tools;3.3\nbuild-tools;0.1\rbuild-tools;4\r\nbuild-tools;3.1";
+        final String result2 = Utils.getPatternWithHighestSuffixedVersionNumberInMultiLineInput(versions2, "build-tools");
+        assertEquals("build-tools;4", result2);
+
+        final String versions3 = "    build-tools;3.3     \n \"build-tools;0.1\"\rbuild-tools;4\r\nbuild-tools;3.1";
+        final String result3 = Utils.getPatternWithHighestSuffixedVersionNumberInMultiLineInput(versions3, "build-tools");
+        assertEquals("build-tools;4", result3);
+
+        final String versions4 = "    build-tools;15.3     \n \"build-tools;0.1\"\rbuild-tools;4\r\nbuild-tools;3.1";
+        final String result4 = Utils.getPatternWithHighestSuffixedVersionNumberInMultiLineInput(versions4, "build-tools");
+        assertEquals("build-tools;15.3", result4);
+
+        final String versions5 = "    build-tools;5.3     \n \"build-tools;6.1\"\rbuild-tools;4\r\nbuild-tools;3.1";
+        final String result5 = Utils.getPatternWithHighestSuffixedVersionNumberInMultiLineInput(versions5, "build-tools");
+        assertEquals("build-tools;6.1", result5);
+
+        final String version6 = "id: 3 or \"build-tools-26.0.1\"";
+        final String result6 = Utils.getPatternWithHighestSuffixedVersionNumberInMultiLineInput(version6, "build-tools");
+        assertEquals("build-tools-26.0.1", result6);
+
+        final String versions7 = "build-tools-3.3\nbild-tools-20.1\rbuild-tools-1\r\nbuild-tools-3.1";
+        final String result7 = Utils.getPatternWithHighestSuffixedVersionNumberInMultiLineInput(versions7, "build-tools");
+        assertEquals("build-tools-3.3", result7);
+
+        final String versions8 = "build-tools-3.3\nbild-tools-20.1\rbuild-tools-1\r\nbuild-tools-3.1";
+        final String result8 = Utils.getPatternWithHighestSuffixedVersionNumberInMultiLineInput(versions8, "dummy-tools");
+        assertNull(result8);
+    }
 
     // Workaround for Bug 64356053 ('-no-audio'-, '-noaudio'- and '-audio none'-options ignored)
     @Test

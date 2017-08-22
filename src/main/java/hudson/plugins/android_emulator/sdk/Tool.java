@@ -1,12 +1,8 @@
 package hudson.plugins.android_emulator.sdk;
 
-import java.io.File;
-
-import hudson.plugins.android_emulator.SdkInstallationException;
-
 public enum Tool {
     ADB("adb", ".exe", new PlatformToolLocator()),
-    ANDROID("android", ".bat"),
+    ANDROID_LEGACY("android", ".bat"),
     EMULATOR("emulator", ".exe", new EmulatorToolLocator()),
     EMULATOR_ARM("emulator-arm", ".exe", new EmulatorToolLocator()),
     EMULATOR_MIPS("emulator-mips", ".exe", new EmulatorToolLocator()),
@@ -14,7 +10,8 @@ public enum Tool {
     EMULATOR64_ARM("emulator64-arm", ".exe", new EmulatorToolLocator()),
     EMULATOR64_MIPS("emulator64-mips", ".exe", new EmulatorToolLocator()),
     EMULATOR64_X86("emulator64-x86", ".exe", new EmulatorToolLocator()),
-    AVDMANAGER("bin" + File.separator + "avdmanager", ".exe"),
+    AVDMANAGER("avdmanager", ".exe", new SdkToolLocator()),
+    SDKMANAGER("sdkmanager", ".exe", new SdkToolLocator()),
     MKSDCARD("mksdcard", ".exe");
 
     public static Tool[] EMULATORS = new Tool[] { EMULATOR,
@@ -23,7 +20,7 @@ public enum Tool {
     };
 
     public static Tool[] REQUIRED = new Tool[] {
-        ADB, ANDROID, EMULATOR
+        ADB, ANDROID_LEGACY, EMULATOR
     };
 
     public final String executable;
@@ -47,8 +44,8 @@ public enum Tool {
         return executable + windowsExtension;
     }
 
-    public String findInSdk(AndroidSdk androidSdk) throws SdkInstallationException {
-        return toolLocator.findInSdk(androidSdk, this);
+    public String findInSdk(final AndroidSdk androidSdk) {
+        return toolLocator.findInSdk(androidSdk);
     }
 
     public static String[] getAllExecutableVariants() {

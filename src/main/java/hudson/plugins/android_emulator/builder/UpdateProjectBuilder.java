@@ -10,7 +10,9 @@ import hudson.model.Descriptor;
 import hudson.model.AbstractBuild;
 import hudson.plugins.android_emulator.Messages;
 import hudson.plugins.android_emulator.sdk.AndroidSdk;
-import hudson.plugins.android_emulator.sdk.Tool;
+import hudson.plugins.android_emulator.sdk.cli.SdkCliCommand;
+import hudson.plugins.android_emulator.sdk.cli.SdkCliCommandFactory;
+import hudson.plugins.android_emulator.sdk.cli.SdkToolsCommands;
 import hudson.plugins.android_emulator.util.Utils;
 import hudson.remoting.VirtualChannel;
 import hudson.tasks.Builder;
@@ -72,17 +74,14 @@ public class UpdateProjectBuilder extends AbstractBuilder {
 
     }
 
-    private static enum ProjectType {
-        APP("project", Messages._PROJECT_TYPE_APP()), //
-        LIBRARY("lib-project", Messages._PROJECT_TYPE_LIBRARY()), //
-        TEST("test-project", Messages._PROJECT_TYPE_TEST());
-
-        private final String cmd;
+    private enum ProjectType {
+        APP(Messages._PROJECT_TYPE_APP()), //
+        LIBRARY(Messages._PROJECT_TYPE_LIBRARY()), //
+        TEST(Messages._PROJECT_TYPE_TEST());
 
         private final Localizable name;
 
-        private ProjectType(String cmd, Localizable name) {
-            this.cmd = cmd;
+        private ProjectType(Localizable name) {
             this.name = name;
         }
     }
@@ -96,6 +95,12 @@ public class UpdateProjectBuilder extends AbstractBuilder {
         AndroidSdk androidSdk = getAndroidSdk(build, launcher, listener);
         if (androidSdk == null) {
             return false;
+        }
+
+        // As the whole functionality of handling projects was dropped (moved to Android Studio)
+        // with SDK tools v26, upgrading is needed on users side.
+        if (androidSdk.isAndroidCmdDeprecated()) {
+            return true;
         }
 
         // Gather list of projects, determined by reading Android project files in the workspace
@@ -116,7 +121,9 @@ public class UpdateProjectBuilder extends AbstractBuilder {
         for (Project project : projects) {
             log(logger, "");
 
-            String args = String.format("update %s -p .", project.type.cmd);
+            final String projectPath = ".";
+            String testMainClass = "";
+
             FilePath dir = new FilePath(new File(project.path));
 
             if (project.type == ProjectType.TEST) {
@@ -141,7 +148,7 @@ public class UpdateProjectBuilder extends AbstractBuilder {
                 }
 
                 // Determine relative path to the app project from this test project
-                args += String.format(" -m %s", Utils.getRelativePath(project.path, appProject.path));
+                testMainClass = Utils.getRelativePath(project.path, appProject.path);
             }
 
             // Run the project update command
@@ -152,7 +159,26 @@ public class UpdateProjectBuilder extends AbstractBuilder {
                 shortPath = project.path.substring(workspace.length() + 1);
             }
             log(logger, Messages.CREATING_BUILD_FILES(project.type.name.toString(), shortPath));
-            Utils.runAndroidTool(launcher, logger, logger, androidSdk, Tool.ANDROID, args, dir);
+
+            final SdkToolsCommands sdkCommands = SdkCliCommandFactory.getCommandsForSdk(androidSdk);
+            final SdkCliCommand updateProjectCmd;
+
+            switch (project.type) {
+            case LIBRARY:
+                updateProjectCmd = sdkCommands.getUpdateLibProjectCommand(projectPath);
+                break;
+            case TEST:
+                updateProjectCmd = sdkCommands.getUpdateTestProjectCommand(projectPath, testMainClass);
+                break;
+            case APP:
+            default:
+                updateProjectCmd = sdkCommands.getUpdateProjectCommand(projectPath);
+                break;
+            }
+
+            if (!updateProjectCmd.isNoopCmd()) {
+                Utils.runAndroidTool(launcher, logger, logger, androidSdk, updateProjectCmd, dir);
+            }
         }
 
         // Done!

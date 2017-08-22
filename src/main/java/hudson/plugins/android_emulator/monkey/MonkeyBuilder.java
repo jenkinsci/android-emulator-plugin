@@ -10,7 +10,8 @@ import hudson.model.TaskListener;
 import hudson.plugins.android_emulator.Messages;
 import hudson.plugins.android_emulator.builder.AbstractBuilder;
 import hudson.plugins.android_emulator.sdk.AndroidSdk;
-import hudson.plugins.android_emulator.sdk.Tool;
+import hudson.plugins.android_emulator.sdk.cli.SdkCliCommand;
+import hudson.plugins.android_emulator.sdk.cli.SdkCliCommandFactory;
 import hudson.plugins.android_emulator.util.Utils;
 import hudson.tasks.Builder;
 import net.sf.json.JSONObject;
@@ -99,9 +100,10 @@ public class MonkeyBuilder extends AbstractBuilder {
 
         final long seedValue = parseSeed(seed);
         final String expandedExtraParams = fixNull(Utils.expandVariables(build, listener, extraParameters));
+        final String monkeyArgs = cmdArgs.toString() + " "  + expandedExtraParams;
         final String deviceIdentifier = getDeviceIdentifier(build, listener);
-        String args = String.format("%s shell monkey -v -v -s %d --throttle %d %s %s %d", deviceIdentifier, seedValue,
-                throttleMs, cmdArgs.toString(), expandedExtraParams, eventCount);
+        final SdkCliCommand adbMonkeyCmd = SdkCliCommandFactory.getAdbShellCommandForAPILevel(0)
+                .getMonkeyInputCommand(deviceIdentifier, seedValue, throttleMs, monkeyArgs, eventCount);
 
         // Determine output filename
         String outputFile;
@@ -116,7 +118,7 @@ public class MonkeyBuilder extends AbstractBuilder {
         try {
             log(logger, Messages.STARTING_MONKEY(packageNamesLog, eventCount, seedValue, categoryNamesLog));
             Utils.runAndroidTool(launcher, build.getEnvironment(TaskListener.NULL), monkeyOutput,
-                    logger, androidSdk, Tool.ADB, args, null);
+                    logger, androidSdk, adbMonkeyCmd, null);
         } finally {
             if (monkeyOutput != null) {
                 monkeyOutput.close();
