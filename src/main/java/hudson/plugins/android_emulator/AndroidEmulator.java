@@ -1008,7 +1008,7 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
 
         private ValidationResult checkTargetAbi(String value, boolean allowVariables) {
             if (value == null || "".equals(value.trim())) {
-                return ValidationResult.ok();
+                return ValidationResult.warning(Messages.JOB_CONFIG_EMPTY_ABI());
             }
 
             if (allowVariables && value.matches(Constants.REGEX_VARIABLE)) {

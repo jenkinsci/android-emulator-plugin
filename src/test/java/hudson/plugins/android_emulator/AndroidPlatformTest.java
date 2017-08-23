@@ -215,6 +215,9 @@ public class AndroidPlatformTest extends TestCase {
 
         assertEquals("system-images;android-24;google_apis;x86_64", AndroidPlatform.valueOf("Google Inc.:Google APIs:24").getPackagePathOfSystemImage("x86_64/"));
         assertEquals("system-images;android-24;google_apis;x86_64", AndroidPlatform.valueOf("Google Inc.:Google APIs:24").getPackagePathOfSystemImage("x86_64////"));
+
+        // check if method can handle a 'null'-ABI without NPE
+        assertNotNull(AndroidPlatform.valueOf("Google Inc.:Google APIs:23").getPackagePathOfSystemImage(null));
     }
 
     @Test

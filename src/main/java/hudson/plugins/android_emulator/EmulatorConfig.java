@@ -540,6 +540,10 @@ class EmulatorConfig implements Serializable {
 
             // Android Emulator 2.0 defines target version and target ABI as package path
             if (androidSdk.supportsEmulatorV2()) {
+                if (targetAbi == null || targetAbi.isEmpty()) {
+                    AndroidEmulator.log(logger, Messages.ABI_REQUIRED());
+                    throw new EmulatorCreationException(Messages.AVD_CREATION_FAILED());
+                }
                 builder.add("-k");
                 builder.add(osVersion.getPackagePathOfSystemImage(targetAbi));
             } else {

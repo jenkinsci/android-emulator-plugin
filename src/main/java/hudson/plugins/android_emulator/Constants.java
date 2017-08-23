@@ -300,7 +300,7 @@ class AndroidPlatform implements Serializable {
     private String getTagFromAbiString(final String abi) {
         // After trim and deduplicate slash we have either 'tag/arch' or 'arch' (or 'tag/arch/whatever_data')
         // then match everything before the first '/'
-        String tagFromAbi = trimAndDeduplicateSlash(abi).replaceAll("^[^/]+$", "").replaceAll("^([^/]*)(.*)", "$1");
+        String tagFromAbi = trimAndDeduplicateSlash(Util.fixNull(abi)).replaceAll("^[^/]+$", "").replaceAll("^([^/]*)(.*)", "$1");
         if (tagFromAbi.isEmpty()) {
             tagFromAbi = "android";
         }
@@ -320,7 +320,7 @@ class AndroidPlatform implements Serializable {
         // After trim and de-duplication of slashes we have either 'tag/arch' or 'arch' (or 'tag/arch/whatever_data')
         // then remove all data including the first slash (if matched) (we get 'arch', or 'arch/whatever_data')
         // then we remove everything after the first slash (if matched)
-        return trimAndDeduplicateSlash(abi).replaceAll("^[^/]+/", "").replaceAll("/.*$", "");
+        return trimAndDeduplicateSlash(Util.fixNull(abi)).replaceAll("^[^/]+/", "").replaceAll("/.*$", "");
     }
 
     public String getSystemImageName(final String abi) {
