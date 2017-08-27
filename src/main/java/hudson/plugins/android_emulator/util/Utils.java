@@ -27,6 +27,7 @@ import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.filefilter.IOFileFilter;
 import org.apache.commons.io.filefilter.NameFileFilter;
 import org.apache.commons.io.filefilter.TrueFileFilter;
+import org.apache.commons.lang.exception.ExceptionUtils;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -177,7 +178,6 @@ public class Utils {
      */
     public static AndroidSdk getAndroidSdk(Launcher launcher, final String androidSdkRoot, final String androidSdkHome) {
         final boolean isUnix = launcher.isUnix();
-        final PrintStream logger = launcher.getListener().getLogger();
 
         Callable<AndroidSdk, IOException> task = new MasterToSlaveCallable<AndroidSdk, IOException>() {
             public AndroidSdk call() throws IOException {
@@ -194,7 +194,6 @@ public class Utils {
                     // Validate given SDK root
                     ValidationResult result = Utils.validateAndroidHome(new File(sdkRoot), false);
                     if (result.isFatal()) {
-                        log(logger, "Validate Android Home failed: " + result.getMessage());
                         return null;
                     }
                 }
@@ -205,12 +204,15 @@ public class Utils {
             private static final long serialVersionUID = 1L;
         };
 
+        final PrintStream logger = launcher.getListener().getLogger();
         try {
             return launcher.getChannel().call(task);
         } catch (IOException e) {
-            // Ignore
+            // Ignore, log only
+            log(logger, ExceptionUtils.getFullStackTrace(e));
         } catch (InterruptedException e) {
-            // Ignore
+            // Ignore, log only
+            log(logger, ExceptionUtils.getFullStackTrace(e));
         }
 
         return null;
