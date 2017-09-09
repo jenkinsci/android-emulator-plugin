@@ -10,8 +10,8 @@ public enum Tool {
     EMULATOR64_ARM("emulator64-arm", ".exe", new EmulatorToolLocator()),
     EMULATOR64_MIPS("emulator64-mips", ".exe", new EmulatorToolLocator()),
     EMULATOR64_X86("emulator64-x86", ".exe", new EmulatorToolLocator()),
-    AVDMANAGER("avdmanager", ".exe", new SdkToolLocator()),
-    SDKMANAGER("sdkmanager", ".exe", new SdkToolLocator()),
+    AVDMANAGER("avdmanager", ".bat", new SdkToolLocator()),
+    SDKMANAGER("sdkmanager", ".bat", new SdkToolLocator()),
     MKSDCARD("mksdcard", ".exe");
 
     public static Tool[] EMULATORS = new Tool[] { EMULATOR,
