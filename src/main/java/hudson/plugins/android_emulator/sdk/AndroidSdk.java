@@ -2,7 +2,7 @@ package hudson.plugins.android_emulator.sdk;
 
 import com.google.common.annotations.VisibleForTesting;
 import hudson.Util;
-import hudson.plugins.android_emulator.util.Utils;
+import hudson.plugins.android_emulator.util.ConfigFileUtils;
 import hudson.util.VersionNumber;
 
 import java.io.File;
@@ -53,7 +53,7 @@ public class AndroidSdk implements Serializable {
         // Determine SDK tools version
         File toolsPropFile = new File(sdkRoot, "tools/source.properties");
         Map<String, String> toolsProperties;
-        toolsProperties = Utils.parseConfigFile(toolsPropFile);
+        toolsProperties = ConfigFileUtils.parseConfigFile(toolsPropFile);
         sdkToolsVersion = Util.fixEmptyAndTrim(toolsProperties.get("Pkg.Revision"));
     }
 

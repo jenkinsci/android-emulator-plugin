@@ -4,11 +4,18 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
+import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileReader;
+import java.io.IOException;
 import java.io.PrintWriter;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 
+import org.apache.commons.io.FileUtils;
 import org.junit.Test;
 
 import hudson.EnvVars;
@@ -85,15 +92,156 @@ public class UtilsTest {
     }
 
     @Test
-    public void testReadProperties() throws Exception {
+    public void testReadUnsupportedConfigFile() throws Exception {
         final File temp = File.createTempFile("temp", ".txt");
         temp.deleteOnExit();
-        final PrintWriter writer = new PrintWriter(temp);
-        writer.println("key=value\\\nsplit\\\nin\\\nlines\n");
-        writer.close();
 
-        final Map<String, String> map = Utils.parseConfigFile(temp);
-        assertEquals(1, map.size());
+        try {
+            ConfigFileUtils.parseConfigFile(temp);
+            fail("Expected exception");
+        } catch (IOException expectedException) {
+            // expected path
+        } catch (Exception unexpectedException) {
+            fail("Unexpected exception thrown: " + unexpectedException.getClass().getName());
+        }
+    }
+
+    @Test
+    public void testReadConfigFileInPropertiesFormat() throws Exception {
+        final File temp = File.createTempFile("temp", ".properties");
+        temp.deleteOnExit();
+
+        // test multiline props
+        writeContentToTestFile(temp, "key=value\\\nsplit\\\nin\\\nlines\n");
+
+        assertEquals(1, ConfigFileUtils.parseConfigFile(temp).size());
+
+        // test property behavior  to keep backslash non line break indicator
+        writeContentToTestFile(temp, "key=slashes\\got\\deleted\\here\n");
+
+        assertEquals("slashesgotdeletedhere",
+                ConfigFileUtils.parseConfigFile(temp).get("key"));
+    }
+
+    @Test
+    public void testReadConfigFileInINIFormat() throws Exception {
+        final File temp = File.createTempFile("temp", ".ini");
+        temp.deleteOnExit();
+
+        // value should be returned 'as-is' without removal of '\'
+        writeContentToTestFile(temp, "key=system-images\\android-24\\default\\x86_64\n"
+                + "xxx\n"
+                + "\n"
+                + "test=test\\\n"
+                + "test2=test2\n"
+                + "#comment=1\n"
+                + ";comment2=2\n"
+                + "=nokey\n"
+                + "novalue=\n"
+                + "=");
+
+        assertEquals(5, ConfigFileUtils.parseConfigFile(temp).size());
+
+        assertEquals("system-images\\android-24\\default\\x86_64",
+                ConfigFileUtils.parseConfigFile(temp).get("key"));
+        assertEquals("",
+                ConfigFileUtils.parseConfigFile(temp).get("xxx"));
+        assertEquals("test\\",
+                ConfigFileUtils.parseConfigFile(temp).get("test"));
+        assertEquals("test2",
+                ConfigFileUtils.parseConfigFile(temp).get("test2"));
+        assertEquals("",
+                ConfigFileUtils.parseConfigFile(temp).get("novalue"));
+    }
+
+    @Test
+    public void testWriteUnsupportedConfigFile() throws Exception {
+        final File temp = File.createTempFile("temp", ".txt");
+        temp.deleteOnExit();
+
+        try {
+            ConfigFileUtils.writeConfigFile(temp, new HashMap<String, String>());
+            fail("Expected exception");
+        } catch (IOException expectedException) {
+            // expected path
+        } catch (Exception unexpectedException) {
+            fail("Unexpected exception thrown: " + unexpectedException.getClass().getName());
+        }
+    }
+
+    @Test
+    public void testWriteConfigFileInPropertiesFormat() throws Exception {
+        final File expected = File.createTempFile("temp", ".properties");
+        expected.deleteOnExit();
+
+        final File actual = File.createTempFile("temp", ".properties");
+        actual.deleteOnExit();
+
+        // test pair-wise, as we do not know the properties order
+
+        // Test 1
+        // Setup test data
+        final Map<String, String> keyValues = new HashMap<String, String>();
+        keyValues.put("key","some\\back\\slash\\value");
+
+        ConfigFileUtils.writeConfigFile(actual, keyValues);
+
+        // write expected data
+        String timestamp = readFirstLineOfFile(actual);
+        writeContentToTestFile(expected, timestamp + "\nkey=some\\\\back\\\\slash\\\\value\n");
+
+        assertTrue(FileUtils.contentEquals(expected, actual));
+
+        // Test 2
+        // Setup test data
+        keyValues.clear();
+        keyValues.put("xxx","");
+
+        ConfigFileUtils.writeConfigFile(actual, keyValues);
+
+        // write expected data
+        timestamp = readFirstLineOfFile(actual);
+        writeContentToTestFile(expected, timestamp + "\nxxx=\n");
+
+        assertTrue(FileUtils.contentEquals(expected, actual));
+    }
+
+    @Test
+    public void testWriteConfigFileInINIFormat() throws Exception {
+        final File expected = File.createTempFile("temp", ".ini");
+        expected.deleteOnExit();
+
+        final File actual = File.createTempFile("temp", ".ini");
+        actual.deleteOnExit();
+
+        // Setup test data
+        final Map<String, String> keyValues = new LinkedHashMap<String, String>();
+        keyValues.put("key","system-images\\android-24\\default\\x86_64");
+        keyValues.put("xxx", "");
+        keyValues.put("test", "test\\");
+        keyValues.put("test2", "test2");
+        ConfigFileUtils.writeConfigFile(actual, keyValues);
+
+        // write expected data
+        writeContentToTestFile(expected, "key=system-images\\android-24\\default\\x86_64\r\nxxx=\r\ntest=test\\\r\ntest2=test2\r\n");
+
+        assertTrue(FileUtils.contentEquals(expected, actual));
+    }
+
+    private void writeContentToTestFile(final File file, final String content) throws Exception {
+        final PrintWriter writer = new PrintWriter(file);
+        writer.print(content);
+        writer.close();
+    }
+
+    private String readFirstLineOfFile(final File file) throws Exception {
+        FileReader fileReader = new FileReader(file);
+        BufferedReader bufferedReader = new BufferedReader(fileReader);
+        final String firstLine = bufferedReader.readLine();
+        bufferedReader.close();
+        fileReader.close();
+
+        return firstLine;
     }
 
     @Test

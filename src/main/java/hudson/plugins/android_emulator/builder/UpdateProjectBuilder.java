@@ -14,6 +14,7 @@ import hudson.plugins.android_emulator.sdk.cli.SdkCliCommand;
 import hudson.plugins.android_emulator.sdk.cli.SdkCliCommandFactory;
 import hudson.plugins.android_emulator.sdk.cli.SdkToolsCommands;
 import hudson.plugins.android_emulator.util.Utils;
+import hudson.plugins.android_emulator.util.ConfigFileUtils;
 import hudson.remoting.VirtualChannel;
 import hudson.tasks.Builder;
 
@@ -241,7 +242,7 @@ public class UpdateProjectBuilder extends AbstractBuilder {
             try {
                 dir = projectFile.getParentFile().getCanonicalPath();
 
-                Map<String, String> config = Utils.parseConfigFile(projectFile);
+                Map<String, String> config = ConfigFileUtils.parseConfigFile(projectFile);
                 boolean isLibrary = Boolean.valueOf(config.get("android.library"));
                 if (isLibrary) {
                     type = ProjectType.LIBRARY;

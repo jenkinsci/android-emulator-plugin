@@ -11,6 +11,7 @@ import hudson.plugins.android_emulator.sdk.AndroidSdk;
 import hudson.plugins.android_emulator.sdk.Tool;
 import hudson.plugins.android_emulator.sdk.cli.SdkCliCommand;
 import hudson.plugins.android_emulator.sdk.cli.SdkCliCommandFactory;
+import hudson.plugins.android_emulator.util.ConfigFileUtils;
 import hudson.plugins.android_emulator.util.Utils;
 import hudson.remoting.Callable;
 import hudson.util.ArgumentListBuilder;
@@ -18,11 +19,9 @@ import hudson.util.StreamCopyThread;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.PrintStream;
-import java.io.PrintWriter;
 import java.io.PushbackInputStream;
 import java.io.Serializable;
 import java.util.Map;
@@ -300,24 +299,12 @@ class EmulatorConfig implements Serializable {
 
     private Map<String,String> parseAvdConfigFile(File homeDir) throws IOException {
         File configFile = getAvdConfigFile(homeDir);
-        return Utils.parseConfigFile(configFile);
+        return ConfigFileUtils.parseConfigFile(configFile);
     }
 
-    private void writeAvdConfigFile(File homeDir, Map<String,String> values) throws FileNotFoundException {
-        StringBuilder sb = new StringBuilder();
-
-        for (String key : values.keySet()) {
-            sb.append(key);
-            sb.append("=");
-            sb.append(values.get(key));
-            sb.append("\r\n");
-        }
-
-        File configFile = new File(getAvdDirectory(homeDir), "config.ini");
-        PrintWriter out = new PrintWriter(configFile);
-        out.print(sb.toString());
-        out.flush();
-        out.close();
+    private void writeAvdConfigFile(File homeDir, Map<String,String> values) throws IOException {
+        final File configFile = getAvdConfigFile(homeDir);
+        ConfigFileUtils.writeConfigFile(configFile, values);
     }
 
     /**

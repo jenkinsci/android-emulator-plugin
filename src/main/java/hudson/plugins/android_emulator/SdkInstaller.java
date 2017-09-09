@@ -14,6 +14,7 @@ import hudson.plugins.android_emulator.sdk.cli.SdkCliCommandFactory;
 import hudson.plugins.android_emulator.sdk.cli.SdkToolsCommands;
 import hudson.plugins.android_emulator.sdk.cli.SdkCliCommand;
 import hudson.plugins.android_emulator.util.Utils;
+import hudson.plugins.android_emulator.util.ConfigFileUtils;
 import hudson.plugins.android_emulator.util.ValidationResult;
 import hudson.remoting.Callable;
 import hudson.remoting.VirtualChannel;
@@ -41,8 +42,6 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.WeakHashMap;
 import java.util.concurrent.Semaphore;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 import static hudson.plugins.android_emulator.AndroidEmulator.log;
 
@@ -402,7 +401,7 @@ public class SdkInstaller {
         return launcher.getChannel().call(new MasterToSlaveCallable<String, IOException>() {
             public String call() throws IOException {
                 File metadataFile = emuConfig.getAvdMetadataFile();
-                Map<String, String> metadata = Utils.parseConfigFile(metadataFile);
+                Map<String, String> metadata = ConfigFileUtils.parseConfigFile(metadataFile);
                 return metadata.get("target");
             }
             private static final long serialVersionUID = 1L;

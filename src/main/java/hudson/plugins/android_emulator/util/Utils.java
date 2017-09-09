@@ -31,7 +31,6 @@ import org.apache.commons.lang.exception.ExceptionUtils;
 
 import java.io.BufferedReader;
 import java.io.File;
-import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
@@ -44,7 +43,6 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Properties;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
 import java.util.concurrent.FutureTask;
@@ -498,28 +496,6 @@ public class Utils {
         } else {
             proc.join();
         }
-    }
-
-    /**
-     * Parses the contents of a properties file into a map.
-     *
-     * @param configFile The file to read.
-     * @return The key-value pairs contained in the file, ignoring any comments or blank lines.
-     * @throws IOException If the file could not be read.
-     */
-    public static Map<String, String> parseConfigFile(File configFile) throws IOException {
-        FileReader fileReader = new FileReader(configFile);
-        BufferedReader reader = new BufferedReader(fileReader);
-        Properties properties = new Properties();
-        properties.load(reader);
-        reader.close();
-
-        final Map<String, String> values = new HashMap<String, String>();
-        for (final Map.Entry<Object, Object> entry : properties.entrySet()) {
-            values.put((String) entry.getKey(), (String) entry.getValue());
-        }
-
-        return values;
     }
 
     /**
