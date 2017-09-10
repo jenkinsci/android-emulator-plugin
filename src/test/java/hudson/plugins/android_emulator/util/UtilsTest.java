@@ -16,6 +16,8 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.FilenameUtils;
+import org.apache.commons.lang.SystemUtils;
 import org.junit.Test;
 
 import hudson.EnvVars;
@@ -72,10 +74,18 @@ public class UtilsTest {
     @Test
     public void testRelativeNull() {
         assertRelative("/", null, null);
+        assertRelative(null, "/", null);
     }
 
     private static void assertRelative(String from, String to, String expectedResult) {
-        assertEquals(expectedResult, Utils.getRelativePath(from, to));
+        assertEquals(FilenameUtils.separatorsToSystem(expectedResult), Utils.getRelativePath(from, to));
+    }
+
+    @Test
+    public void testNormalizePathSeparator() {
+        assertEquals("/a/b/c", Utils.normalizePathSeparators("//a/////b//c"));
+        assertEquals("/a/../b/c", Utils.normalizePathSeparators("//a//..///b//c"));
+        assertEquals("\\\\HOST\\b\\c\\", Utils.normalizePathSeparators("\\\\\\HOST\\\\\\\\\\b\\\\\\c\\\\"));
     }
 
     @Test
@@ -85,6 +95,8 @@ public class UtilsTest {
         assertRelativeDistance("/foo/bar", "/foo/baz", 2);
         assertRelativeDistance("/foo/bar/app", "/foo/bar/tests/unit", 3);
         assertRelativeDistance("/", "/x", 1);
+        assertRelativeDistance("/", null, -1);
+        assertRelativeDistance("\\\\HOST\\a\\b", "\\\\HOST\\a\\c", 2);
     }
 
     private static void assertRelativeDistance(String from, String to, int expectedResult) {
@@ -177,6 +189,8 @@ public class UtilsTest {
         final File actual = File.createTempFile("temp", ".properties");
         actual.deleteOnExit();
 
+        final String newLine = (SystemUtils.IS_OS_WINDOWS) ? "\r\n" : "\n";
+
         // test pair-wise, as we do not know the properties order
 
         // Test 1
@@ -188,9 +202,10 @@ public class UtilsTest {
 
         // write expected data
         String timestamp = readFirstLineOfFile(actual);
-        writeContentToTestFile(expected, timestamp + "\nkey=some\\\\back\\\\slash\\\\value\n");
+        writeContentToTestFile(expected, timestamp + newLine +
+                "key=some\\\\back\\\\slash\\\\value" + newLine);
 
-        assertTrue(FileUtils.contentEquals(expected, actual));
+        assertTrue("File contents differ!", FileUtils.contentEquals(expected, actual));
 
         // Test 2
         // Setup test data
@@ -201,9 +216,10 @@ public class UtilsTest {
 
         // write expected data
         timestamp = readFirstLineOfFile(actual);
-        writeContentToTestFile(expected, timestamp + "\nxxx=\n");
+        writeContentToTestFile(expected, timestamp + newLine +
+                "xxx=" + newLine);
 
-        assertTrue(FileUtils.contentEquals(expected, actual));
+        assertTrue("File contents differ!", FileUtils.contentEquals(expected, actual));
     }
 
     @Test

@@ -645,8 +645,9 @@ public class Utils {
 
         String fromPath, toPath;
         try {
-            fromPath = new File(from).getCanonicalPath();
-            toPath = new File(to).getCanonicalPath();
+            // normalize separators first to avoid '//' typos on unix to get converted to UNC paths on windows
+            fromPath = new File(normalizePathSeparators(from)).getCanonicalPath();
+            toPath = new File(normalizePathSeparators(to)).getCanonicalPath();
         } catch (IOException e1) {
             e1.printStackTrace();
             return null;
@@ -656,25 +657,19 @@ public class Utils {
         if (fromPath.equals(toPath)) {
             return "";
         }
-        // Target directory is a subdirectory
-        if (toPath.startsWith(fromPath)) {
-            int fromLength = fromPath.length();
-            int index = fromLength == 1 ? 1 : fromLength + 1;
-            return toPath.substring(index) + File.separatorChar;
-        }
 
         // Quote separator, as String.split() takes a regex and
         // File.separator isn't a valid regex character on Windows
         final String separator = Pattern.quote(File.separator);
         // Target directory is somewhere above our directory
         String[] fromParts = fromPath.substring(1).split(separator);
-        final int fromLength = fromParts.length;
+        final int fromLength = getNumberOfNonEmptyEntries(fromParts);
         String[] toParts = toPath.substring(1).split(separator);
-        final int toLength = toParts.length;
+        final int toLength = getNumberOfNonEmptyEntries(toParts);
 
         // Find the number of common path segments
         int commonLength = 0;
-        for (int i = 0; i < toLength; i++) {
+        for (int i = 0; i < toLength && i < fromLength; i++) {
             if (fromParts[i].length() == 0) {
                 continue;
             }
@@ -721,12 +716,39 @@ public class Utils {
             return -1;
         }
 
-        final String[] parts = relative.split("/");
-        final int length = parts.length;
-        if (length == 1 && parts[0].isEmpty()) {
-            return 0;
+        final String[] parts = relative.split(Pattern.quote(File.separator));
+        return getNumberOfNonEmptyEntries(parts);
+    }
+
+    /**
+     * Reduce multi-slash and multi-backslash to single characters, but keeping
+     * double backslash in the beginning to keep UNC paths.
+     *
+     * @param path the path to normalize
+     * @return normalized path without double slash/backslash
+     */
+    public static String normalizePathSeparators(final String path) {
+        return path
+                // multi-backslash to double first, then all except on start to single backslash, to avoid loosing UNC paths
+                .replaceAll("\\\\\\\\+", "\\\\\\\\").replaceAll("(?<!^)\\\\+", "\\\\")
+                // multi-slash to single slash for unix paths
+                .replaceAll("/+", "/");
+    }
+
+    /**
+     * Returns the length of the String-Array omitting empty entries.
+     *
+     * @param array String array to retrieve length from
+     * @return number of non empty String entries
+     */
+    private static int getNumberOfNonEmptyEntries(final String[] array) {
+        int length = 0;
+        for (int idx = 0; idx < array.length; idx++) {
+            if (!array[idx].isEmpty()) {
+                length++;
+            }
         }
-        return parts.length;
+        return length;
     }
 
     /**
