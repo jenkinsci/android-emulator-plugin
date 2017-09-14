@@ -12,6 +12,7 @@ import hudson.model.BuildListener;
 import hudson.model.Computer;
 import hudson.model.Hudson;
 import hudson.model.Node;
+import hudson.model.TaskListener;
 import hudson.plugins.android_emulator.AndroidEmulator.DescriptorImpl;
 import hudson.plugins.android_emulator.Constants;
 import hudson.plugins.android_emulator.Messages;
@@ -176,9 +177,11 @@ public class Utils {
      */
     public static AndroidSdk getAndroidSdk(Launcher launcher, final String androidSdkRoot, final String androidSdkHome) {
         final boolean isUnix = launcher.isUnix();
+        final TaskListener listener = launcher.getListener();
 
         Callable<AndroidSdk, IOException> task = new MasterToSlaveCallable<AndroidSdk, IOException>() {
             public AndroidSdk call() throws IOException {
+                final PrintStream logger = listener.getLogger();
                 String sdkRoot = androidSdkRoot;
                 if (androidSdkRoot == null) {
                     // If no SDK root was specified, attempt to detect it from PATH
@@ -186,12 +189,18 @@ public class Utils {
 
                     // If still nothing was found, then we cannot continue
                     if (sdkRoot == null) {
+                        log(logger, Messages.SDK_DETERMINATION_VIA_PATH_FAILED());
                         return null;
                     }
                 } else {
                     // Validate given SDK root
-                    ValidationResult result = Utils.validateAndroidHome(new File(sdkRoot), false);
+                    final File sdkRootFile = new File(sdkRoot);
+                    ValidationResult result = Utils.validateAndroidHome(sdkRootFile, false);
                     if (result.isFatal()) {
+                        log(logger, Messages.SDK_DETERMINATION_VIA_SDKROOT_FAILED(
+                                "sdkRoot='" + sdkRoot + "', "
+                                + "absPath='" + sdkRootFile.getAbsolutePath() + "'",
+                                result.getMessage()));
                         return null;
                     }
                 }
@@ -202,7 +211,7 @@ public class Utils {
             private static final long serialVersionUID = 1L;
         };
 
-        final PrintStream logger = launcher.getListener().getLogger();
+        final PrintStream logger = listener.getLogger();
         try {
             return launcher.getChannel().call(task);
         } catch (IOException e) {
