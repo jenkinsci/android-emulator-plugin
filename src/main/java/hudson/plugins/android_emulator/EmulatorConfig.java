@@ -522,7 +522,8 @@ class EmulatorConfig implements Serializable {
 
             final SdkCliCommand sdkCreateAvdCmd = SdkCliCommandFactory.getCommandsForSdk(androidSdk)
                     .getCreatedAvdCommand(getAvdName(), androidSdk.supportsSnapshots(),
-                            sdCardSize, screenResolution.getSkinName(), deviceDefinition);
+                            sdCardSize, screenResolution.getSkinName(), deviceDefinition,
+                            osVersion.getTargetName(), osVersion.getPackagePathOfSystemImage(targetAbi));
             boolean isUnix = !Functions.isWindows();
             ArgumentListBuilder builder = Utils.getToolCommand(androidSdk, isUnix, sdkCreateAvdCmd);
 
@@ -532,13 +533,7 @@ class EmulatorConfig implements Serializable {
                     AndroidEmulator.log(logger, Messages.ABI_REQUIRED());
                     throw new EmulatorCreationException(Messages.AVD_CREATION_FAILED());
                 }
-                builder.add("-k");
-                builder.add(osVersion.getPackagePathOfSystemImage(targetAbi));
             } else {
-                // Tack on quoted platform name at the end, since it can be anything
-                builder.add("-t");
-                builder.add(osVersion.getTargetName());
-
                 if (targetAbi != null && osVersion.requiresAbi()) {
                     // This is an unpleasant side-effect of there being an ABI for android-10,
                     // and that Google renamed the image after its initial release from Intel...

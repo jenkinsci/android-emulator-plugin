@@ -12,7 +12,8 @@ public interface SdkToolsCommands {
     boolean isImageForPlatformAndABIInstalled(final String listSystemImagesOutput,
             final String platform, final String abi);
     SdkCliCommand getCreatedAvdCommand(final String avdName, final boolean createSnapshot,
-            final String sdCardSize, final String screenResolutionSkinName, final String deviceDefinition);
+            final String sdCardSize, final String screenResolutionSkinName, final String deviceDefinition,
+            final String androidTarget, final String systemImagePackagePath);
 
     SdkCliCommand getAdbInstallPackageCommand(final String deviceIdentifier, final String packageFileName);
     SdkCliCommand getAdbUninstallPackageCommand(final String deviceIdentifier, final String packageId);

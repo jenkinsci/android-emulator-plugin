@@ -141,41 +141,59 @@ public class SdkCommandsTest {
     @Test
     public void testCreateAvdCommand() {
         // no snapshot, no sdcard
-        final SdkCliCommand createAvdBasicCmdV25 = SdkCliCommandFactory.getCommandsForSdk(25).getCreatedAvdCommand("test25", false, null, "dummy", "9");
-        final SdkCliCommand createAvdBasicCmdV17 = SdkCliCommandFactory.getCommandsForSdk(17).getCreatedAvdCommand("test17", false, null, "768x1024", null);
-        final SdkCliCommand createAvdBasicCmdV04 = SdkCliCommandFactory.getCommandsForSdk( 4).getCreatedAvdCommand("test04", false, null, "1080x1920", "7");
+        final SdkCliCommand createAvdBasicCmdV25 = SdkCliCommandFactory.getCommandsForSdk(25)
+                .getCreatedAvdCommand("test25", false, null, "dummy", "9",
+                        null, "system-images;android-24;default;x86_64");
+        final SdkCliCommand createAvdBasicCmdV17 = SdkCliCommandFactory.getCommandsForSdk(17)
+                .getCreatedAvdCommand("test17", false, null, "768x1024", null,
+                        "android-23", null);
+        final SdkCliCommand createAvdBasicCmdV04 = SdkCliCommandFactory.getCommandsForSdk( 4)
+                .getCreatedAvdCommand("test04", false, null, "1080x1920", "7",
+                        "android-23", null);
 
         assertEquals(Tool.AVDMANAGER, createAvdBasicCmdV25.getTool());
         assertEquals(Tool.ANDROID_LEGACY, createAvdBasicCmdV17.getTool());
         assertEquals(Tool.ANDROID_LEGACY, createAvdBasicCmdV04.getTool());
 
-        assertEquals("create avd -f -d 9 -n test25", createAvdBasicCmdV25.getArgs());
-        assertEquals("create avd -f -s 768x1024 -n test17", createAvdBasicCmdV17.getArgs());
-        assertEquals("create avd -f -s 1080x1920 -n test04", createAvdBasicCmdV04.getArgs());
+        assertEquals("create avd -f -d 9 -n test25 -k system-images;android-24;default;x86_64", createAvdBasicCmdV25.getArgs());
+        assertEquals("create avd -f -s 768x1024 -n test17 -t android-23", createAvdBasicCmdV17.getArgs());
+        assertEquals("create avd -f -s 1080x1920 -n test04 -t android-23", createAvdBasicCmdV04.getArgs());
 
-        final SdkCliCommand createAvdWithSnapshotCmdV25 = SdkCliCommandFactory.getCommandsForSdk(25).getCreatedAvdCommand("test25", true, null, null, "4");
-        final SdkCliCommand createAvdWithSnapshotCmdV17 = SdkCliCommandFactory.getCommandsForSdk(17).getCreatedAvdCommand("test17", true, null, "1x1", null);
-        final SdkCliCommand createAvdWithSnapshotCmdV04 = SdkCliCommandFactory.getCommandsForSdk( 4).getCreatedAvdCommand("test04", true, null, "test", null);
+        final SdkCliCommand createAvdWithSnapshotCmdV25 = SdkCliCommandFactory.getCommandsForSdk(25)
+                .getCreatedAvdCommand("test25", true, null, null, "4",
+                        null, "system-images;android-24;default;x86_64");
+        final SdkCliCommand createAvdWithSnapshotCmdV17 = SdkCliCommandFactory.getCommandsForSdk(17)
+                .getCreatedAvdCommand("test17", true, null, "1x1", null,
+                        "android-23", null);
+        final SdkCliCommand createAvdWithSnapshotCmdV04 = SdkCliCommandFactory.getCommandsForSdk( 4)
+                .getCreatedAvdCommand("test04", true, null, "test", null,
+                        "android-23", null);
 
         assertEquals(Tool.AVDMANAGER, createAvdWithSnapshotCmdV25.getTool());
         assertEquals(Tool.ANDROID_LEGACY, createAvdWithSnapshotCmdV17.getTool());
         assertEquals(Tool.ANDROID_LEGACY, createAvdWithSnapshotCmdV04.getTool());
 
-        assertEquals("create avd -f -a -d 4 -n test25", createAvdWithSnapshotCmdV25.getArgs());
-        assertEquals("create avd -f -a -s 1x1 -n test17", createAvdWithSnapshotCmdV17.getArgs());
-        assertEquals("create avd -f -a -s test -n test04", createAvdWithSnapshotCmdV04.getArgs());
+        assertEquals("create avd -f -a -d 4 -n test25 -k system-images;android-24;default;x86_64", createAvdWithSnapshotCmdV25.getArgs());
+        assertEquals("create avd -f -a -s 1x1 -n test17 -t android-23", createAvdWithSnapshotCmdV17.getArgs());
+        assertEquals("create avd -f -a -s test -n test04 -t android-23", createAvdWithSnapshotCmdV04.getArgs());
 
-        final SdkCliCommand createAvdWithSdCardCmdV25 = SdkCliCommandFactory.getCommandsForSdk(25).getCreatedAvdCommand("test25", false, "100M", null, "4");
-        final SdkCliCommand createAvdWithSdCardCmdV17 = SdkCliCommandFactory.getCommandsForSdk(17).getCreatedAvdCommand("test17", true, "1G", "1x1", null);
-        final SdkCliCommand createAvdWithSdCardCmdV04 = SdkCliCommandFactory.getCommandsForSdk( 4).getCreatedAvdCommand("test04", false, "200M", "test", null);
+        final SdkCliCommand createAvdWithSdCardCmdV25 = SdkCliCommandFactory.getCommandsForSdk(25)
+                .getCreatedAvdCommand("test25", false, "100M", null, "4",
+                        null, "system-images;android-24;default;x86_64");
+        final SdkCliCommand createAvdWithSdCardCmdV17 = SdkCliCommandFactory.getCommandsForSdk(17)
+                .getCreatedAvdCommand("test17", true, "1G", "1x1", null,
+                        "android-23", null);
+        final SdkCliCommand createAvdWithSdCardCmdV04 = SdkCliCommandFactory.getCommandsForSdk( 4)
+                .getCreatedAvdCommand("test04", false, "200M", "test", null,
+                        "android-23", null);
 
         assertEquals(Tool.AVDMANAGER, createAvdWithSdCardCmdV25.getTool());
         assertEquals(Tool.ANDROID_LEGACY, createAvdWithSdCardCmdV17.getTool());
         assertEquals(Tool.ANDROID_LEGACY, createAvdWithSdCardCmdV04.getTool());
 
-        assertEquals("create avd -f -c 100M -d 4 -n test25", createAvdWithSdCardCmdV25.getArgs());
-        assertEquals("create avd -f -a -c 1G -s 1x1 -n test17", createAvdWithSdCardCmdV17.getArgs());
-        assertEquals("create avd -f -c 200M -s test -n test04", createAvdWithSdCardCmdV04.getArgs());
+        assertEquals("create avd -f -c 100M -d 4 -n test25 -k system-images;android-24;default;x86_64", createAvdWithSdCardCmdV25.getArgs());
+        assertEquals("create avd -f -a -c 1G -s 1x1 -n test17 -t android-23", createAvdWithSdCardCmdV17.getArgs());
+        assertEquals("create avd -f -c 200M -s test -n test04 -t android-23", createAvdWithSdCardCmdV04.getArgs());
     }
 
     @Test
@@ -350,5 +368,4 @@ public class SdkCommandsTest {
         assertFalse(updateLibraryProjectCmdV17.isNoopCmd());
         assertFalse(updateLibraryProjectCmdV04.isNoopCmd());
     }
-
 }

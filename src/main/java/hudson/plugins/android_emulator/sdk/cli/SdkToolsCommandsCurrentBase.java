@@ -1,6 +1,5 @@
 package hudson.plugins.android_emulator.sdk.cli;
 
-import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.apache.commons.lang.StringUtils;
@@ -65,7 +64,8 @@ public class SdkToolsCommandsCurrentBase implements SdkToolsCommands {
 
     @Override
     public SdkCliCommand getCreatedAvdCommand(final String avdName, final boolean createSnapshot,
-            final String sdCardSize, final String screenResolutionSkinName, final String deviceDefinition) {
+            final String sdCardSize, final String screenResolutionSkinName, final String deviceDefinition,
+            final String androidTarget, final String systemImagePackagePath) {
 
         // Build up basic arguments to `android` command
         final StringBuilder args = new StringBuilder(100);
@@ -92,6 +92,9 @@ public class SdkToolsCommandsCurrentBase implements SdkToolsCommands {
 
         args.append(" -n ");
         args.append(avdName);
+
+        args.append(" -k ");
+        args.append(systemImagePackagePath);
 
         return new SdkCliCommand(Tool.AVDMANAGER, args.toString());
     }

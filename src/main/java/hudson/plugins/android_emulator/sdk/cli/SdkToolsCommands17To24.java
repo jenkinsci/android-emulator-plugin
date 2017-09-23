@@ -48,7 +48,8 @@ public class SdkToolsCommands17To24 extends SdkToolsCommandsCurrentBase implemen
 
     @Override
     public SdkCliCommand getCreatedAvdCommand(final String avdName, final boolean createSnapshot,
-            final String sdCardSize, final String screenResolutionSkinName, final String deviceDefinition) {
+            final String sdCardSize, final String screenResolutionSkinName, final String deviceDefinition,
+            final String androidTarget, final String systemImagePackagePath) {
 
         // Build up basic arguments to `android` command
         final StringBuilder args = new StringBuilder(100);
@@ -74,6 +75,9 @@ public class SdkToolsCommands17To24 extends SdkToolsCommandsCurrentBase implemen
 
         args.append(" -n ");
         args.append(avdName);
+
+        args.append(" -t ");
+        args.append(androidTarget);
 
         return new SdkCliCommand(Tool.ANDROID_LEGACY, args.toString());
     }
