@@ -12,21 +12,22 @@ import hudson.plugins.android_emulator.sdk.Tool;
 import hudson.plugins.android_emulator.sdk.cli.SdkCliCommand;
 import hudson.plugins.android_emulator.sdk.cli.SdkCliCommandFactory;
 import hudson.plugins.android_emulator.util.ConfigFileUtils;
+import hudson.plugins.android_emulator.util.StdoutReader;
 import hudson.plugins.android_emulator.util.Utils;
 import hudson.remoting.Callable;
 import hudson.util.ArgumentListBuilder;
-import hudson.util.StreamCopyThread;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.PrintStream;
-import java.io.PushbackInputStream;
 import java.io.Serializable;
 import java.util.Map;
 import java.util.regex.Pattern;
 import jenkins.security.MasterToSlaveCallable;
+
+import org.apache.commons.lang.exception.ExceptionUtils;
 
 class EmulatorConfig implements Serializable {
 
@@ -555,92 +556,86 @@ class EmulatorConfig implements Serializable {
             AndroidEmulator.log(logger, builder.toStringWithQuote());
 
             // Run!
-            boolean avdCreated = false;
             final Process process;
             try {
                 ProcessBuilder procBuilder = new ProcessBuilder(builder.toList());
                 if (androidSdk.hasKnownHome()) {
                     procBuilder.environment().put(Constants.ENV_VAR_ANDROID_SDK_HOME, androidSdk.getSdkHome());
                 }
+                // Stderr and Stdout can be fetched via getOutputStream
+                procBuilder.redirectErrorStream(true);
                 process = procBuilder.start();
             } catch (IOException ex) {
                 throw new EmulatorCreationException(Messages.AVD_CREATION_FAILED());
             }
 
-            // Redirect process's stderr to a stream, for logging purposes
-            ByteArrayOutputStream stderr = new ByteArrayOutputStream();
-            ByteArrayOutputStream stdout = new ByteArrayOutputStream();
-            new StreamCopyThread("", process.getErrorStream(), stderr).start();
+            final OutputStream procstdin = process.getOutputStream();
+            final StdoutReader procstdout = new StdoutReader(process.getInputStream());
 
             // Command may prompt us whether we want to further customise the AVD.
             // Just "press" Enter to continue with the selected target's defaults.
             try {
-                boolean processAlive = true;
+                int waitCnt = 0;
+                while (process.isAlive()) {
+                    final String line = procstdout.readLine();
+                    if (line != null && !line.isEmpty()) {
+                        AndroidEmulator.log(logger, line, true);
 
-                // Block until the command outputs something (or process ends)
-                final PushbackInputStream in = new PushbackInputStream(process.getInputStream(), 10);
-                int len = in.read();
-                if (len == -1) {
-                    // Check whether the process has exited badly, as sometimes no output is valid.
-                    // e.g. When creating an AVD with Google APIs, no user input is requested.
-                    if (process.waitFor() != 0) {
-                        AndroidEmulator.log(logger, Messages.AVD_CREATION_FAILED());
-                        AndroidEmulator.log(logger, stderr.toString(), true);
-                        throw new EmulatorCreationException(Messages.AVD_CREATION_FAILED());
+                        if (line.contains("custom hardware")) {
+                            procstdin.write("no\r\n".getBytes());
+                            procstdin.flush();
+                        } else if (line.contains("list targets")) {
+                            AndroidEmulator.log(logger, Messages.INVALID_AVD_TARGET(osVersion.getTargetName()));
+                        } else if (line.contains("more than one ABI")) {
+                            AndroidEmulator.log(logger, Messages.MORE_THAN_ONE_ABI(osVersion.getTargetName()), true);
+                        }
+                    } else {
+                        // Write CRLF, if required
+                        if (waitCnt++ > 5) {
+                            waitCnt = 0;
+
+                            AndroidEmulator.log(logger, "> Process took a while, may wait for input.", true);
+                            AndroidEmulator.log(logger, "> <SENDING ENTER>", true);
+
+                            try {
+                                procstdin.write("\r\n".getBytes());
+                                procstdin.flush();
+                            } catch (IOException ioex) {
+                                AndroidEmulator.log(logger, "> " + ioex.getMessage(), true);
+                            }
+                        }
+
+                        try {
+                            Thread.sleep(1000);
+                        } catch (InterruptedException ex) {
+                        }
                     }
-                    processAlive = false;
                 }
-                in.unread(len);
-
-                // Write CRLF, if required
-                if (processAlive) {
-                    final OutputStream stream = process.getOutputStream();
-                    stream.write('\r');
-                    stream.write('\n');
-                    stream.flush();
-                    stream.close();
-                }
-
-                // read the rest of stdout (for debugging purposes)
-                Util.copyStream(in, stdout);
-                in.close();
 
                 // Wait for happy ending
-                if (process.waitFor() == 0) {
-                    // Do a sanity check to ensure the AVD was really created
-                    avdCreated = getAvdConfigFile(homeDir).exists();
-                }
-
+                process.waitFor();
             } catch (IOException e) {
+                AndroidEmulator.log(logger, ExceptionUtils.getFullStackTrace(e), true);
                 throw new EmulatorCreationException(Messages.AVD_CREATION_ABORTED(), e);
             } catch (InterruptedException e) {
+                AndroidEmulator.log(logger, ExceptionUtils.getFullStackTrace(e), true);
                 throw new EmulatorCreationException(Messages.AVD_CREATION_INTERRUPTED(), e);
             } finally {
                 process.destroy();
             }
 
-            // For reasons unknown, the return code may not be correctly reported on Windows.
-            // So check whether stderr contains failure info (useful for other platforms too).
-            String errOutput = stderr.toString();
-            String output = stdout.toString();
-            if (errOutput.contains("list targets")) {
-                AndroidEmulator.log(logger, Messages.INVALID_AVD_TARGET(osVersion.getTargetName()));
-                avdCreated = false;
-                errOutput = null;
-            } else if (errOutput.contains("more than one ABI")) {
-                AndroidEmulator.log(logger, Messages.MORE_THAN_ONE_ABI(osVersion.getTargetName(), output), true);
-                avdCreated = false;
-                errOutput = null;
+            // print the rest of stdout (for debugging purposes)
+            final String output = procstdout.readContent();
+            if (output != null && !output.isEmpty()) {
+                    AndroidEmulator.log(logger, output, true);
             }
 
-            // Set the screen density
-            setAvdConfigValue(homeDir, "hw.lcd.density", String.valueOf(getScreenDensity().getDpi()));
-
-            // Check everything went ok
-            if (!avdCreated) {
-                if (errOutput != null && errOutput.length() != 0) {
-                    AndroidEmulator.log(logger, stderr.toString(), true);
-                }
+            // Do a sanity check to ensure the AVD was really created
+            if (getAvdConfigFile(homeDir).exists()) {
+                // Set the screen density
+                setAvdConfigValue(homeDir, "hw.lcd.density", String.valueOf(getScreenDensity().getDpi()));
+            } else {
+                AndroidEmulator.log(logger, Messages.AVD_CREATION_FAILED());
                 throw new EmulatorCreationException(Messages.AVD_CREATION_FAILED());
             }
 

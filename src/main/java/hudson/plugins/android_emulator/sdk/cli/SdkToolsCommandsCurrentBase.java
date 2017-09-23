@@ -85,8 +85,10 @@ public class SdkToolsCommandsCurrentBase implements SdkToolsCommands {
         }
 
         // A device definition needs to be set, if not there would be an prompt of the avdmanager command
-        args.append(" -d ");
-        args.append(deviceDefinition);
+        if (deviceDefinition != null && !deviceDefinition.isEmpty()) {
+            args.append(" -d ");
+            args.append(deviceDefinition);
+        }
 
         args.append(" -n ");
         args.append(avdName);

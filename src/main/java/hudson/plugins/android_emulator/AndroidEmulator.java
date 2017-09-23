@@ -1028,10 +1028,6 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
         }
 
         private ValidationResult checkDeviceDefinition(String value, boolean allowVariables) {
-            if (value == null || "".equals(value.trim())) {
-                return ValidationResult.warning(Messages.EMPTY_DEVICE_DEFINITION());
-            }
-
             return ValidationResult.ok();
         }
 
