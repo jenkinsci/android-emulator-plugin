@@ -58,7 +58,7 @@ public class SdkToolsCommandsCurrentBase implements SdkToolsCommands {
         final String tagString = (containsTag) ? abiSplit[0] : "default";
 
         final String installedPkg = listSystemImagesOutput.replaceAll("(?is)Available Packages:.*", "");
-        final String systemImageName = "system-images;" + platform + ";" + tagString + ";" + abiString;
+        final String systemImageName = "^system-images;" + platform + ";" + tagString + ";" + abiString + "$";
         Pattern pattern = Pattern.compile("^" + systemImageName, Pattern.MULTILINE);
         return pattern.matcher(installedPkg).find();
     }

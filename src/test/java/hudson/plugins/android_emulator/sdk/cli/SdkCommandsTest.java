@@ -128,6 +128,8 @@ public class SdkCommandsTest {
 
     @Test
     public void testIsImageForPlatformAndABIInstalledParser() {
+        assertFalse(SdkCliCommandFactory.getCommandsForSdk("26")
+                .isImageForPlatformAndABIInstalled(SdkCommandsTestData.LIST_SDK_COMPONENTS_SDKMANAGER, "android-24", "x86"));
         assertFalse(SdkCliCommandFactory.getCommandsForSdk("25.3")
                 .isImageForPlatformAndABIInstalled(SdkCommandsTestData.LIST_SDK_COMPONENTS_SDKMANAGER, "android-26", "x86_64"));
         assertTrue(SdkCliCommandFactory.getCommandsForSdk("25.3")
