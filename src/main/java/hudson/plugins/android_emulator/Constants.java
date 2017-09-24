@@ -290,19 +290,20 @@ class AndroidPlatform implements Serializable {
 
     /**
      * The ABi-string may consist of an tag and an architecture ('tag/arch') or just the architecture.
-     * This method returns the tag from the ABI-string, if no tag is set, the default 'android' is used.
+     * This method returns the tag from the ABI-string, if no tag is set, the platform id is used, if no
+     * custom platform is set, an empty string is returned.
      * To reduce input error, leading and trailing slashes are removed and multiple slashes are treated
      * as single ones.
      *
      * @param abi either 'tag/arch' or 'arch'
-     * @return the extracted 'tag' or "android" as default tag if no tag was given
+     * @return the extracted 'tag', if no tag was given the platform id, if this is not set an empty string
      */
-    private String getTagFromAbiString(final String abi) {
+    public String getTagFromAbiString(final String abi) {
         // After trim and deduplicate slash we have either 'tag/arch' or 'arch' (or 'tag/arch/whatever_data')
         // then match everything before the first '/'
         String tagFromAbi = trimAndDeduplicateSlash(Util.fixNull(abi)).replaceAll("^[^/]+$", "").replaceAll("^([^/]*)(.*)", "$1");
-        if (tagFromAbi.isEmpty()) {
-            tagFromAbi = "android";
+        if (tagFromAbi.isEmpty() && isCustomPlatform()) {
+            tagFromAbi = getPlatformId();
         }
         return tagFromAbi;
     }
@@ -324,7 +325,10 @@ class AndroidPlatform implements Serializable {
     }
 
     public String getSystemImageName(final String abi) {
-        final String tag = getTagFromAbiString(abi);
+        String tag = getTagFromAbiString(abi);
+        if (tag.isEmpty()) {
+            tag = "android";
+        }
         final String strAbi = getArchFromAbiString(abi);
         return String.format("sys-img-%s-%s-%d", strAbi, tag, getSdkLevel());
     }
@@ -334,9 +338,13 @@ class AndroidPlatform implements Serializable {
     }
 
     public String getPackagePathOfSystemImage(final String abi) {
+        String tagFromAbi = getTagFromAbiString(abi);
+        if (tagFromAbi.isEmpty()) {
+            tagFromAbi = "default";
+        }
         return String.format("system-images;%s-%d;%s;%s",
-                getTagFromAbiString(abi), getSdkLevel(),
-                getPlatformId(),
+                "android", getSdkLevel(),
+                tagFromAbi,
                 getArchFromAbiString(abi));
     }
 

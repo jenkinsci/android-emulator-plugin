@@ -24,7 +24,8 @@ public class SdkToolsCommandsCurrentBase implements SdkToolsCommands {
             components[idx] = components[idx].replaceAll("^addon-", "add-ons;addon-");
             components[idx] = components[idx].replaceAll("^build-tools-", "build-tools;");
             components[idx] = components[idx].replaceAll("^android-", "platforms;android-");
-            components[idx] = components[idx].replaceAll("^sys-img-(.*)-(android-[0-9]*)", "system-images;$2;default;$1");
+            components[idx] = components[idx].replaceAll("^sys-img-(.*)-android-([0-9]*)", "system-images;android-$2;default;$1");
+            components[idx] = components[idx].replaceAll("^sys-img-(.*)-(.*)-([0-9]*)", "system-images;android-$3;$2;$1");
         }
 
         final String upgradeArgs = String.format("--include_obsolete %s", StringUtils.join(components, " "));
@@ -65,7 +66,7 @@ public class SdkToolsCommandsCurrentBase implements SdkToolsCommands {
     @Override
     public SdkCliCommand getCreatedAvdCommand(final String avdName, final boolean createSnapshot,
             final String sdCardSize, final String screenResolutionSkinName, final String deviceDefinition,
-            final String androidTarget, final String systemImagePackagePath) {
+            final String androidTarget, final String systemImagePackagePath, final String tag) {
 
         // Build up basic arguments to `android` command
         final StringBuilder args = new StringBuilder(100);
@@ -95,6 +96,11 @@ public class SdkToolsCommandsCurrentBase implements SdkToolsCommands {
 
         args.append(" -k ");
         args.append(systemImagePackagePath);
+
+        if (tag != null && !tag.isEmpty()) {
+            args.append(" --tag ");
+            args.append(tag);
+        }
 
         return new SdkCliCommand(Tool.AVDMANAGER, args.toString());
     }

@@ -523,7 +523,8 @@ class EmulatorConfig implements Serializable {
             final SdkCliCommand sdkCreateAvdCmd = SdkCliCommandFactory.getCommandsForSdk(androidSdk)
                     .getCreatedAvdCommand(getAvdName(), androidSdk.supportsSnapshots(),
                             sdCardSize, screenResolution.getSkinName(), deviceDefinition,
-                            osVersion.getTargetName(), osVersion.getPackagePathOfSystemImage(targetAbi));
+                            osVersion.getTargetName(), osVersion.getPackagePathOfSystemImage(targetAbi),
+                            osVersion.getTagFromAbiString(targetAbi));
             boolean isUnix = !Functions.isWindows();
             ArgumentListBuilder builder = Utils.getToolCommand(androidSdk, isUnix, sdkCreateAvdCmd);
 

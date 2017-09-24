@@ -158,10 +158,11 @@ public class AndroidPlatformTest extends TestCase {
 
     @Test
     public void testSystemImageName() {
-        assertEquals("sys-img-x86-android-23", AndroidPlatform.valueOf("Google Inc.:Google APIs:23").getSystemImageName("x86"));
-        assertEquals("sys-img-x86-android-24", AndroidPlatform.valueOf("Google Inc.:Google APIs:24").getSystemImageName("x86"));
-        assertEquals("sys-img-x86_64-android-24", AndroidPlatform.valueOf("Apple Inc.:Apple APIs:24").getSystemImageName("x86_64"));
-        assertEquals("sys-img-x86_64-android-24", AndroidPlatform.valueOf("MS Company:MS APIs:24").getSystemImageName("x86_64"));
+        assertEquals("sys-img-x86-android-23", AndroidPlatform.valueOf("android-23").getSystemImageName("x86"));
+        assertEquals("sys-img-x86-google_apis-23", AndroidPlatform.valueOf("Google Inc.:Google APIs:23").getSystemImageName("x86"));
+        assertEquals("sys-img-x86-google_apis-24", AndroidPlatform.valueOf("Google Inc.:Google APIs:24").getSystemImageName("x86"));
+        assertEquals("sys-img-x86_64-apple_apis-24", AndroidPlatform.valueOf("Apple Inc.:Apple APIs:24").getSystemImageName("x86_64"));
+        assertEquals("sys-img-x86_64-ms_apis-24", AndroidPlatform.valueOf("MS Company:MS APIs:24").getSystemImageName("x86_64"));
         assertEquals("sys-img-armabi-v7a-android-23", AndroidPlatform.valueOf("android-23").getSystemImageName("armabi-v7a"));
         assertEquals("sys-img-armabi-v7a-android-24", AndroidPlatform.valueOf("android-24").getSystemImageName("armabi-v7a"));
         assertEquals("sys-img-arm64-v8a-android-26", AndroidPlatform.valueOf("android-26").getSystemImageName("arm64-v8a"));
@@ -174,11 +175,11 @@ public class AndroidPlatformTest extends TestCase {
         assertEquals("sys-img-armabi-v7a-test-24", AndroidPlatform.valueOf("android-24").getSystemImageName("test/armabi-v7a"));
         assertEquals("sys-img-arm64-v8a-test-26", AndroidPlatform.valueOf("android-26").getSystemImageName("test/arm64-v8a"));
 
-        assertEquals("sys-img-x86-android-24", AndroidPlatform.valueOf("Google Inc.:Google APIs:24").getSystemImageName("/x86"));
-        assertEquals("sys-img-x86-android-24", AndroidPlatform.valueOf("Google Inc.:Google APIs:24").getSystemImageName("///////x86"));
+        assertEquals("sys-img-x86-google_apis-24", AndroidPlatform.valueOf("Google Inc.:Google APIs:24").getSystemImageName("/x86"));
+        assertEquals("sys-img-x86-google_apis-24", AndroidPlatform.valueOf("Google Inc.:Google APIs:24").getSystemImageName("///////x86"));
 
-        assertEquals("sys-img-x86_64-android-24", AndroidPlatform.valueOf("Google Inc.:Google APIs:24").getSystemImageName("x86_64/"));
-        assertEquals("sys-img-x86_64-android-24", AndroidPlatform.valueOf("Google Inc.:Google APIs:24").getSystemImageName("x86_64////"));
+        assertEquals("sys-img-x86_64-google_apis-24", AndroidPlatform.valueOf("Google Inc.:Google APIs:24").getSystemImageName("x86_64/"));
+        assertEquals("sys-img-x86_64-google_apis-24", AndroidPlatform.valueOf("Google Inc.:Google APIs:24").getSystemImageName("x86_64////"));
     }
 
     @Test
@@ -202,19 +203,21 @@ public class AndroidPlatformTest extends TestCase {
         assertEquals("system-images;android-24;default;armabi-v7a", AndroidPlatform.valueOf("android-24").getPackagePathOfSystemImage("armabi-v7a"));
         assertEquals("system-images;android-26;default;arm64-v8a", AndroidPlatform.valueOf("android-26").getPackagePathOfSystemImage("arm64-v8a"));
 
-        assertEquals("system-images;test-23;google_apis;x86", AndroidPlatform.valueOf("Google Inc.:Google APIs:23").getPackagePathOfSystemImage("test/x86"));
-        assertEquals("system-images;test-24;google_apis;x86", AndroidPlatform.valueOf("Google Inc.:Google APIs:24").getPackagePathOfSystemImage("test/x86"));
-        assertEquals("system-images;test-24;apple_apis;x86_64", AndroidPlatform.valueOf("Apple Inc.:Apple APIs:24").getPackagePathOfSystemImage("test/x86_64"));
-        assertEquals("system-images;test-24;ms_apis;x86_64", AndroidPlatform.valueOf("MS Company:MS APIs:24").getPackagePathOfSystemImage("test/x86_64"));
-        assertEquals("system-images;test-23;default;armabi-v7a", AndroidPlatform.valueOf("android-23").getPackagePathOfSystemImage("test/armabi-v7a"));
-        assertEquals("system-images;test-24;default;armabi-v7a", AndroidPlatform.valueOf("android-24").getPackagePathOfSystemImage("test/armabi-v7a"));
-        assertEquals("system-images;test-26;default;arm64-v8a", AndroidPlatform.valueOf("android-26").getPackagePathOfSystemImage("test/arm64-v8a"));
+        assertEquals("system-images;android-23;test;x86", AndroidPlatform.valueOf("Google Inc.:Google APIs:23").getPackagePathOfSystemImage("test/x86"));
+        assertEquals("system-images;android-24;google_apis;x86", AndroidPlatform.valueOf("Google Inc.:Google APIs:24").getPackagePathOfSystemImage("x86"));
+        assertEquals("system-images;android-24;apple_apis;x86_64", AndroidPlatform.valueOf("Apple Inc.:Apple APIs:24").getPackagePathOfSystemImage("x86_64"));
+        assertEquals("system-images;android-24;test;x86_64", AndroidPlatform.valueOf("MS Company:MS APIs:24").getPackagePathOfSystemImage("test/x86_64"));
+        assertEquals("system-images;android-23;test;armabi-v7a", AndroidPlatform.valueOf("android-23").getPackagePathOfSystemImage("test/armabi-v7a"));
+        assertEquals("system-images;android-24;test;armabi-v7a", AndroidPlatform.valueOf("android-24").getPackagePathOfSystemImage("test/armabi-v7a"));
+        assertEquals("system-images;android-26;test;arm64-v8a", AndroidPlatform.valueOf("android-26").getPackagePathOfSystemImage("test/arm64-v8a"));
 
         assertEquals("system-images;android-24;google_apis;x86", AndroidPlatform.valueOf("Google Inc.:Google APIs:24").getPackagePathOfSystemImage("/x86"));
         assertEquals("system-images;android-24;google_apis;x86", AndroidPlatform.valueOf("Google Inc.:Google APIs:24").getPackagePathOfSystemImage("///////x86"));
 
         assertEquals("system-images;android-24;google_apis;x86_64", AndroidPlatform.valueOf("Google Inc.:Google APIs:24").getPackagePathOfSystemImage("x86_64/"));
         assertEquals("system-images;android-24;google_apis;x86_64", AndroidPlatform.valueOf("Google Inc.:Google APIs:24").getPackagePathOfSystemImage("x86_64////"));
+
+        assertEquals("system-images;android-26;google_apis;x86", AndroidPlatform.valueOf("android-26").getPackagePathOfSystemImage("google_apis/x86"));
 
         // check if method can handle a 'null'-ABI without NPE
         assertNotNull(AndroidPlatform.valueOf("Google Inc.:Google APIs:23").getPackagePathOfSystemImage(null));

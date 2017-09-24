@@ -40,6 +40,8 @@ public class SdkCommandsTest {
         assertUpgradeParamsToAllToolVersions("extras;google;m2repository", "extras;google;m2repository");
 
         assertUpgradeParamsToAllToolVersions("system-images;android-24;default;x86_64", "sys-img-x86_64-android-24");
+        assertUpgradeParamsToAllToolVersions("system-images;android-26;google_apis;x86_64", "sys-img-x86_64-google_apis-26");
+        assertUpgradeParamsToAllToolVersions("system-images;android-26;test;x86_64", "sys-img-x86_64-test-26");
         assertUpgradeParamsToAllToolVersions("system-images;android-24;default;x86_64", "system-images;android-24;default;x86_64");
 
         assertUpgradeParamsToAllToolVersions(
@@ -155,16 +157,16 @@ public class SdkCommandsTest {
         // no snapshot, no sdcard
         final SdkCliCommand createAvdBasicCmdV25_3 = SdkCliCommandFactory.getCommandsForSdk("25.3")
                 .getCreatedAvdCommand("test25", false, null, "dummy", "9",
-                        null, "system-images;android-24;default;x86_64");
+                        null, "system-images;android-24;default;x86_64", "");
         final SdkCliCommand createAvdBasicCmdV25 = SdkCliCommandFactory.getCommandsForSdk("25")
                 .getCreatedAvdCommand("test25", false, null, "dummy", "9",
-                        "android-23", "system-images;android-24;default;x86_64");
+                        "android-23", "system-images;android-24;default;x86_64", null);
         final SdkCliCommand createAvdBasicCmdV17 = SdkCliCommandFactory.getCommandsForSdk("17")
                 .getCreatedAvdCommand("test17", false, null, "768x1024", null,
-                        "android-23", null);
+                        "android-23", null, null);
         final SdkCliCommand createAvdBasicCmdV04 = SdkCliCommandFactory.getCommandsForSdk("4")
                 .getCreatedAvdCommand("test04", false, null, "1080x1920", "7",
-                        "android-23", null);
+                        "android-23", null, null);
 
         assertEquals(Tool.AVDMANAGER, createAvdBasicCmdV25_3.getTool());
         assertEquals(Tool.ANDROID_LEGACY, createAvdBasicCmdV25.getTool());
@@ -178,39 +180,39 @@ public class SdkCommandsTest {
 
         final SdkCliCommand createAvdWithSnapshotCmdV25_3 = SdkCliCommandFactory.getCommandsForSdk("25.3")
                 .getCreatedAvdCommand("test25", true, null, null, "4",
-                        null, "system-images;android-24;default;x86_64");
+                        null, "system-images;android-24;google_apis;x86_64", "google_apis");
         final SdkCliCommand createAvdWithSnapshotCmdV25 = SdkCliCommandFactory.getCommandsForSdk("25")
                 .getCreatedAvdCommand("test25", true, null, null, "4",
-                        "android-23", "system-images;android-24;default;x86_64");
+                        "android-23", "system-images;android-24;default;x86_64", null);
         final SdkCliCommand createAvdWithSnapshotCmdV17 = SdkCliCommandFactory.getCommandsForSdk("17")
                 .getCreatedAvdCommand("test17", true, null, "1x1", null,
-                        "android-23", null);
+                        "android-23", null, null);
         final SdkCliCommand createAvdWithSnapshotCmdV04 = SdkCliCommandFactory.getCommandsForSdk("4")
                 .getCreatedAvdCommand("test04", true, null, "test", null,
-                        "android-23", null);
+                        "android-23", null, null);
 
         assertEquals(Tool.AVDMANAGER, createAvdWithSnapshotCmdV25_3.getTool());
         assertEquals(Tool.ANDROID_LEGACY, createAvdWithSnapshotCmdV25.getTool());
         assertEquals(Tool.ANDROID_LEGACY, createAvdWithSnapshotCmdV17.getTool());
         assertEquals(Tool.ANDROID_LEGACY, createAvdWithSnapshotCmdV04.getTool());
 
-        assertEquals("create avd -f -a -d 4 -n test25 -k system-images;android-24;default;x86_64", createAvdWithSnapshotCmdV25_3.getArgs());
+        assertEquals("create avd -f -a -d 4 -n test25 -k system-images;android-24;google_apis;x86_64 --tag google_apis", createAvdWithSnapshotCmdV25_3.getArgs());
         assertEquals("create avd -f -a -s null -n test25 -t android-23", createAvdWithSnapshotCmdV25.getArgs());
         assertEquals("create avd -f -a -s 1x1 -n test17 -t android-23", createAvdWithSnapshotCmdV17.getArgs());
         assertEquals("create avd -f -a -s test -n test04 -t android-23", createAvdWithSnapshotCmdV04.getArgs());
 
         final SdkCliCommand createAvdWithSdCardCmdV25_3 = SdkCliCommandFactory.getCommandsForSdk("25.3")
                 .getCreatedAvdCommand("test25", false, "100M", null, "4",
-                        null, "system-images;android-24;default;x86_64");
+                        null, "system-images;android-24;default;x86_64", null);
         final SdkCliCommand createAvdWithSdCardCmdV25 = SdkCliCommandFactory.getCommandsForSdk("25")
                 .getCreatedAvdCommand("test25", false, "100M", null, "4",
-                        "android-23", "system-images;android-24;default;x86_64");
+                        "android-23", "system-images;android-24;default;x86_64", "test");
         final SdkCliCommand createAvdWithSdCardCmdV17 = SdkCliCommandFactory.getCommandsForSdk("17")
                 .getCreatedAvdCommand("test17", true, "1G", "1x1", null,
-                        "android-23", null);
+                        "android-23", null, null);
         final SdkCliCommand createAvdWithSdCardCmdV04 = SdkCliCommandFactory.getCommandsForSdk("4")
                 .getCreatedAvdCommand("test04", false, "200M", "test", null,
-                        "android-23", null);
+                        "android-23", null, null);
 
         assertEquals(Tool.AVDMANAGER, createAvdWithSdCardCmdV25_3.getTool());
         assertEquals(Tool.ANDROID_LEGACY, createAvdWithSdCardCmdV25.getTool());

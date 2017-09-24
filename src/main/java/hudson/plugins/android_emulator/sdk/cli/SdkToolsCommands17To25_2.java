@@ -49,7 +49,7 @@ public class SdkToolsCommands17To25_2 extends SdkToolsCommandsCurrentBase implem
     @Override
     public SdkCliCommand getCreatedAvdCommand(final String avdName, final boolean createSnapshot,
             final String sdCardSize, final String screenResolutionSkinName, final String deviceDefinition,
-            final String androidTarget, final String systemImagePackagePath) {
+            final String androidTarget, final String systemImagePackagePath, final String tag) {
 
         // Build up basic arguments to `android` command
         final StringBuilder args = new StringBuilder(100);
