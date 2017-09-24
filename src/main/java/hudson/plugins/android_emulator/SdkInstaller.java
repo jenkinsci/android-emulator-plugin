@@ -220,7 +220,7 @@ public class SdkInstaller {
         while (proc.isAlive() && (line = r.readLine()) != null) {
             logger.println(line);
             if (line.toLowerCase(Locale.ENGLISH).startsWith("license id: ") ||
-                    line.toLowerCase(Locale.ENGLISH).startsWith("license android-sdk-license:")) {
+                    line.toLowerCase(Locale.ENGLISH).startsWith("license android-sdk")) {
                 proc.getStdin().write("y\r\n".getBytes());
                 proc.getStdin().flush();
             }
