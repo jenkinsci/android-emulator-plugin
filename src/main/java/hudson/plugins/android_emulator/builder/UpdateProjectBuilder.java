@@ -99,7 +99,7 @@ public class UpdateProjectBuilder extends AbstractBuilder {
         }
 
         // As the whole functionality of handling projects was dropped (moved to Android Studio)
-        // with SDK tools v26, upgrading is needed on users side.
+        // with SDK Tools r25.3, upgrading is needed on users side.
         if (androidSdk.isAndroidCmdDeprecated()) {
             return true;
         }

@@ -1,6 +1,7 @@
 package hudson.plugins.android_emulator.sdk.cli;
 
 import hudson.plugins.android_emulator.sdk.AndroidSdk;
+import hudson.plugins.android_emulator.util.Utils;
 
 /**
  * This helper class is used to retrieve the correct implementation
@@ -38,22 +39,23 @@ public final class SdkCliCommandFactory {
      * the correct tools commands for the given SDK
      */
     public static SdkToolsCommands getCommandsForSdk(final AndroidSdk androidSdk) {
-        final int sdkMajorVersion = (androidSdk != null) ? androidSdk.getSdkToolsMajorVersion() : Integer.MAX_VALUE;
-        return SdkCliCommandFactory.getCommandsForSdk(sdkMajorVersion);
+        // if no androidSdk is given, simply assume the latest commands
+        final String sdkToolsVersion = (androidSdk != null) ? androidSdk.getSdkToolsVersion() : String.valueOf(Integer.MAX_VALUE);
+        return SdkCliCommandFactory.getCommandsForSdk(sdkToolsVersion);
     }
 
     /**
      * Retrieve the correct {@code SdkCommands} for the given SDK Tools major version.
      *
-     * @param sdkMajorVersion SDK tools version, to retrieve the correct commands
+     * @param sdkToolsVersion SDK Tools version, to retrieve the correct commands
      * @return an object of an class implementing the {@code SdkToolsCommands} interface to retrieve
      * the correct tools commands for the given SDK version
      */
-    public static SdkToolsCommands getCommandsForSdk(final int sdkMajorVersion) {
-        if (sdkMajorVersion < 17) {
+    public static SdkToolsCommands getCommandsForSdk(final String sdkToolsVersion) {
+        if (Utils.isVersionOlderThan(sdkToolsVersion, "17")) {
             return new SdkToolsCommands00To16();
-        } else if (sdkMajorVersion < 25) {
-            return new SdkToolsCommands17To24();
+        } else if (Utils.isVersionOlderThan(sdkToolsVersion, "25.3")) {
+            return new SdkToolsCommands17To25_2();
         } else {
             return new SdkToolsCommandsCurrentBase();
         }

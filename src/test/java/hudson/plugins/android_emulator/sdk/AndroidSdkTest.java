@@ -42,6 +42,20 @@ public class AndroidSdkTest extends TestCase {
         assertEqualsHelperEmulatorEngineV2Support("27", true, true);
     }
 
+    @Test
+    public void testUseLegacySdkStructure() {
+        assertFalse(createSdkWithTools(null).useLegacySdkStructure());
+        assertTrue(createSdkWithTools("24").useLegacySdkStructure());
+        assertTrue(createSdkWithTools("24.1.1").useLegacySdkStructure());
+        assertTrue(createSdkWithTools("24.4").useLegacySdkStructure());
+        assertTrue(createSdkWithTools("25").useLegacySdkStructure());
+        assertTrue(createSdkWithTools("25.2.1").useLegacySdkStructure());
+        assertFalse(createSdkWithTools("25.3").useLegacySdkStructure());
+        assertFalse(createSdkWithTools("26").useLegacySdkStructure());
+        assertFalse(createSdkWithTools("26.1.1").useLegacySdkStructure());
+        assertFalse(createSdkWithTools("27").useLegacySdkStructure());
+    }
+
     private void assertEqualsHelperEmulatorEngineV2Support(final String sdkToolsVersion,
             final boolean expectedSupportV2Result, final boolean expectedSupportV2FullResult) {
 

@@ -7,9 +7,9 @@ import hudson.plugins.android_emulator.sdk.Tool;
 
 /**
  * Extends {@code SdkToolsCommandsCurrentBase} and simply overwrites the commands
- * which differ for SDK with major version 17 to 24.
+ * which differ for SDK Tools version 17 to 25.2.
  */
-public class SdkToolsCommands17To24 extends SdkToolsCommandsCurrentBase implements SdkToolsCommands {
+public class SdkToolsCommands17To25_2 extends SdkToolsCommandsCurrentBase implements SdkToolsCommands {
 
     @Override
     public SdkCliCommand getSdkInstallAndUpdateCommand(final String proxySettings, final String list) {
