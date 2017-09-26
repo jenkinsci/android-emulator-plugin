@@ -528,23 +528,21 @@ class EmulatorConfig implements Serializable {
             boolean isUnix = !Functions.isWindows();
             ArgumentListBuilder builder = Utils.getToolCommand(androidSdk, isUnix, sdkCreateAvdCmd);
 
-            // Android Emulator 2.0 defines target version and target ABI as package path
-            if (androidSdk.supportsEmulatorV2()) {
+            // avdmanager requires target version and target ABI as package path, so ABI is required
+            if (Tool.AVDMANAGER.equals(sdkCreateAvdCmd.getTool())) {
                 if (targetAbi == null || targetAbi.isEmpty()) {
                     AndroidEmulator.log(logger, Messages.ABI_REQUIRED());
                     throw new EmulatorCreationException(Messages.AVD_CREATION_FAILED());
                 }
-            } else {
-                if (targetAbi != null && osVersion.requiresAbi()) {
-                    // This is an unpleasant side-effect of there being an ABI for android-10,
-                    // and that Google renamed the image after its initial release from Intel...
-                    // Ideally, as stated in AndroidPlatform#requiresAbi, we should preferably check
-                    // via the "android list target" command whether an ABI is actually required.
-                    if (osVersion.getSdkLevel() != 10 || targetAbi.equals("armeabi")
-                            || targetAbi.equals("x86")) {
-                        builder.add("--abi");
-                        builder.add(targetAbi);
-                    }
+            } else if (targetAbi != null && osVersion.requiresAbi()) {
+                // This is an unpleasant side-effect of there being an ABI for android-10,
+                // and that Google renamed the image after its initial release from Intel...
+                // Ideally, as stated in AndroidPlatform#requiresAbi, we should preferably check
+                // via the "android list target" command whether an ABI is actually required.
+                if (osVersion.getSdkLevel() != 10 || targetAbi.equals("armeabi")
+                        || targetAbi.equals("x86")) {
+                    builder.add("--abi");
+                    builder.add(targetAbi);
                 }
             }
 
