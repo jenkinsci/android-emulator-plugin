@@ -102,113 +102,126 @@ public class Utils {
     }
 
     /**
-     * Tries to validate the given Android SDK root directory; otherwise tries to
-     * locate a copy of the SDK by checking for common environment variables.
+     * Tries to validate the given Android SDK root directory.
      *
      * @param launcher The launcher for the remote node.
-     * @param envVars Environment variables for the build.
-     * @param androidHome The (variable-expanded) SDK root given in global config.
-     * @return Either a discovered SDK path or, if all else fails, the given androidHome value.
+     * @param androidSdkRootPreferred The preferred SDK root directory.
+     * Normally the (variable-expanded) SDK root directory specified in the job/system configuration.
+     * @param androidSdkHome The SDK home directory, i.e. the workspace directory.
+     * @return AndroidSdk object representing the properties of the installed SDK, or null if no valid
+     * directory is found.
      */
-    public static String discoverAndroidHome(Launcher launcher, Node node,
-            final EnvVars envVars, final String androidHome) {
-        final String autoInstallDir = getSdkInstallDirectory(node).getRemote();
+    public static AndroidSdk getAndroidSdk(final Launcher launcher,
+            final String androidSdkRootPreferred, final String androidSdkHome) {
+        return getAndroidSdk(launcher, null, null, true, androidSdkRootPreferred, androidSdkHome);
+    }
 
-        Callable<String, InterruptedException> task = new MasterToSlaveCallable<String, InterruptedException>() {
-            public String call() throws InterruptedException {
-                // Verify existence of provided value
-                if (validateHomeDir(androidHome)) {
-                    return androidHome;
+    /**
+     * Tries to validate the given Android SDK root directory; otherwise tries to
+     * locate a copy of the SDK by checking for the auto-install directory and for
+     * common environment variables.
+     *
+     * @param launcher The launcher for the remote node.
+     * @param node Current node
+     * @param envVars Environment variables for the build.
+     * @param androidSdkRootPreferred The preferred SDK root directory.
+     * Normally the (variable-expanded) SDK root directory specified in the job/system configuration.
+     * @param androidSdkHome The SDK home directory, i.e. the workspace directory.
+     * @return AndroidSdk object representing the properties of the installed SDK, or null if no valid
+     * directory is found.
+     */
+    public static AndroidSdk getAndroidSdk(final Launcher launcher, final Node node,
+            final EnvVars envVars,
+            final String androidSdkRootPreferred, final String androidSdkHome) {
+        return getAndroidSdk(launcher, node, envVars, false, androidSdkRootPreferred, androidSdkHome);
+    }
+
+    /**
+     * Tries to validate the given Android SDK root directory; otherwise tries to
+     * locate a copy of the SDK by checking for the auto-install directory and for
+     * common environment variables.
+     *
+     * @param launcher The launcher for the remote node.
+     * @param node Current node
+     * @param envVars Environment variables for the build.
+     * @param checkPreferredOnly just check preferred directory, do not try to determine
+     * other SDK roots by evaluating auto-install directory or common environment variables.
+     * @param androidSdkRootPreferred The preferred SDK root directory.
+     * Normally the (variable-expanded) SDK root directory specified in the job/system configuration.
+     * @param androidSdkHome The SDK home directory, i.e. the workspace directory.
+     * @return AndroidSdk object representing the properties of the installed SDK, or null if no valid
+     * directory is found.
+     */
+    public static AndroidSdk getAndroidSdk(final Launcher launcher, final Node node,
+            final EnvVars envVars, final boolean checkPreferredOnly,
+            final String androidSdkRootPreferred, final String androidSdkHome) {
+
+        final TaskListener listener = launcher.getListener();
+        final String autoInstallDir = (!checkPreferredOnly) ? getSdkInstallDirectory(node).getRemote() : "";
+
+        Callable<AndroidSdk, IOException> task = new MasterToSlaveCallable<AndroidSdk, IOException>() {
+            public AndroidSdk call() throws IOException {
+
+                final List<String> potentialSdkDirs = getPotentialSdkDirs();
+                final StringBuilder determinationLog = new StringBuilder();
+
+                // Check each directory to see if it's a valid Android SDK
+                for (String potentialSdkDir : potentialSdkDirs) {
+                    if (Util.fixEmptyAndTrim(potentialSdkDir) == null) {
+                        continue;
+                    }
+
+                    final ValidationResult result = Utils.validateAndroidHome(new File(potentialSdkDir), true, false);
+                    if (!result.isFatal()) {
+                        // Create SDK instance with what we know so far
+                        return new AndroidSdk(potentialSdkDir, androidSdkHome);
+                    } else {
+                        determinationLog.append("['" + potentialSdkDir + "']: " + result.getMessage() + "\n");
+                    }
                 }
 
-                // Check for common environment variables
+                // Give up
+                log(listener.getLogger(), Messages.SDK_DETERMINATION_FAILED());
+                log(listener.getLogger(), determinationLog.toString(), true);
+                return null;
+            }
+
+            private List<String> getPotentialSdkDirs() {
+                final List<String> potentialSdkDirs = new ArrayList<String>();
+
+                // Add global config path first
+                potentialSdkDirs.add(androidSdkRootPreferred);
+
+                // do not add any other possible dirs
+                if (checkPreferredOnly) {
+                    return potentialSdkDirs;
+                }
+
+                // Add common environment variables
                 String[] keys = { Constants.ENV_VAR_ANDROID_SDK_ROOT,
                         Constants.ENV_VAR_ANDROID_SDK_HOME,
                         Constants.ENV_VAR_ANDROID_HOME,
                         Constants.ENV_VAR_ANDROID_SDK };
 
                 // Resolve each variable to its directory name
-                List<String> potentialSdkDirs = new ArrayList<String>();
                 for (String key : keys) {
-                    potentialSdkDirs.add(envVars.get(key));
+                    final String envValue = envVars.get(key);
+                    if (envValue != null && !envValue.isEmpty()) {
+                        potentialSdkDirs.add(envVars.get(key));
+                    }
                 }
 
                 // Also add the auto-installed SDK directory to the list of candidates
-                potentialSdkDirs.add(autoInstallDir);
-
-                // Check each directory to see if it's a valid Android SDK
-                for (String home : potentialSdkDirs) {
-                    if (validateHomeDir(home)) {
-                        return home;
-                    }
+                if (Util.fixEmptyAndTrim(autoInstallDir) != null) {
+                    potentialSdkDirs.add(autoInstallDir);
                 }
 
-                // Give up
-                return null;
+                // At last, add potential path directories
+                potentialSdkDirs.addAll(getPossibleSdkRootDirectoriesFromPath(envVars));
+
+                return potentialSdkDirs;
             }
 
-            private boolean validateHomeDir(String dir) {
-                if (Util.fixEmptyAndTrim(dir) == null) {
-                    return false;
-                }
-                return !Utils.validateAndroidHome(new File(dir), true, false).isFatal();
-            }
-
-            private static final long serialVersionUID = 1L;
-        };
-
-        String result = androidHome;
-        try {
-            result = launcher.getChannel().call(task);
-        } catch (InterruptedException e) {
-            // Ignore; will return default value
-        } catch (IOException e) {
-            // Ignore; will return default value
-        }
-        return result;
-    }
-
-    /**
-     * Determines the properties of the SDK installed on the build machine.
-     *
-     * @param launcher The launcher for the remote node.
-     * @param androidSdkRoot The SDK root directory specified in the job/system configuration.
-     * @param androidSdkHome The SDK home directory, i.e. the workspace directory.
-     * @return AndroidSdk object representing the properties of the installed SDK.
-     */
-    public static AndroidSdk getAndroidSdk(Launcher launcher, final String androidSdkRoot, final String androidSdkHome) {
-        final boolean isUnix = launcher.isUnix();
-        final TaskListener listener = launcher.getListener();
-
-        Callable<AndroidSdk, IOException> task = new MasterToSlaveCallable<AndroidSdk, IOException>() {
-            public AndroidSdk call() throws IOException {
-                final PrintStream logger = listener.getLogger();
-                String sdkRoot = androidSdkRoot;
-                if (androidSdkRoot == null) {
-                    // If no SDK root was specified, attempt to detect it from PATH
-                    sdkRoot = getSdkRootFromPath(isUnix);
-
-                    // If still nothing was found, then we cannot continue
-                    if (sdkRoot == null) {
-                        log(logger, Messages.SDK_DETERMINATION_VIA_PATH_FAILED());
-                        return null;
-                    }
-                } else {
-                    // Validate given SDK root
-                    final File sdkRootFile = new File(sdkRoot);
-                    ValidationResult result = Utils.validateAndroidHome(sdkRootFile, true, false);
-                    if (result.isFatal()) {
-                        log(logger, Messages.SDK_DETERMINATION_VIA_SDKROOT_FAILED(
-                                "sdkRoot='" + sdkRoot + "', "
-                                + "absPath='" + sdkRootFile.getAbsolutePath() + "'",
-                                result.getMessage()));
-                        return null;
-                    }
-                }
-
-                // Create SDK instance with what we know so far
-                return new AndroidSdk(sdkRoot, androidSdkHome);
-            }
             private static final long serialVersionUID = 1L;
         };
 
@@ -340,11 +353,11 @@ public class Utils {
     }
 
     /**
-     * Locates the current user's home directory using the same scheme as the Android SDK does.
+     * Locates the Android SDK home directory using the same scheme as the Android SDK does.
      *
      * @return A {@link File} representing the directory in which the ".android" subdirectory should go.
      */
-    public static File getHomeDirectory(String androidSdkHome) {
+    public static File getAndroidSdkHomeDirectory(String androidSdkHome) {
         // From git://android.git.kernel.org/platform/external/qemu.git/android/utils/bufprint.c
         String homeDirPath = System.getenv(Constants.ENV_VAR_ANDROID_SDK_HOME);
         if (homeDirPath == null) {
@@ -400,41 +413,25 @@ public class Utils {
     }
 
     /**
-     * Detects the root directory of an SDK installation based on the Android tools on the PATH.
+     * Retrieves a list of directories from the PATH-Environment-Variable, which could be an SDK installation.
+     * Currently it is only checked, if the path points to an 'tools'-directory.
      *
-     * @param isUnix Whether the system where this command should run is sane.
-     * @return The root directory of an Android SDK, or {@code null} if none could be determined.
+     * @param envVar the environment variables currently set for the node
+     * @return A list of possible root directories of an Android SDK
      */
-    private static String getSdkRootFromPath(boolean isUnix) {
-        // List of tools which should be found together in an Android SDK tools directory
-        Tool[] tools = { Tool.ANDROID_LEGACY, Tool.EMULATOR };
-
+    private static List<String> getPossibleSdkRootDirectoriesFromPath(final EnvVars envVars) {
         // Get list of directories from the PATH environment variable
-        List<String> paths = Arrays.asList(System.getenv(Constants.ENV_VAR_SYSTEM_PATH).split(File.pathSeparator));
+        List<String> paths = Arrays.asList(envVars.get(Constants.ENV_VAR_SYSTEM_PATH).split(File.pathSeparator));
+        final List<String> possibleSdkRootsFromPath = new ArrayList<String>();
 
         // Examine each directory to see whether it contains the expected Android tools
         for (String path : paths) {
-            File toolsDir = new File(path);
-            if (!toolsDir.exists() || !toolsDir.isDirectory()) {
-                continue;
-            }
-
-            int toolCount = 0;
-            for (Tool tool : tools) {
-                String executable = tool.getExecutable(isUnix);
-                if (new File(toolsDir, executable).exists()) {
-                    toolCount++;
-                }
-            }
-
-            // If all the tools were found in this directory, we have a winner
-            if (toolCount == tools.length) {
-                // Return the parent path (i.e. the SDK root)
-                return toolsDir.getParent();
+            if (path.matches(".*[\\\\/]" + ToolLocator.TOOLS_DIR + "[\\\\/]*$")) {
+                possibleSdkRootsFromPath.add(path);
             }
         }
 
-        return null;
+        return possibleSdkRootsFromPath;
     }
 
     /**

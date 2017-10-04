@@ -527,7 +527,7 @@ public class SdkInstaller {
                 logger = listener.getLogger();
             }
 
-            final File homeDir = Utils.getHomeDirectory(androidSdkHome);
+            final File homeDir = Utils.getAndroidSdkHomeDirectory(androidSdkHome);
             final File androidDir = new File(homeDir, ".android");
             androidDir.mkdirs();
 

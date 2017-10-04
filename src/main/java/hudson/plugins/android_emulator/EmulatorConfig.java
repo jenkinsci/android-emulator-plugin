@@ -290,7 +290,7 @@ class EmulatorConfig implements Serializable {
     }
 
     public File getAvdMetadataFile() {
-        final File homeDir = Utils.getHomeDirectory(androidSdkHome);
+        final File homeDir = Utils.getAndroidSdkHomeDirectory(androidSdkHome);
         return new File(getAvdHome(homeDir), getAvdName() + ".ini");
     }
 
@@ -442,7 +442,7 @@ class EmulatorConfig implements Serializable {
                 logger = listener.getLogger();
             }
 
-            final File homeDir = Utils.getHomeDirectory(androidSdk.getSdkHome());
+            final File homeDir = Utils.getAndroidSdkHomeDirectory(androidSdk.getSdkHome());
             final File avdDirectory = getAvdDirectory(homeDir);
             final boolean emulatorExists = getAvdConfigFile(homeDir).exists();
 
@@ -684,7 +684,7 @@ class EmulatorConfig implements Serializable {
                 logger = listener.getLogger();
             }
 
-            final File homeDir = Utils.getHomeDirectory(androidSdkHome);
+            final File homeDir = Utils.getAndroidSdkHomeDirectory(androidSdkHome);
 
             // Parse the AVD's config
             Map<String, String> configValues;
@@ -746,7 +746,7 @@ class EmulatorConfig implements Serializable {
             }
 
             // Check whether the AVD exists
-            final File homeDir = Utils.getHomeDirectory(androidSdkHome);
+            final File homeDir = Utils.getAndroidSdkHomeDirectory(androidSdkHome);
             final File avdDirectory = getAvdDirectory(homeDir);
             final boolean emulatorExists = avdDirectory.exists();
             if (!emulatorExists) {

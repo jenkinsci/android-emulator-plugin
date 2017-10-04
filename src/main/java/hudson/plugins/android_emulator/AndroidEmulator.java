@@ -212,11 +212,6 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
         // Emulator properties
         String commandLineOptions = Utils.expandVariables(envVars, buildVars, this.commandLineOptions);
 
-        // SDK location
-        Node node = Computer.currentComputer().getNode();
-        String androidHome = Utils.expandVariables(envVars, buildVars, descriptor.androidHome);
-        androidHome = Utils.discoverAndroidHome(launcher, node, envVars, androidHome);
-
         // Despite the nice inline checks and warnings when the user is editing the config,
         // these are not binding, so the user may have saved invalid configuration.
         // Here we check whether or not it's worth proceeding based on the saved values.
@@ -243,8 +238,12 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
             return null;
         }
 
+        // SDK location
+        Node node = Computer.currentComputer().getNode();
+        String configuredAndroidSdkRoot = Utils.expandVariables(envVars, buildVars, descriptor.androidHome);
+
         // Confirm that the required SDK tools are available
-        AndroidSdk androidSdk = Utils.getAndroidSdk(launcher, androidHome, androidSdkHome);
+        AndroidSdk androidSdk = Utils.getAndroidSdk(launcher, node, envVars, configuredAndroidSdkRoot, androidSdkHome);
 
         final boolean sdkFound = (androidSdk != null);
         final boolean sdkOldVersion = (androidSdk != null && androidSdk.isOlderThanDefaultDownloadVersion());
@@ -577,7 +576,7 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
     }
 
     /** Helper method for writing to the build log in a consistent manner. */
-    synchronized static void log(final PrintStream logger, String message, boolean indent) {
+    public synchronized static void log(final PrintStream logger, String message, boolean indent) {
         if (indent) {
             message = '\t' + message.replace("\n", "\n\t");
         } else if (message.length() > 0) {

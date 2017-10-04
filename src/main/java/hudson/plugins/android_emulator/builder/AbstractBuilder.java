@@ -58,20 +58,18 @@ public abstract class AbstractBuilder extends Builder {
         }
 
         // Get configured, expanded Android SDK root value
-        String androidHome = Utils.expandVariables(build, listener,
+        String configuredAndroidSdkRoot = Utils.expandVariables(build, listener,
                 Utils.getConfiguredAndroidHome());
         EnvVars envVars = Utils.getEnvironment(build, listener);
 
         // Retrieve actual SDK root based on given value
         Node node = Computer.currentComputer().getNode();
-        String discoveredAndroidHome = Utils.discoverAndroidHome(launcher, node, envVars,
-                androidHome);
 
         // Get Android SDK object from the given root (or locate on PATH)
         final String androidSdkHome = (envVars != null && keepInWorkspace ? envVars
                 .get(Constants.ENV_VAR_JENKINS_WORKSPACE) : null);
         AndroidSdk androidSdk = Utils
-                .getAndroidSdk(launcher, discoveredAndroidHome, androidSdkHome);
+                .getAndroidSdk(launcher, node, envVars, configuredAndroidSdkRoot, androidSdkHome);
 
         // Check whether we should install the SDK
         if (androidSdk == null) {
