@@ -1,7 +1,11 @@
 package hudson.plugins.android_emulator.sdk.cli;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
+import org.apache.commons.lang.StringUtils;
 
 import hudson.plugins.android_emulator.sdk.Tool;
 
@@ -12,8 +16,11 @@ import hudson.plugins.android_emulator.sdk.Tool;
 public class SdkToolsCommands17To25_2 extends SdkToolsCommandsCurrentBase implements SdkToolsCommands {
 
     @Override
-    public SdkCliCommand getSdkInstallAndUpdateCommand(final String proxySettings, final String list) {
-        final String upgradeArgs = String.format("update sdk -u -a %s -t %s", proxySettings, list);
+    public SdkCliCommand getSdkInstallAndUpdateCommand(final String proxySettings, final List<String> components) {
+        final List<String> complist = new ArrayList<String>(components);
+        complist.remove("emulator");
+
+        final String upgradeArgs = String.format("update sdk -u -a %s -t %s", proxySettings, StringUtils.join(complist, ','));
         return new SdkCliCommand(Tool.ANDROID_LEGACY, upgradeArgs);
     }
 

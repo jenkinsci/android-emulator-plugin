@@ -47,9 +47,6 @@ import static hudson.plugins.android_emulator.AndroidEmulator.log;
 
 public class SdkInstaller {
 
-    /** Recent version of the Android SDK that will be installed. */
-    private static final String SDK_VERSION = "3859397"; //26.0.1
-
     /** Filename to write some metadata to about our automated installation. */
     private static final String SDK_INFO_FILENAME = ".jenkins-install-info";
 
@@ -92,12 +89,14 @@ public class SdkInstaller {
             log(logger, Messages.INSTALLING_REQUIRED_COMPONENTS());
             AndroidSdk sdk = getAndroidSdkForNode(node, androidHome, androidSdkHome);
 
-            // Get the latest platform-tools
-            installComponent(logger, launcher, sdk, "platform-tool");
-
             // Upgrade the tools if necessary and add the latest build-tools component
-            List<String> components = new ArrayList<String>(4);
-            components.add("tool");
+            List<String> components = new ArrayList<String>(5);
+
+            // do not update 'tools', as they were updated above to current compatible version
+
+            // Get the latest platform-tools
+            components.add("platform-tool");
+
             String buildTools = getBuildToolsPackageName(logger, launcher, sdk);
             if (buildTools != null) {
                 components.add(buildTools);
@@ -106,17 +105,19 @@ public class SdkInstaller {
             // Add the local maven repos for Gradle
             components.add("extra-android-m2repository");
             components.add("extra-google-m2repository");
+            components.add("emulator");
 
             // Install the lot
-            installComponent(logger, launcher, sdk, components.toArray(new String[0]));
+            installComponent(logger, launcher, sdk, components);
 
-            // If we made it this far, confirm completion by writing our our metadata file
-            getInstallationInfoFilename(node).write(SDK_VERSION, "UTF-8");
 
             // As this SDK will not be used manually, opt out of the stats gathering;
             // this also prevents the opt-in dialog from popping up during execution
             optOutOfSdkStatistics(launcher, listener, androidSdkHome);
         }
+
+        // If we made it this far, confirm completion by writing our our metadata file
+        getInstallationInfoFilename(node).write(Constants.SDK_TOOLS_DEFAULT_VERSION, "UTF-8");
 
         // Create an SDK object now that all the components exist
         return Utils.getAndroidSdk(launcher, androidHome, androidSdkHome);
@@ -156,7 +157,7 @@ public class SdkInstaller {
 
         // Get the OS-specific download URL for the SDK
         AndroidInstaller installer = AndroidInstaller.fromNode(node);
-        final URL downloadUrl = installer.getUrl(SDK_VERSION);
+        final URL downloadUrl = installer.getUrl(Constants.SDK_TOOLS_DEFAULT_BUILD_ID);
 
         final FilePath toolsSubdir = installDir.child("tools");
 
@@ -195,14 +196,13 @@ public class SdkInstaller {
      * @param components Name of the component(s) to install.
      */
     private static void installComponent(PrintStream logger, Launcher launcher, AndroidSdk sdk,
-            String... components) throws IOException, InterruptedException {
+            final List<String> components) throws IOException, InterruptedException {
         String proxySettings = getProxySettings();
 
         // Build the command to install the given component(s)
-        String list = StringUtils.join(components, ',');
-        log(logger, Messages.INSTALLING_SDK_COMPONENTS(list));
+        log(logger, Messages.INSTALLING_SDK_COMPONENTS(StringUtils.join(components, ',')));
         final SdkCliCommand sdkInstallAndUpdateCmd = SdkCliCommandFactory.getCommandsForSdk(sdk)
-                .getSdkInstallAndUpdateCommand(proxySettings, list);
+                .getSdkInstallAndUpdateCommand(proxySettings, components);
         ArgumentListBuilder cmd = Utils.getToolCommand(sdk, launcher.isUnix(), sdkInstallAndUpdateCmd);
         ProcStarter procStarter = launcher.launch().stderr(logger).readStdout().writeStdin().cmds(cmd);
 
@@ -308,7 +308,7 @@ public class SdkInstaller {
         // Grab the lock and attempt installation
         Semaphore semaphore = acquireLock();
         try {
-            installComponent(logger, launcher, sdk, components.toArray(new String[0]));
+            installComponent(logger, launcher, sdk, components);
         } finally {
             semaphore.release();
         }
@@ -466,7 +466,7 @@ public class SdkInstaller {
         // Validation needs to run on the remote node
         ValidationResult result = node.getChannel().call(new MasterToSlaveCallable<ValidationResult, InterruptedException>() {
             public ValidationResult call() throws InterruptedException {
-                return Utils.validateAndroidHome(new File(sdkRoot), false);
+                return Utils.validateAndroidHome(new File(sdkRoot), false, false);
             }
             private static final long serialVersionUID = 1L;
         });

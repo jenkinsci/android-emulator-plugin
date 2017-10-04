@@ -245,16 +245,29 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
 
         // Confirm that the required SDK tools are available
         AndroidSdk androidSdk = Utils.getAndroidSdk(launcher, androidHome, androidSdkHome);
-        if (androidSdk == null) {
-            if (!descriptor.shouldInstallSdk) {
-                // Couldn't find an SDK, don't want to install it, give up
-                log(logger, Messages.SDK_TOOLS_NOT_FOUND());
-                build.setResult(Result.NOT_BUILT);
-                return null;
+
+        final boolean sdkFound = (androidSdk != null);
+        final boolean sdkOldVersion = (androidSdk != null && androidSdk.isOlderThanDefaultDownloadVersion());
+
+        if (!sdkFound && !descriptor.shouldInstallSdk) {
+            // Couldn't find an SDK, don't want to install it, give up
+            log(logger, Messages.SDK_TOOLS_NOT_FOUND());
+            build.setResult(Result.NOT_BUILT);
+            return null;
+        }
+
+        // SDK Tools not found, or does not match expected download version, if we should manage SDK
+        if ((!sdkFound || sdkOldVersion) && descriptor.shouldInstallSdk) {
+            // Ok, let's download and install the SDK Tools
+            if (!sdkFound) {
+                log(logger, Messages.INSTALLING_SDK());
+            } else {
+                final String currentVersion =
+                        (androidSdk != null) ? androidSdk.getSdkToolsVersion() : "UNKNOWN";
+                log(logger, Messages.SDK_INSTALL_UPDATE_TOOLS(currentVersion,
+                        Constants.SDK_TOOLS_DEFAULT_VERSION));
             }
 
-            // Ok, let's download and install the SDK
-            log(logger, Messages.INSTALLING_SDK());
             try {
                 androidSdk = SdkInstaller.install(launcher, listener, androidSdkHome);
             } catch (SdkInstallationException e) {
@@ -262,7 +275,9 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
                 build.setResult(Result.NOT_BUILT);
                 return null;
             }
-        } else if (descriptor.shouldKeepInWorkspace) {
+        }
+
+        if (descriptor.shouldKeepInWorkspace) {
             SdkInstaller.optOutOfSdkStatistics(launcher, listener, androidSdkHome);
         }
 
@@ -1079,7 +1094,7 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
         }
 
         public FormValidation doCheckAndroidHome(@QueryParameter File value) {
-            return Utils.validateAndroidHome(value, true).getFormValidation();
+            return Utils.validateAndroidHome(value, true, true).getFormValidation();
         }
 
     }

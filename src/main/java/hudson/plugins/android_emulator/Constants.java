@@ -39,6 +39,24 @@ public interface Constants {
     /** Name of the snapshot image we will use. */
     static final String SNAPSHOT_NAME = "jenkins";
 
+    /**
+     * Recent version of the Android SDK that will be installed.
+     *
+     * The download URL changed from using a version to having
+     * a build id. So it's crucial to keep this version in sync
+     * with the BUILD_ID variable beneath.
+     */
+    static final String SDK_TOOLS_DEFAULT_VERSION = "26.0.1";
+
+    /**
+     * Build ID? of the recent version of the Android SDK that will be installed.
+     *
+     * The download URL changed from using a version to having
+     * a build id. So it's crucial to keep this build id in sync
+     * with the VERSION variable above.
+     */
+    static final String SDK_TOOLS_DEFAULT_BUILD_ID = "3859397";
+
     // From hudson.Util.VARIABLE
     static final String REGEX_VARIABLE = "\\$([A-Za-z0-9_]+|\\{[A-Za-z0-9_]+\\}|\\$)";
     static final String REGEX_AVD_NAME = "[a-zA-Z0-9._-]+";

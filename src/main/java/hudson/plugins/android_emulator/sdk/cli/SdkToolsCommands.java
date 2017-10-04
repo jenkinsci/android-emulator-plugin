@@ -1,11 +1,13 @@
 package hudson.plugins.android_emulator.sdk.cli;
 
+import java.util.List;
+
 /**
  * CLI commands using the SDK tools.
  */
 public interface SdkToolsCommands {
 
-    SdkCliCommand getSdkInstallAndUpdateCommand(final String proxySettings, final String components);
+    SdkCliCommand getSdkInstallAndUpdateCommand(final String proxySettings, final List<String> components);
     SdkCliCommand getListSdkComponentsCommand();
     SdkCliCommand getListExistingTargetsCommand();
     SdkCliCommand getListSystemImagesCommand();

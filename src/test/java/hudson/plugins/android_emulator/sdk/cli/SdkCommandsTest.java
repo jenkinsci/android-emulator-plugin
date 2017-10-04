@@ -2,6 +2,9 @@ package hudson.plugins.android_emulator.sdk.cli;
 
 import static org.junit.Assert.*;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import org.junit.Test;
 
 import hudson.plugins.android_emulator.sdk.Tool;
@@ -44,18 +47,35 @@ public class SdkCommandsTest {
         assertUpgradeParamsToAllToolVersions("system-images;android-26;test;x86_64", "sys-img-x86_64-test-26");
         assertUpgradeParamsToAllToolVersions("system-images;android-24;default;x86_64", "system-images;android-24;default;x86_64");
 
+        final List<String> input = new ArrayList<String>();
+        input.add("tool");
+        input.add("extra-android-m2repository");
+        input.add("extra-google-m2repository");
+        input.add("emulator");
         assertUpgradeParamsToAllToolVersions(
-                "tools extras;android;m2repository extras;google;m2repository",
-                "tool,extra-android-m2repository,extra-google-m2repository");
+                "tools extras;android;m2repository extras;google;m2repository emulator",
+                "tool,extra-android-m2repository,extra-google-m2repository",
+                input);
 
+        input.clear();
+        input.add("platform-tool");
+        input.add("tool");
+        input.add("extra-android-m2repository");
+        input.add("emulator");
+        input.add("extra-google-m2repository");
         assertUpgradeParamsToAllToolVersions(
-                "platform-tools tools extras;android;m2repository extras;google;m2repository",
-                "platform-tool,tool,extra-android-m2repository,extra-google-m2repository");
-
-
+                "platform-tools tools extras;android;m2repository emulator extras;google;m2repository",
+                "platform-tool,tool,extra-android-m2repository,extra-google-m2repository",
+                input);
     }
 
     private void assertUpgradeParamsToAllToolVersions(final String expected, final String input) {
+        final List<String> components = new ArrayList<String>();
+        components.add(input);
+        assertUpgradeParamsToAllToolVersions(expected, input, components);
+    }
+
+    private void assertUpgradeParamsToAllToolVersions(final String expected, final String exptecedLegacy, final List<String> input) {
         final SdkCliCommand installCmdV25_3 = SdkCliCommandFactory.getCommandsForSdk("25.3").getSdkInstallAndUpdateCommand("", input);
         final SdkCliCommand installCmdV25 = SdkCliCommandFactory.getCommandsForSdk("25").getSdkInstallAndUpdateCommand("", input);
         final SdkCliCommand installCmdV17 = SdkCliCommandFactory.getCommandsForSdk("17").getSdkInstallAndUpdateCommand("", input);
@@ -67,9 +87,9 @@ public class SdkCommandsTest {
         assertEquals(Tool.ANDROID_LEGACY, installCmdV04.getTool());
 
         assertEquals("--include_obsolete " + expected, installCmdV25_3.getArgs());
-        assertEquals("update sdk -u -a  -t " + input, installCmdV25.getArgs());
-        assertEquals("update sdk -u -a  -t " + input, installCmdV17.getArgs());
-        assertEquals("update sdk -u -o  -t " + input, installCmdV04.getArgs());
+        assertEquals("update sdk -u -a  -t " + exptecedLegacy, installCmdV25.getArgs());
+        assertEquals("update sdk -u -a  -t " + exptecedLegacy, installCmdV17.getArgs());
+        assertEquals("update sdk -u -o  -t " + exptecedLegacy, installCmdV04.getArgs());
     }
 
     @Test

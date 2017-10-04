@@ -1,5 +1,6 @@
 package hudson.plugins.android_emulator.sdk.cli;
 
+import java.util.List;
 import java.util.regex.Pattern;
 
 import org.apache.commons.lang.StringUtils;
@@ -13,22 +14,27 @@ import hudson.plugins.android_emulator.sdk.Tool;
 public class SdkToolsCommandsCurrentBase implements SdkToolsCommands {
 
     @Override
-    public SdkCliCommand getSdkInstallAndUpdateCommand(final String proxySettings, final String list) {
-        final String components[] = StringUtils.split(list, ",");
-        for (int idx = 0; idx < components.length; idx++) {
-            components[idx] = components[idx].replaceAll("^tool$", "tools");
-            components[idx] = components[idx].replaceAll("^platform-tool$", "platform-tools");
-            components[idx] = components[idx].replaceAll("^addon-$", "addons-");
-            components[idx] = components[idx].replaceAll("^extra-google-", "extras;google;");
-            components[idx] = components[idx].replaceAll("^extra-android-", "extras;android;");
-            components[idx] = components[idx].replaceAll("^addon-", "add-ons;addon-");
-            components[idx] = components[idx].replaceAll("^build-tools-", "build-tools;");
-            components[idx] = components[idx].replaceAll("^android-", "platforms;android-");
-            components[idx] = components[idx].replaceAll("^sys-img-(.*)-android-([0-9]*)", "system-images;android-$2;default;$1");
-            components[idx] = components[idx].replaceAll("^sys-img-(.*)-(.*)-([0-9]*)", "system-images;android-$3;$2;$1");
+    public SdkCliCommand getSdkInstallAndUpdateCommand(final String proxySettings, final List<String> components) {
+        final StringBuilder complist = new StringBuilder();
+
+        for (final String component : components) {
+            final String modifiedComponent = component
+                    .replaceAll("^tool$", "tools")
+                    .replaceAll("^platform-tool$", "platform-tools")
+                    .replaceAll("^addon-$", "addons-")
+                    .replaceAll("^extra-google-", "extras;google;")
+                    .replaceAll("^extra-android-", "extras;android;")
+                    .replaceAll("^addon-", "add-ons;addon-")
+                    .replaceAll("^build-tools-", "build-tools;")
+                    .replaceAll("^android-", "platforms;android-")
+                    .replaceAll("^sys-img-(.*)-android-([0-9]*)", "system-images;android-$2;default;$1")
+                    .replaceAll("^sys-img-(.*)-(.*)-([0-9]*)", "system-images;android-$3;$2;$1");
+
+            complist.append(modifiedComponent);
+            complist.append(' ');
         }
 
-        final String upgradeArgs = String.format("--include_obsolete %s", StringUtils.join(components, " "));
+        final String upgradeArgs = String.format("--include_obsolete %s", complist.toString().trim());
         return new SdkCliCommand(Tool.SDKMANAGER, upgradeArgs);
     }
 

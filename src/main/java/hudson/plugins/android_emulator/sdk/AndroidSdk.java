@@ -2,6 +2,7 @@ package hudson.plugins.android_emulator.sdk;
 
 import com.google.common.annotations.VisibleForTesting;
 import hudson.Util;
+import hudson.plugins.android_emulator.Constants;
 import hudson.plugins.android_emulator.util.ConfigFileUtils;
 import hudson.util.VersionNumber;
 
@@ -142,6 +143,14 @@ public class AndroidSdk implements Serializable {
 
     public boolean isAndroidCmdDeprecated() {
         return !useLegacySdkStructure();
+    }
+
+    public boolean isOlderThanDefaultDownloadVersion() {
+        if (sdkToolsVersion == null) {
+            return true;
+        }
+        final VersionNumber sdk = new VersionNumber(sdkToolsVersion);
+        return sdk.isOlderThan(new VersionNumber(Constants.SDK_TOOLS_DEFAULT_VERSION));
     }
 
     public boolean useLegacySdkStructure() {

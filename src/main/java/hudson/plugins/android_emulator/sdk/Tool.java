@@ -1,5 +1,8 @@
 package hudson.plugins.android_emulator.sdk;
 
+import java.util.ArrayList;
+import java.util.List;
+
 public enum Tool {
     ADB("adb", ".exe", new PlatformToolLocator()),
     ANDROID_LEGACY("android", ".bat"),
@@ -19,7 +22,11 @@ public enum Tool {
            EMULATOR64_ARM, EMULATOR64_MIPS, EMULATOR64_X86
     };
 
-    public static Tool[] REQUIRED = new Tool[] {
+    private static Tool[] REQUIRED = new Tool[] {
+        ADB, EMULATOR, AVDMANAGER, SDKMANAGER
+    };
+
+    private static Tool[] REQUIRED_LEGACY = new Tool[] {
         ADB, ANDROID_LEGACY, EMULATOR
     };
 
@@ -44,22 +51,53 @@ public enum Tool {
         return executable + windowsExtension;
     }
 
-    public String findInSdk(final AndroidSdk androidSdk) {
-        return toolLocator.findInSdk(androidSdk);
+    private String getPathInSdk(final boolean legacySdkStructure, final boolean isUnix) {
+        return toolLocator.findInSdk(legacySdkStructure) + "/" + getExecutable(isUnix);
     }
 
-    public static String[] getAllExecutableVariants() {
-        return getAllExecutableVariants(values());
+    public String getPathInSdk(final AndroidSdk androidSdk, final boolean isUnix) {
+        return getPathInSdk(androidSdk.useLegacySdkStructure(), isUnix);
     }
 
-    public static String[] getAllExecutableVariants(final Tool[] tools) {
-        String[] executables = new String[tools.length * 2];
-        for (int i = 0, n = tools.length; i < n; i++) {
-            executables[i*2] = tools[i].getExecutable(true);
-            executables[i*2+1] = tools[i].getExecutable(false);
+    /**
+     * Retrieve a list of relative paths to the SDK root directory
+     * for the given tools, either for the legacy or the new structure.
+     *
+     * @param tools the Tools to get the relative path for
+     * @param useLegacy return the paths for the new or the legacy structure
+     * @param isUnix if false the windows suffix is appended
+     * @return a list of relative paths (including the executable name) expected to exist
+     */
+    private static String[] getRequiredToolsRelativePaths(final Tool[] tools, final boolean useLegacy, final boolean isUnix) {
+        final List<String> paths = new ArrayList<String>();
+        for (final Tool tool : tools) {
+            paths.add(tool.getPathInSdk(useLegacy, isUnix));
         }
+        return paths.toArray(new String[0]);
+    }
 
-        return executables;
+    /**
+     * Retrieve a list of relative paths to the SDK root directory
+     * for all necessary tools needed for a SDK installations using
+     * the new structure (tools/bin, emulator dir).
+     *
+     * @param isUnix if false the windows suffix is appended
+     * @return a list of relative paths (including the executable name) expected to exist
+     */
+    public static String[] getRequiredToolsRelativePaths(final boolean isUnix) {
+        return getRequiredToolsRelativePaths(Tool.REQUIRED, false, isUnix);
+    }
+
+    /**
+     * Retrieve a list of relative paths to the SDK root directory
+     * for all necessary tools needed for a SDK installations using
+     * the legacy structure (tools/android, ...).
+     *
+     * @param isUnix if false the windows suffix is appended
+     * @return a list of relative paths (including the executable name) expected to exist
+     */
+    public static String[] getRequiredToolsLegacyRelativePaths(final boolean isUnix) {
+        return getRequiredToolsRelativePaths(Tool.REQUIRED_LEGACY, true, isUnix);
     }
 
     @Override

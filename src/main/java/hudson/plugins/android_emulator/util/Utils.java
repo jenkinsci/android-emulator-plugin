@@ -18,6 +18,7 @@ import hudson.plugins.android_emulator.Constants;
 import hudson.plugins.android_emulator.Messages;
 import hudson.plugins.android_emulator.sdk.AndroidSdk;
 import hudson.plugins.android_emulator.sdk.Tool;
+import hudson.plugins.android_emulator.sdk.ToolLocator;
 import hudson.plugins.android_emulator.sdk.cli.SdkCliCommand;
 import hudson.remoting.Callable;
 import hudson.remoting.Future;
@@ -150,7 +151,7 @@ public class Utils {
                 if (Util.fixEmptyAndTrim(dir) == null) {
                     return false;
                 }
-                return !Utils.validateAndroidHome(new File(dir), false).isFatal();
+                return !Utils.validateAndroidHome(new File(dir), true, false).isFatal();
             }
 
             private static final long serialVersionUID = 1L;
@@ -195,7 +196,7 @@ public class Utils {
                 } else {
                     // Validate given SDK root
                     final File sdkRootFile = new File(sdkRoot);
-                    ValidationResult result = Utils.validateAndroidHome(sdkRootFile, false);
+                    ValidationResult result = Utils.validateAndroidHome(sdkRootFile, true, false);
                     if (result.isFatal()) {
                         log(logger, Messages.SDK_DETERMINATION_VIA_SDKROOT_FAILED(
                                 "sdkRoot='" + sdkRoot + "', "
@@ -226,13 +227,80 @@ public class Utils {
     }
 
     /**
+     * Check if a root directory contains all the given subDirectories.
+     * If a single subDirectory does not exist, false is returned.
+     *
+     * @param root the root-directory which needs to hold the subDirectories
+     * @param subDirectories the names of the subDirectories to check for existence
+     * @return true if all subDirectories exist or empty, false otherwise
+     */
+    public static boolean areAllSubdirectoriesExistant(final File root, final String[] subDirectories) {
+        if (subDirectories == null) {
+            return true;
+        }
+
+        for (final String dirName : subDirectories) {
+            final File dir = new File(root, dirName);
+            if (!dir.exists() || !dir.isDirectory()) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    /**
+     * Check if a root directory contains all the given files.
+     * If a single file is not found false is returned.
+     *
+     * @param root the root-directory which needs to hold the subDirectories
+     * @param relativeFilePaths the names of the files to check for existence
+     * @return true if all files exist or empty, false otherwise
+     */
+    public static boolean areAllFilesExistantInDir(final File root, final String[] relativeFilePaths) {
+        if (relativeFilePaths == null) {
+            return true;
+        }
+
+        for (String filePath : relativeFilePaths) {
+            File file = new File(root, filePath);
+            if (!file.isFile()) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /**
+     * Helper method to wrap check for validateAndroidHome to determine if given SDK
+     * root directory contains all needed tools. A flag allows to define if the
+     * legacy layout is defined as valid or not.
+     *
+     * @param sdkRoot The directory to validate.
+     * @param allowLegacy Whether the legacy SDK Tools layout is considered valid
+     * @return Whether the SDK root directory contains all necessary files
+     */
+    private static boolean validateSDKCheckIfAllNecessaryFilesExists(final File sdkRoot, final boolean allowLegacy) {
+        final boolean sdkDirNewLayoutExists =
+                areAllFilesExistantInDir(sdkRoot, Tool.getRequiredToolsRelativePaths(true))
+                        || areAllFilesExistantInDir(sdkRoot, Tool.getRequiredToolsRelativePaths(false));
+        final boolean sdkDirOldLayoutExists = !sdkDirNewLayoutExists && allowLegacy
+                && (areAllFilesExistantInDir(sdkRoot, Tool.getRequiredToolsLegacyRelativePaths(true))
+                        || areAllFilesExistantInDir(sdkRoot, Tool.getRequiredToolsLegacyRelativePaths(false)));
+
+        return (sdkDirNewLayoutExists || sdkDirOldLayoutExists);
+    }
+
+    /**
      * Validates whether the given directory looks like a valid Android SDK directory.
      *
      * @param sdkRoot The directory to validate.
+     * @param allowLegacy Whether the legacy SDK Tools layout is considered valid
      * @param fromWebConfig Whether we are being called from the web config and should be more lax.
      * @return Whether the SDK looks valid or not (or a warning if the SDK install is incomplete).
      */
-    public static ValidationResult validateAndroidHome(File sdkRoot, boolean fromWebConfig) {
+    public static ValidationResult validateAndroidHome(final File sdkRoot, final boolean allowLegacy, final boolean fromWebConfig) {
+
         // This can be used to check the existence of a file on the server, so needs to be protected
         if (fromWebConfig && !Hudson.getInstance().hasPermission(Hudson.ADMINISTER)) {
             return ValidationResult.ok();
@@ -250,31 +318,20 @@ public class Utils {
         }
 
         // Ensure that this at least looks like an SDK directory
-        final String[] sdkDirectories = { "tools", "platform-tools" };
-        for (String dirName : sdkDirectories) {
-            File dir = new File(sdkRoot, dirName);
-            if (!dir.exists() || !dir.isDirectory()) {
-                return ValidationResult.error(Messages.INVALID_SDK_DIRECTORY());
-            }
+        if (
+                !areAllSubdirectoriesExistant(sdkRoot, ToolLocator.SDK_DIRECTORIES)
+                && !(allowLegacy && areAllSubdirectoriesExistant(sdkRoot, ToolLocator.SDK_DIRECTORIES_LEGACY))
+                ) {
+            return ValidationResult.error(Messages.INVALID_SDK_DIRECTORY());
         }
 
         // Search the various tool directories to ensure the basic tools exist
-        int toolsFound = 0;
-        final String[] toolDirectories = { "tools", "platform-tools", "build-tools" };
-        for (String dir : toolDirectories) {
-            File toolsDir = new File(sdkRoot, dir);
-            if (!toolsDir.isDirectory()) {
-                continue;
-            }
-            IOFileFilter filter = new NameFileFilter(Tool.getAllExecutableVariants(Tool.REQUIRED));
-            toolsFound += FileUtils.listFiles(toolsDir, filter, TrueFileFilter.INSTANCE).size();
-        }
-        if (toolsFound < Tool.REQUIRED.length) {
+        if (!validateSDKCheckIfAllNecessaryFilesExists(sdkRoot, allowLegacy)) {
             return ValidationResult.errorWithMarkup(Messages.REQUIRED_SDK_TOOLS_NOT_FOUND());
         }
 
         // Give the user a nice warning (not error) if they've not downloaded any platforms yet
-        File platformsDir = new File(sdkRoot, "platforms");
+        File platformsDir = new File(sdkRoot, ToolLocator.PLATFORMS_DIR);
         if (platformsDir.list() == null || platformsDir.list().length == 0) {
             return ValidationResult.warning(Messages.SDK_PLATFORMS_EMPTY());
         }
@@ -435,17 +492,16 @@ public class Utils {
     public static ArgumentListBuilder getToolCommand(AndroidSdk androidSdk, boolean isUnix, final SdkCliCommand sdkCmd) {
         // Determine the path to the desired tool
         final Tool tool = sdkCmd.getTool();
-        String androidToolsDir;
+        final String executable;
         if (androidSdk.hasKnownRoot()) {
-            androidToolsDir = androidSdk.getSdkRoot() + tool.findInSdk(androidSdk);
+            executable = androidSdk.getSdkRoot() + "/" + tool.getPathInSdk(androidSdk, isUnix);
         } else {
             LOGGER.warning("SDK root not found. Assuming command is on the PATH");
-            androidToolsDir = "";
+            executable = tool.getExecutable(isUnix);
         }
 
         // Build tool command
-        final String executable = tool.getExecutable(isUnix);
-        ArgumentListBuilder builder = new ArgumentListBuilder(androidToolsDir + executable);
+        final ArgumentListBuilder builder = new ArgumentListBuilder(executable);
         final String args = sdkCmd.getArgs();
         if (args != null) {
             builder.add(Util.tokenize(args));
