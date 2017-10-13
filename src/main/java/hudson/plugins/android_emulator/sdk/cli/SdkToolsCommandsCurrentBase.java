@@ -21,7 +21,6 @@ public class SdkToolsCommandsCurrentBase implements SdkToolsCommands {
             final String modifiedComponent = component
                     .replaceAll("^tool$", "tools")
                     .replaceAll("^platform-tool$", "platform-tools")
-                    .replaceAll("^addon-$", "addons-")
                     .replaceAll("^extra-google-", "extras;google;")
                     .replaceAll("^extra-android-", "extras;android;")
                     .replaceAll("^addon-", "add-ons;addon-")
