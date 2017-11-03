@@ -950,4 +950,20 @@ public class Utils {
         private static final long serialVersionUID = 1L;
     }
 
+    /**
+     * Checks if java.lang.Process is still alive. Native isAlive method
+     * exists since Java 8 API.
+     *
+     * @param process Process to check
+     * @return true if process is alive, false if process has exited
+     */
+    public static boolean isProcessAlive(final Process process) {
+        boolean exited = false;
+        try {
+            process.exitValue();
+            exited = true;
+        } catch (IllegalThreadStateException ex) {
+        }
+        return !exited;
+    }
 }

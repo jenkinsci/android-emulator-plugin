@@ -570,7 +570,7 @@ class EmulatorConfig implements Serializable {
             // Just "press" Enter to continue with the selected target's defaults.
             try {
                 int waitCnt = 0;
-                while (process.isAlive()) {
+                while (Utils.isProcessAlive(process)) {
                     final String line = procstdout.readLine();
                     if (line != null && !line.isEmpty()) {
                         AndroidEmulator.log(logger, line, true);
