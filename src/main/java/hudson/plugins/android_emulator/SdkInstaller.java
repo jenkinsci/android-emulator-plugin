@@ -241,9 +241,9 @@ public class SdkInstaller {
         String platform = getPlatformForEmulator(launcher, emuConfig);
 
         // Install platform and any dependencies it may have
-        boolean requiresAbi = !emuConfig.isNamedEmulator() && emuConfig.getOsVersion().requiresAbi();
+        final boolean requiresAbi = emuConfig.getOsVersion().requiresAbi();
         String abi = requiresAbi ? emuConfig.getTargetAbi() : null;
-        installPlatform(logger, launcher, sdk, platform, abi);
+        installPlatform(logger, launcher, sdk, platform, abi, emuConfig.isNamedEmulator());
     }
 
     /**
@@ -254,9 +254,10 @@ public class SdkInstaller {
      * @param sdk SDK installation to install components for.
      * @param platform Specifies the platform to be installed.
      * @param abi Specifies the ABI to be installed; may be {@code null}.
+     * @param skipSystemImageInstall Specifies that the system image does not need to be installed (useful for named emulator)
      */
     public static void installPlatform(PrintStream logger, Launcher launcher, AndroidSdk sdk,
-            String platform, String abi) throws IOException, InterruptedException {
+            String platform, String abi, final boolean skipSystemImageInstall) throws IOException, InterruptedException {
 
         final AndroidPlatform androidPlatform = AndroidPlatform.valueOf(platform);
         if (androidPlatform == null) {
@@ -265,7 +266,7 @@ public class SdkInstaller {
         }
 
         // Check whether this platform is already installed
-        if (isPlatformInstalled(logger, launcher, sdk, androidPlatform.getName(), abi)) {
+        if (isPlatformInstalled(logger, launcher, sdk, androidPlatform.getName(), abi, skipSystemImageInstall)) {
             return;
         }
 
@@ -289,7 +290,7 @@ public class SdkInstaller {
         }
 
         // Determine which individual component(s) need to be installed for this platform
-        List<String> components = getSdkComponentsForPlatform(logger, sdk, androidPlatform, abi);
+        List<String> components = getSdkComponentsForPlatform(logger, sdk, androidPlatform, abi, skipSystemImageInstall);
         if (components == null || components.size() == 0) {
             return;
         }
@@ -299,7 +300,7 @@ public class SdkInstaller {
         if (components.size() > 1) {
             for (Iterator<String> it = components.iterator(); it.hasNext(); ) {
                 String component = it.next();
-                if (isPlatformInstalled(logger, launcher, sdk, component, null)) {
+                if (isPlatformInstalled(logger, launcher, sdk, component, null, true)) {
                     it.remove();
                 }
             }
@@ -315,7 +316,8 @@ public class SdkInstaller {
     }
 
     private static boolean isPlatformInstalled(PrintStream logger, Launcher launcher,
-            AndroidSdk sdk, String platform, String abi) throws IOException, InterruptedException {
+            AndroidSdk sdk, String platform, String abi,
+            final boolean skipSystemInstall) throws IOException, InterruptedException {
         ByteArrayOutputStream targetList = new ByteArrayOutputStream();
         final SdkCliCommand sdkListTargets = SdkCliCommandFactory.getCommandsForSdk(sdk)
                 .getListExistingTargetsCommand();
@@ -325,7 +327,7 @@ public class SdkInstaller {
             return false;
         }
 
-        if (abi != null) {
+        if (!skipSystemInstall && abi != null) {
             final ByteArrayOutputStream systemImagesList = new ByteArrayOutputStream();
             final SdkToolsCommands sdkToolsCommand = SdkCliCommandFactory.getCommandsForSdk(sdk);
 
@@ -343,7 +345,8 @@ public class SdkInstaller {
     }
 
     private static List<String> getSdkComponentsForPlatform(final PrintStream logger,
-            final AndroidSdk sdk, final AndroidPlatform androidPlatform, final String abi) {
+            final AndroidSdk sdk, final AndroidPlatform androidPlatform, final String abi,
+            final boolean skipSystemImageInstall) {
         // Gather list of required components
         List<String> components = new ArrayList<String>();
 
@@ -354,7 +357,7 @@ public class SdkInstaller {
 
         // Add system image, if required
         // Even if a system image doesn't exist for this platform, the installer silently ignores it
-        if (androidPlatform.getSdkLevel() >= 10 && abi != null) {
+        if (!skipSystemImageInstall && androidPlatform.getSdkLevel() >= 10 && abi != null) {
             if (sdk.supportsSystemImageNewFormat()) {
                 components.add(androidPlatform.getSystemImageName(abi));
             } else {
