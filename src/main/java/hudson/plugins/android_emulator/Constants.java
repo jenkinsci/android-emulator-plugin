@@ -240,7 +240,7 @@ class AndroidPlatform implements Serializable {
 
     /**
      * @return {@code true} if this platform requires an ABI to be explicitly specified during
-     * emulator creation.
+     * emulator creation or using an system-image (and not the image provided via platform).
      */
     public boolean requiresAbi() {
         // TODO: Could be improved / this logic should ideally be moved to emulator creation time...
@@ -248,7 +248,7 @@ class AndroidPlatform implements Serializable {
         // the only example seen so far is the Intel x86 level 10 image we explicitly include here..
         // But, since the Intel x86 for SDK 10 is now hosted by Google, we can't rely on the name...
         return level == AndroidPlatformVersions.API_LEVEL_10.apiLevel
-                || level >= AndroidPlatformVersions.API_LEVEL_15.apiLevel
+                || level >= AndroidPlatformVersions.API_LEVEL_14.apiLevel
                 || Util.fixNull(name).contains("Intel Atom x86 System Image");
     }
 
@@ -356,6 +356,11 @@ class AndroidPlatform implements Serializable {
     }
 
     public String getPackagePathOfSystemImage(final String abi) {
+        if (!requiresAbi()) {
+            return String.format("platforms;%s-%d",
+                    "android", getSdkLevel());
+        }
+
         String tagFromAbi = getTagFromAbiString(abi);
         if (tagFromAbi.isEmpty()) {
             tagFromAbi = "default";

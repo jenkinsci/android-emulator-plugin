@@ -241,9 +241,9 @@ public class SdkInstaller {
         String platform = getPlatformForEmulator(launcher, emuConfig);
 
         // Install platform and any dependencies it may have
-        final boolean requiresAbi = emuConfig.getOsVersion().requiresAbi();
-        String abi = requiresAbi ? emuConfig.getTargetAbi() : null;
-        installPlatform(logger, launcher, sdk, platform, abi, emuConfig.isNamedEmulator());
+        final boolean skipSystemImageInstall = emuConfig.isNamedEmulator()
+                || !emuConfig.getOsVersion().requiresAbi();
+        installPlatform(logger, launcher, sdk, platform, emuConfig.getTargetAbi(), skipSystemImageInstall);
     }
 
     /**

@@ -530,7 +530,7 @@ class EmulatorConfig implements Serializable {
 
             // avdmanager requires target version and target ABI as package path, so ABI is required
             if (Tool.AVDMANAGER.equals(sdkCreateAvdCmd.getTool())) {
-                if (targetAbi == null || targetAbi.isEmpty()) {
+                if ((Util.fixEmpty(targetAbi) == null) && osVersion.requiresAbi()) {
                     AndroidEmulator.log(logger, Messages.ABI_REQUIRED());
                     throw new EmulatorCreationException(Messages.AVD_CREATION_FAILED());
                 }

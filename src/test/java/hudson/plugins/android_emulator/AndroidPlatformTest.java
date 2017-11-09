@@ -202,6 +202,10 @@ public class AndroidPlatformTest extends TestCase {
         assertEquals("system-images;android-23;default;armabi-v7a", AndroidPlatform.valueOf("android-23").getPackagePathOfSystemImage("armabi-v7a"));
         assertEquals("system-images;android-24;default;armabi-v7a", AndroidPlatform.valueOf("android-24").getPackagePathOfSystemImage("armabi-v7a"));
         assertEquals("system-images;android-26;default;arm64-v8a", AndroidPlatform.valueOf("android-26").getPackagePathOfSystemImage("arm64-v8a"));
+        assertEquals("platforms;android-9", AndroidPlatform.valueOf("android-9").getPackagePathOfSystemImage("armabi-v7a"));
+        assertEquals("system-images;android-10;default;armeabi-v7a", AndroidPlatform.valueOf("android-10").getPackagePathOfSystemImage("armeabi-v7a"));
+        assertEquals("system-images;android-14;default;armeabi-v8a", AndroidPlatform.valueOf("android-14").getPackagePathOfSystemImage("armeabi-v8a"));
+        assertEquals("platforms;android-13", AndroidPlatform.valueOf("android-13").getPackagePathOfSystemImage(null));
 
         assertEquals("system-images;android-23;test;x86", AndroidPlatform.valueOf("Google Inc.:Google APIs:23").getPackagePathOfSystemImage("test/x86"));
         assertEquals("system-images;android-24;google_apis;x86", AndroidPlatform.valueOf("Google Inc.:Google APIs:24").getPackagePathOfSystemImage("x86"));
