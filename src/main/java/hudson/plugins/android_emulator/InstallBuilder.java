@@ -11,7 +11,8 @@ import hudson.model.Descriptor;
 import hudson.model.TaskListener;
 import hudson.plugins.android_emulator.builder.AbstractBuilder;
 import hudson.plugins.android_emulator.sdk.AndroidSdk;
-import hudson.plugins.android_emulator.sdk.Tool;
+import hudson.plugins.android_emulator.sdk.cli.SdkCliCommand;
+import hudson.plugins.android_emulator.sdk.cli.SdkCliCommandFactory;
 import hudson.plugins.android_emulator.util.Utils;
 import hudson.tasks.Builder;
 import hudson.util.ForkOutputStream;
@@ -107,9 +108,10 @@ public class InstallBuilder extends AbstractBuilder {
         AndroidEmulator.log(logger, Messages.INSTALLING_APK(apkPath.getName()));
         ByteArrayOutputStream stdout = new ByteArrayOutputStream();
         ForkOutputStream forkStream = new ForkOutputStream(logger, stdout);
-        String args = String.format("%s install -r \"%s\"", deviceIdentifier, apkPath.getName());
+        final SdkCliCommand sdkInstallApkCmd = SdkCliCommandFactory.getCommandsForSdk(androidSdk)
+                .getAdbInstallPackageCommand(deviceIdentifier, apkPath.getName());
         Utils.runAndroidTool(launcher, build.getEnvironment(TaskListener.NULL), forkStream, logger,
-                androidSdk, Tool.ADB, args, apkPath.getParent(), INSTALL_TIMEOUT);
+                androidSdk, sdkInstallApkCmd, apkPath.getParent(), INSTALL_TIMEOUT);
 
         Pattern p = Pattern.compile("^Success$", Pattern.MULTILINE);
         boolean success = p.matcher(stdout.toString()).find();

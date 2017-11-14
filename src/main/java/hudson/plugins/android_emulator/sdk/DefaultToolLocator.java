@@ -1,7 +1,8 @@
 package hudson.plugins.android_emulator.sdk;
 
 public class DefaultToolLocator implements ToolLocator {
-    public String findInSdk(AndroidSdk androidSdk, Tool tool) {
-        return "/tools/";
+    @Override
+    public String findInSdk(final boolean useLegacySdkStructure) {
+        return ToolLocator.TOOLS_DIR;
     }
 }

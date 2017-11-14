@@ -12,11 +12,13 @@ import hudson.model.Node;
 import hudson.model.TaskListener;
 import hudson.plugins.android_emulator.AndroidEmulator;
 import hudson.plugins.android_emulator.AndroidEmulator.DescriptorImpl;
+import hudson.plugins.android_emulator.Constants;
 import hudson.plugins.android_emulator.Messages;
 import hudson.plugins.android_emulator.SdkInstallationException;
 import hudson.plugins.android_emulator.SdkInstaller;
 import hudson.plugins.android_emulator.sdk.AndroidSdk;
-import hudson.plugins.android_emulator.sdk.Tool;
+import hudson.plugins.android_emulator.sdk.cli.SdkCliCommand;
+import hudson.plugins.android_emulator.sdk.cli.SdkCliCommandFactory;
 import hudson.plugins.android_emulator.util.Utils;
 import hudson.remoting.VirtualChannel;
 import hudson.tasks.Builder;
@@ -37,12 +39,6 @@ public abstract class AbstractBuilder extends Builder {
     /** Maximum time to wait, in milliseconds, for an APK to be uninstalled. */
     private static final int UNINSTALL_TIMEOUT = 60 * 1000;
 
-    /** Environment variable set by the plugin to specify the serial of the started AVD. */
-    private static final String DEVICE_SERIAL_VARIABLE = "ANDROID_AVD_DEVICE";
-
-    /** Environment variable set by the plugin to specify the telnet interface port. */
-    private static final String DEVICE_USER_PORT_VARIABLE = "ANDROID_AVD_USER_PORT";
-
     /**
      * Gets an Android SDK instance, ready for use.
      *
@@ -62,20 +58,18 @@ public abstract class AbstractBuilder extends Builder {
         }
 
         // Get configured, expanded Android SDK root value
-        String androidHome = Utils.expandVariables(build, listener,
+        String configuredAndroidSdkRoot = Utils.expandVariables(build, listener,
                 Utils.getConfiguredAndroidHome());
         EnvVars envVars = Utils.getEnvironment(build, listener);
 
         // Retrieve actual SDK root based on given value
         Node node = Computer.currentComputer().getNode();
-        String discoveredAndroidHome = Utils.discoverAndroidHome(launcher, node, envVars,
-                androidHome);
 
         // Get Android SDK object from the given root (or locate on PATH)
         final String androidSdkHome = (envVars != null && keepInWorkspace ? envVars
-                .get("WORKSPACE") : null);
+                .get(Constants.ENV_VAR_JENKINS_WORKSPACE) : null);
         AndroidSdk androidSdk = Utils
-                .getAndroidSdk(launcher, discoveredAndroidHome, androidSdkHome);
+                .getAndroidSdk(launcher, node, envVars, configuredAndroidSdkRoot, androidSdkHome);
 
         // Check whether we should install the SDK
         if (androidSdk == null) {
@@ -108,7 +102,7 @@ public abstract class AbstractBuilder extends Builder {
 
             public void buildEnvVars(AbstractBuild<?, ?> build, EnvVars envVars) {
                 if (envVars != null) {
-                    envVars.put("ANDROID_HOME", sdkRoot);
+                    envVars.put(Constants.ENV_VAR_ANDROID_HOME, sdkRoot);
                 }
             }
 
@@ -133,17 +127,17 @@ public abstract class AbstractBuilder extends Builder {
      *
      * @param build The build for which we should retrieve the SDK instance.
      * @param listener The listener used to get the environment variables.
-     * @return The device identifier (defaulting to the value of "<tt>-s $ANDROID_AVD_DEVICE</tt>").
+     * @return The device identifier (defaulting to the value of "<tt>$ANDROID_AVD_DEVICE</tt>").
      */
     protected static String getDeviceIdentifier(AbstractBuild<?, ?> build, BuildListener listener) {
-        String deviceSerial = expandVariable(build, listener, DEVICE_SERIAL_VARIABLE);
+        String deviceSerial = expandVariable(build, listener, Constants.ENV_VAR_ANDROID_AVD_DEVICE);
         if (deviceSerial == null) {
             // No emulator was started by this plugin; assume only one device is attached
             return "";
         }
 
         // Use the serial of the emulator started by this plugin
-        return String.format("-s %s", deviceSerial);
+        return deviceSerial;
     }
 
     /**
@@ -154,7 +148,7 @@ public abstract class AbstractBuilder extends Builder {
      * @return The device identifier (defaulting to the value of "<tt>-s $ANDROID_AVD_DEVICE</tt>").
      */
     protected static int getDeviceTelnetPort(AbstractBuild<?, ?> build, BuildListener listener) {
-        String devicePort = expandVariable(build, listener, DEVICE_USER_PORT_VARIABLE);
+        String devicePort = expandVariable(build, listener, Constants.ENV_VAR_ANDROID_AVD_USER_PORT);
         if (devicePort == null) {
             // No emulator was started by this plugin; assume only one device is attached
             return 5554;
@@ -199,7 +193,8 @@ public abstract class AbstractBuilder extends Builder {
         final int sleep = timeout / (int) (Math.sqrt(timeout / 1000) * 2);
 
         // Run the "ps" command in a loop until we find the desired process
-        final String adbArgs = String.format("%s shell ps", deviceIdentifier);
+        final SdkCliCommand adbCmd = SdkCliCommandFactory.getAdbShellCommandForAPILevel(androidSdk.getSdkToolsMajorVersion())
+                .getListProcessesCommand(deviceIdentifier);
         try {
             long start = System.currentTimeMillis();
             final ByteArrayOutputStream stdout = new ByteArrayOutputStream(8192);
@@ -209,7 +204,7 @@ public abstract class AbstractBuilder extends Builder {
 
                 // Get the process list from the device
                 Utils.runAndroidTool(launcher, build.getEnvironment(TaskListener.NULL), stdout, null, androidSdk,
-                        Tool.ADB, adbArgs, null, adbTimeout);
+                        adbCmd, null, adbTimeout);
 
                 // Check whether the core process has started
                 if (stdout.toString().contains("android.process.acore")) {
@@ -272,9 +267,10 @@ public abstract class AbstractBuilder extends Builder {
 
         ByteArrayOutputStream stdout = new ByteArrayOutputStream();
         ForkOutputStream forkStream = new ForkOutputStream(logger, stdout);
-        String adbArgs = String.format("%s uninstall %s", deviceIdentifier, packageId);
+        final SdkCliCommand adbCmd = SdkCliCommandFactory.getCommandsForSdk(androidSdk).
+                getAdbUninstallPackageCommand(deviceIdentifier, packageId);
         Utils.runAndroidTool(launcher, build.getEnvironment(TaskListener.NULL),
-                forkStream, logger, androidSdk, Tool.ADB, adbArgs, null, UNINSTALL_TIMEOUT);
+                forkStream, logger, androidSdk, adbCmd, null, UNINSTALL_TIMEOUT);
 
         // The package manager simply returns "Success" or "Failure" on stdout
         return stdout.toString().contains("Success");

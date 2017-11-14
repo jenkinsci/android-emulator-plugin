@@ -2,7 +2,8 @@ package hudson.plugins.android_emulator.sdk;
 
 import com.google.common.annotations.VisibleForTesting;
 import hudson.Util;
-import hudson.plugins.android_emulator.util.Utils;
+import hudson.plugins.android_emulator.Constants;
+import hudson.plugins.android_emulator.util.ConfigFileUtils;
 import hudson.util.VersionNumber;
 
 import java.io.File;
@@ -26,8 +27,17 @@ public class AndroidSdk implements Serializable {
     /** First version that recognises the "sys-img-[arch]-[tag]-[api]" format. */
     private static final int SDK_SYSTEM_IMAGE_NEW_FORMAT = 23;
 
-    /** First version that has an emulator which recognises the "-engine" flag. */
-    private static final int SDK_EMULATOR_ENGINE_FLAG = 25;
+    /** First version that ships the Android Emulator 2.0. */
+    private static final int SDK_EMULATOR_V2 = 25;
+
+    /**
+     * First version where the 'android' command is deprecated/removed
+     * and fully replaced by 'avdmanager' and 'sdkmanager'
+     */
+    private static final String SDK_TOOLS_ANDROID_CMD_DEPRECATED = "25.3";
+
+    /** First version that comes with the emulator 2.0 supporting the needed -ports, etc commands. */
+    private static final int SDK_EMULATOR_V2_USABLE = 26;
 
     private final String sdkRoot;
     private final String sdkHome;
@@ -45,7 +55,7 @@ public class AndroidSdk implements Serializable {
         // Determine SDK tools version
         File toolsPropFile = new File(sdkRoot, "tools/source.properties");
         Map<String, String> toolsProperties;
-        toolsProperties = Utils.parseConfigFile(toolsPropFile);
+        toolsProperties = ConfigFileUtils.parseConfigFile(toolsPropFile);
         sdkToolsVersion = Util.fixEmptyAndTrim(toolsProperties.get("Pkg.Revision"));
     }
 
@@ -65,6 +75,10 @@ public class AndroidSdk implements Serializable {
         return this.sdkHome;
     }
 
+    public String getSdkToolsVersion() {
+        return this.sdkToolsVersion;
+    }
+
     @VisibleForTesting
     void setSdkToolsVersion(String version) {
         sdkToolsVersion = version;
@@ -79,8 +93,14 @@ public class AndroidSdk implements Serializable {
         return new VersionNumber(sdkToolsVersion).digit(0);
     }
 
+    /**
+     * Determines if the AndroidSdk supports creation of snapshots to enable persistence,
+     * currently in Android Emulator v2.0 the usage of snapshots leads to an error on creation
+     * of the virtual device. So this option is currently disabled.
+     * @return {@code true} if this SDK supports snapshots in AVD creation
+     */
     public boolean supportsSnapshots() {
-        return getSdkToolsMajorVersion() >= SDK_TOOLS_SNAPSHOTS;
+        return getSdkToolsMajorVersion() >= SDK_TOOLS_SNAPSHOTS && !supportsEmulatorV2Full();
     }
 
     public boolean supportsComponentInstallation() {
@@ -95,9 +115,50 @@ public class AndroidSdk implements Serializable {
         return getSdkToolsMajorVersion() >= SDK_SYSTEM_IMAGE_NEW_FORMAT;
     }
 
+    /** @return {@code true} if this SDK ships the Android Emulator 2.0. */
+    public boolean supportsEmulatorV2() {
+        return getSdkToolsMajorVersion() >= SDK_EMULATOR_V2;
+    }
+
+    /**
+     * @return {@code true} if this SDK ships the Android Emulator 2.0 which supports all needed
+     *  command line options used by the plugin.
+     */
+    public boolean supportsEmulatorV2Full() {
+        return getSdkToolsMajorVersion() >= SDK_EMULATOR_V2_USABLE;
+    }
+
     /** @return {@code true} if this SDK has an emulator that supports the "-engine" flag. */
     public boolean supportsEmulatorEngineFlag() {
-        return getSdkToolsMajorVersion() >= SDK_EMULATOR_ENGINE_FLAG;
+        return supportsEmulatorV2();
+    }
+
+    /**
+     * @return {@code true} if this SDK has an emulator that supports the "-engine" flag (uses the Android
+     * Emulator 2.0) but the version does not support the needed CLI arguments (-ports, -prop, report-console).
+     */
+    public boolean forceClassicEmulatorEngine() {
+        return supportsEmulatorEngineFlag() && !supportsEmulatorV2Full();
+    }
+
+    public boolean isAndroidCmdDeprecated() {
+        return !useLegacySdkStructure();
+    }
+
+    public boolean isOlderThanDefaultDownloadVersion() {
+        if (sdkToolsVersion == null) {
+            return true;
+        }
+        final VersionNumber sdk = new VersionNumber(sdkToolsVersion);
+        return sdk.isOlderThan(new VersionNumber(Constants.SDK_TOOLS_DEFAULT_VERSION));
+    }
+
+    public boolean useLegacySdkStructure() {
+        if (sdkToolsVersion == null) {
+            return false;
+        }
+        final VersionNumber sdk = new VersionNumber(sdkToolsVersion);
+        return sdk.isOlderThan(new VersionNumber(SDK_TOOLS_ANDROID_CMD_DEPRECATED));
     }
 
     /** {@return true} if we should explicitly select a non-64-bit emulator executable for snapshot-related tasks. */

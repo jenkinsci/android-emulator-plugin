@@ -1,8 +1,8 @@
 package hudson.plugins.android_emulator.sdk;
 
-public class PlatformToolLocator implements ToolLocator {
+public class SdkToolLocator implements ToolLocator {
     @Override
     public String findInSdk(final boolean useLegacySdkStructure) {
-        return ToolLocator.PLATFORM_TOOLS_DIR;
+        return ToolLocator.TOOLS_BIN_DIR;
     }
 }

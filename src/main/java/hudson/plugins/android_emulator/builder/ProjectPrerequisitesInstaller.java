@@ -10,7 +10,7 @@ import hudson.model.AbstractBuild;
 import hudson.plugins.android_emulator.Messages;
 import hudson.plugins.android_emulator.SdkInstaller;
 import hudson.plugins.android_emulator.sdk.AndroidSdk;
-import hudson.plugins.android_emulator.util.Utils;
+import hudson.plugins.android_emulator.util.ConfigFileUtils;
 import hudson.remoting.VirtualChannel;
 import hudson.tasks.Builder;
 import jenkins.MasterToSlaveFileCallable;
@@ -55,7 +55,7 @@ public class ProjectPrerequisitesInstaller extends AbstractBuilder {
         // Install platform(s)
         log(logger, Messages.ENSURING_PLATFORMS_INSTALLED(platforms));
         for (String platform : platforms) {
-            SdkInstaller.installPlatform(logger, launcher, androidSdk, platform, null);
+            SdkInstaller.installPlatform(logger, launcher, androidSdk, platform, null, true);
         }
 
         // Done!
@@ -105,7 +105,7 @@ public class ProjectPrerequisitesInstaller extends AbstractBuilder {
             String platform = null;
             try {
                 // Read configured target platform from file
-                platform = Utils.parseConfigFile(f).get("target");
+                platform = ConfigFileUtils.parseConfigFile(f).get("target");
                 if (platform != null) {
                     platform = platform.trim();
                 }

@@ -12,23 +12,27 @@ import hudson.model.BuildListener;
 import hudson.model.Computer;
 import hudson.model.Hudson;
 import hudson.model.Node;
+import hudson.model.TaskListener;
 import hudson.plugins.android_emulator.AndroidEmulator.DescriptorImpl;
 import hudson.plugins.android_emulator.Constants;
 import hudson.plugins.android_emulator.Messages;
-import hudson.plugins.android_emulator.SdkInstallationException;
 import hudson.plugins.android_emulator.sdk.AndroidSdk;
 import hudson.plugins.android_emulator.sdk.Tool;
+import hudson.plugins.android_emulator.sdk.ToolLocator;
+import hudson.plugins.android_emulator.sdk.cli.SdkCliCommand;
 import hudson.remoting.Callable;
 import hudson.remoting.Future;
 import hudson.util.ArgumentListBuilder;
+import hudson.util.VersionNumber;
+
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.filefilter.IOFileFilter;
 import org.apache.commons.io.filefilter.NameFileFilter;
 import org.apache.commons.io.filefilter.TrueFileFilter;
+import org.apache.commons.lang.exception.ExceptionUtils;
 
 import java.io.BufferedReader;
 import java.io.File;
-import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
@@ -41,7 +45,6 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Properties;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
 import java.util.concurrent.FutureTask;
@@ -99,125 +102,218 @@ public class Utils {
     }
 
     /**
-     * Tries to validate the given Android SDK root directory; otherwise tries to
-     * locate a copy of the SDK by checking for common environment variables.
+     * Tries to validate the given Android SDK root directory.
      *
      * @param launcher The launcher for the remote node.
-     * @param envVars Environment variables for the build.
-     * @param androidHome The (variable-expanded) SDK root given in global config.
-     * @return Either a discovered SDK path or, if all else fails, the given androidHome value.
+     * @param androidSdkRootPreferred The preferred SDK root directory.
+     * Normally the (variable-expanded) SDK root directory specified in the job/system configuration.
+     * @param androidSdkHome The SDK home directory, i.e. the workspace directory.
+     * @return AndroidSdk object representing the properties of the installed SDK, or null if no valid
+     * directory is found.
      */
-    public static String discoverAndroidHome(Launcher launcher, Node node,
-            final EnvVars envVars, final String androidHome) {
-        final String autoInstallDir = getSdkInstallDirectory(node).getRemote();
+    public static AndroidSdk getAndroidSdk(final Launcher launcher,
+            final String androidSdkRootPreferred, final String androidSdkHome) {
+        return getAndroidSdk(launcher, null, null, true, androidSdkRootPreferred, androidSdkHome);
+    }
 
-        Callable<String, InterruptedException> task = new MasterToSlaveCallable<String, InterruptedException>() {
-            public String call() throws InterruptedException {
-                // Verify existence of provided value
-                if (validateHomeDir(androidHome)) {
-                    return androidHome;
-                }
+    /**
+     * Tries to validate the given Android SDK root directory; otherwise tries to
+     * locate a copy of the SDK by checking for the auto-install directory and for
+     * common environment variables.
+     *
+     * @param launcher The launcher for the remote node.
+     * @param node Current node
+     * @param envVars Environment variables for the build.
+     * @param androidSdkRootPreferred The preferred SDK root directory.
+     * Normally the (variable-expanded) SDK root directory specified in the job/system configuration.
+     * @param androidSdkHome The SDK home directory, i.e. the workspace directory.
+     * @return AndroidSdk object representing the properties of the installed SDK, or null if no valid
+     * directory is found.
+     */
+    public static AndroidSdk getAndroidSdk(final Launcher launcher, final Node node,
+            final EnvVars envVars,
+            final String androidSdkRootPreferred, final String androidSdkHome) {
+        return getAndroidSdk(launcher, node, envVars, false, androidSdkRootPreferred, androidSdkHome);
+    }
 
-                // Check for common environment variables
-                String[] keys = { "ANDROID_SDK_ROOT", "ANDROID_SDK_HOME",
-                                  "ANDROID_HOME", "ANDROID_SDK" };
+    /**
+     * Tries to validate the given Android SDK root directory; otherwise tries to
+     * locate a copy of the SDK by checking for the auto-install directory and for
+     * common environment variables.
+     *
+     * @param launcher The launcher for the remote node.
+     * @param node Current node
+     * @param envVars Environment variables for the build.
+     * @param checkPreferredOnly just check preferred directory, do not try to determine
+     * other SDK roots by evaluating auto-install directory or common environment variables.
+     * @param androidSdkRootPreferred The preferred SDK root directory.
+     * Normally the (variable-expanded) SDK root directory specified in the job/system configuration.
+     * @param androidSdkHome The SDK home directory, i.e. the workspace directory.
+     * @return AndroidSdk object representing the properties of the installed SDK, or null if no valid
+     * directory is found.
+     */
+    public static AndroidSdk getAndroidSdk(final Launcher launcher, final Node node,
+            final EnvVars envVars, final boolean checkPreferredOnly,
+            final String androidSdkRootPreferred, final String androidSdkHome) {
 
-                // Resolve each variable to its directory name
-                List<String> potentialSdkDirs = new ArrayList<String>();
-                for (String key : keys) {
-                    potentialSdkDirs.add(envVars.get(key));
-                }
+        final TaskListener listener = launcher.getListener();
+        final String autoInstallDir = (!checkPreferredOnly) ? getSdkInstallDirectory(node).getRemote() : "";
 
-                // Also add the auto-installed SDK directory to the list of candidates
-                potentialSdkDirs.add(autoInstallDir);
+        Callable<AndroidSdk, IOException> task = new MasterToSlaveCallable<AndroidSdk, IOException>() {
+            public AndroidSdk call() throws IOException {
+
+                final List<String> potentialSdkDirs = getPotentialSdkDirs();
+                final StringBuilder determinationLog = new StringBuilder();
 
                 // Check each directory to see if it's a valid Android SDK
-                for (String home : potentialSdkDirs) {
-                    if (validateHomeDir(home)) {
-                        return home;
+                for (String potentialSdkDir : potentialSdkDirs) {
+                    if (Util.fixEmptyAndTrim(potentialSdkDir) == null) {
+                        continue;
+                    }
+
+                    final ValidationResult result = Utils.validateAndroidHome(new File(potentialSdkDir), true, false);
+                    if (!result.isFatal()) {
+                        // Create SDK instance with what we know so far
+                        return new AndroidSdk(potentialSdkDir, androidSdkHome);
+                    } else {
+                        determinationLog.append("['" + potentialSdkDir + "']: " + result.getMessage() + "\n");
                     }
                 }
 
                 // Give up
+                log(listener.getLogger(), Messages.SDK_DETERMINATION_FAILED());
+                log(listener.getLogger(), determinationLog.toString(), true);
                 return null;
             }
 
-            private boolean validateHomeDir(String dir) {
-                if (Util.fixEmptyAndTrim(dir) == null) {
-                    return false;
+            private List<String> getPotentialSdkDirs() {
+                final List<String> potentialSdkDirs = new ArrayList<String>();
+
+                // Add global config path first
+                potentialSdkDirs.add(androidSdkRootPreferred);
+
+                // do not add any other possible dirs
+                if (checkPreferredOnly) {
+                    return potentialSdkDirs;
                 }
-                return !Utils.validateAndroidHome(new File(dir), false).isFatal();
+
+                // Add common environment variables
+                String[] keys = { Constants.ENV_VAR_ANDROID_SDK_ROOT,
+                        Constants.ENV_VAR_ANDROID_SDK_HOME,
+                        Constants.ENV_VAR_ANDROID_HOME,
+                        Constants.ENV_VAR_ANDROID_SDK };
+
+                // Resolve each variable to its directory name
+                for (String key : keys) {
+                    final String envValue = envVars.get(key);
+                    if (envValue != null && !envValue.isEmpty()) {
+                        potentialSdkDirs.add(envVars.get(key));
+                    }
+                }
+
+                // Also add the auto-installed SDK directory to the list of candidates
+                if (Util.fixEmptyAndTrim(autoInstallDir) != null) {
+                    potentialSdkDirs.add(autoInstallDir);
+                }
+
+                // At last, add potential path directories
+                potentialSdkDirs.addAll(getPossibleSdkRootDirectoriesFromPath(envVars));
+
+                return potentialSdkDirs;
             }
 
             private static final long serialVersionUID = 1L;
         };
 
-        String result = androidHome;
-        try {
-            result = launcher.getChannel().call(task);
-        } catch (InterruptedException e) {
-            // Ignore; will return default value
-        } catch (IOException e) {
-            // Ignore; will return default value
-        }
-        return result;
-    }
-
-    /**
-     * Determines the properties of the SDK installed on the build machine.
-     *
-     * @param launcher The launcher for the remote node.
-     * @param androidSdkRoot The SDK root directory specified in the job/system configuration.
-     * @param androidSdkHome The SDK home directory, i.e. the workspace directory.
-     * @return AndroidSdk object representing the properties of the installed SDK.
-     */
-    public static AndroidSdk getAndroidSdk(Launcher launcher, final String androidSdkRoot, final String androidSdkHome) {
-        final boolean isUnix = launcher.isUnix();
-
-        Callable<AndroidSdk, IOException> task = new MasterToSlaveCallable<AndroidSdk, IOException>() {
-            public AndroidSdk call() throws IOException {
-                String sdkRoot = androidSdkRoot;
-                if (androidSdkRoot == null) {
-                    // If no SDK root was specified, attempt to detect it from PATH
-                    sdkRoot = getSdkRootFromPath(isUnix);
-
-                    // If still nothing was found, then we cannot continue
-                    if (sdkRoot == null) {
-                        return null;
-                    }
-                } else {
-                    // Validate given SDK root
-                    ValidationResult result = Utils.validateAndroidHome(new File(sdkRoot), false);
-                    if (result.isFatal()) {
-                        return null;
-                    }
-                }
-
-                // Create SDK instance with what we know so far
-                return new AndroidSdk(sdkRoot, androidSdkHome);
-            }
-            private static final long serialVersionUID = 1L;
-        };
-
+        final PrintStream logger = listener.getLogger();
         try {
             return launcher.getChannel().call(task);
         } catch (IOException e) {
-            // Ignore
+            // Ignore, log only
+            log(logger, ExceptionUtils.getFullStackTrace(e));
         } catch (InterruptedException e) {
-            // Ignore
+            // Ignore, log only
+            log(logger, ExceptionUtils.getFullStackTrace(e));
         }
 
         return null;
     }
 
     /**
+     * Check if a root directory contains all the given subDirectories.
+     * If a single subDirectory does not exist, false is returned.
+     *
+     * @param root the root-directory which needs to hold the subDirectories
+     * @param subDirectories the names of the subDirectories to check for existence
+     * @return true if all subDirectories exist or empty, false otherwise
+     */
+    public static boolean areAllSubdirectoriesExistant(final File root, final String[] subDirectories) {
+        if (subDirectories == null) {
+            return true;
+        }
+
+        for (final String dirName : subDirectories) {
+            final File dir = new File(root, dirName);
+            if (!dir.exists() || !dir.isDirectory()) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    /**
+     * Check if a root directory contains all the given files.
+     * If a single file is not found false is returned.
+     *
+     * @param root the root-directory which needs to hold the subDirectories
+     * @param relativeFilePaths the names of the files to check for existence
+     * @return true if all files exist or empty, false otherwise
+     */
+    public static boolean areAllFilesExistantInDir(final File root, final String[] relativeFilePaths) {
+        if (relativeFilePaths == null) {
+            return true;
+        }
+
+        for (String filePath : relativeFilePaths) {
+            File file = new File(root, filePath);
+            if (!file.isFile()) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /**
+     * Helper method to wrap check for validateAndroidHome to determine if given SDK
+     * root directory contains all needed tools. A flag allows to define if the
+     * legacy layout is defined as valid or not.
+     *
+     * @param sdkRoot The directory to validate.
+     * @param allowLegacy Whether the legacy SDK Tools layout is considered valid
+     * @return Whether the SDK root directory contains all necessary files
+     */
+    private static boolean validateSDKCheckIfAllNecessaryFilesExists(final File sdkRoot, final boolean allowLegacy) {
+        final boolean sdkDirNewLayoutExists =
+                areAllFilesExistantInDir(sdkRoot, Tool.getRequiredToolsRelativePaths(true))
+                        || areAllFilesExistantInDir(sdkRoot, Tool.getRequiredToolsRelativePaths(false));
+        final boolean sdkDirOldLayoutExists = !sdkDirNewLayoutExists && allowLegacy
+                && (areAllFilesExistantInDir(sdkRoot, Tool.getRequiredToolsLegacyRelativePaths(true))
+                        || areAllFilesExistantInDir(sdkRoot, Tool.getRequiredToolsLegacyRelativePaths(false)));
+
+        return (sdkDirNewLayoutExists || sdkDirOldLayoutExists);
+    }
+
+    /**
      * Validates whether the given directory looks like a valid Android SDK directory.
      *
      * @param sdkRoot The directory to validate.
+     * @param allowLegacy Whether the legacy SDK Tools layout is considered valid
      * @param fromWebConfig Whether we are being called from the web config and should be more lax.
      * @return Whether the SDK looks valid or not (or a warning if the SDK install is incomplete).
      */
-    public static ValidationResult validateAndroidHome(File sdkRoot, boolean fromWebConfig) {
+    public static ValidationResult validateAndroidHome(final File sdkRoot, final boolean allowLegacy, final boolean fromWebConfig) {
+
         // This can be used to check the existence of a file on the server, so needs to be protected
         if (fromWebConfig && !Hudson.getInstance().hasPermission(Hudson.ADMINISTER)) {
             return ValidationResult.ok();
@@ -235,32 +331,21 @@ public class Utils {
         }
 
         // Ensure that this at least looks like an SDK directory
-        final String[] sdkDirectories = { "tools", "platforms" };
-        for (String dirName : sdkDirectories) {
-            File dir = new File(sdkRoot, dirName);
-            if (!dir.exists() || !dir.isDirectory()) {
-                return ValidationResult.error(Messages.INVALID_SDK_DIRECTORY());
-            }
+        if (
+                !areAllSubdirectoriesExistant(sdkRoot, ToolLocator.SDK_DIRECTORIES)
+                && !(allowLegacy && areAllSubdirectoriesExistant(sdkRoot, ToolLocator.SDK_DIRECTORIES_LEGACY))
+                ) {
+            return ValidationResult.error(Messages.INVALID_SDK_DIRECTORY());
         }
 
         // Search the various tool directories to ensure the basic tools exist
-        int toolsFound = 0;
-        final String[] toolDirectories = { "tools", "platform-tools", "build-tools" };
-        for (String dir : toolDirectories) {
-            File toolsDir = new File(sdkRoot, dir);
-            if (!toolsDir.isDirectory()) {
-                continue;
-            }
-            IOFileFilter filter = new NameFileFilter(Tool.getAllExecutableVariants(Tool.REQUIRED));
-            toolsFound += FileUtils.listFiles(toolsDir, filter, TrueFileFilter.INSTANCE).size();
-        }
-        if (toolsFound < Tool.REQUIRED.length) {
+        if (!validateSDKCheckIfAllNecessaryFilesExists(sdkRoot, allowLegacy)) {
             return ValidationResult.errorWithMarkup(Messages.REQUIRED_SDK_TOOLS_NOT_FOUND());
         }
 
         // Give the user a nice warning (not error) if they've not downloaded any platforms yet
-        File platformsDir = new File(sdkRoot, "platforms");
-        if (platformsDir.list().length == 0) {
+        File platformsDir = new File(sdkRoot, ToolLocator.PLATFORMS_DIR);
+        if (platformsDir.list() == null || platformsDir.list().length == 0) {
             return ValidationResult.warning(Messages.SDK_PLATFORMS_EMPTY());
         }
 
@@ -268,24 +353,24 @@ public class Utils {
     }
 
     /**
-     * Locates the current user's home directory using the same scheme as the Android SDK does.
+     * Locates the Android SDK home directory using the same scheme as the Android SDK does.
      *
      * @return A {@link File} representing the directory in which the ".android" subdirectory should go.
      */
-    public static File getHomeDirectory(String androidSdkHome) {
+    public static File getAndroidSdkHomeDirectory(String androidSdkHome) {
         // From git://android.git.kernel.org/platform/external/qemu.git/android/utils/bufprint.c
-        String homeDirPath = System.getenv("ANDROID_SDK_HOME");
+        String homeDirPath = System.getenv(Constants.ENV_VAR_ANDROID_SDK_HOME);
         if (homeDirPath == null) {
             if (androidSdkHome != null) {
                 homeDirPath = androidSdkHome;
             } else if (!Functions.isWindows()) {
-                homeDirPath = System.getenv("HOME");
+                homeDirPath = System.getenv(Constants.ENV_VAR_SYSTEM_HOME);
                 if (homeDirPath == null) {
                     homeDirPath = "/tmp";
                 }
             } else {
                 // The emulator checks Win32 "CSIDL_PROFILE", which should equal USERPROFILE
-                homeDirPath = System.getenv("USERPROFILE");
+                homeDirPath = System.getenv(Constants.ENV_VAR_SYSTEM_USERPROFILE);
                 if (homeDirPath == null) {
                     // Otherwise fall back to user.home (which should equal USERPROFILE anyway)
                     homeDirPath = System.getProperty("user.home");
@@ -306,18 +391,18 @@ public class Utils {
         String path = null;
         if (Functions.isWindows()) {
             // The emulator queries for the Win32 "CSIDL_PROFILE" path, which should equal USERPROFILE
-            path = System.getenv("USERPROFILE");
+            path = System.getenv(Constants.ENV_VAR_SYSTEM_USERPROFILE);
 
             // Otherwise, fall back to the Windows equivalent of HOME
             if (path == null) {
-                String homeDrive = System.getenv("HOMEDRIVE");
-                String homePath = System.getenv("HOMEPATH");
+                String homeDrive = System.getenv(Constants.ENV_VAR_SYSTEM_HOMEDRIVE);
+                String homePath = System.getenv(Constants.ENV_VAR_SYSTEM_HOMEPATH);
                 if (homeDrive != null && homePath != null) {
                     path = homeDrive + homePath;
                 }
             }
         } else {
-            path = System.getenv("HOME");
+            path = System.getenv(Constants.ENV_VAR_SYSTEM_HOME);
         }
 
         // Path may not have been discovered
@@ -328,41 +413,25 @@ public class Utils {
     }
 
     /**
-     * Detects the root directory of an SDK installation based on the Android tools on the PATH.
+     * Retrieves a list of directories from the PATH-Environment-Variable, which could be an SDK installation.
+     * Currently it is only checked, if the path points to an 'tools'-directory.
      *
-     * @param isUnix Whether the system where this command should run is sane.
-     * @return The root directory of an Android SDK, or {@code null} if none could be determined.
+     * @param envVar the environment variables currently set for the node
+     * @return A list of possible root directories of an Android SDK
      */
-    private static String getSdkRootFromPath(boolean isUnix) {
-        // List of tools which should be found together in an Android SDK tools directory
-        Tool[] tools = { Tool.ANDROID, Tool.EMULATOR };
-
+    private static List<String> getPossibleSdkRootDirectoriesFromPath(final EnvVars envVars) {
         // Get list of directories from the PATH environment variable
-        List<String> paths = Arrays.asList(System.getenv("PATH").split(File.pathSeparator));
+        List<String> paths = Arrays.asList(envVars.get(Constants.ENV_VAR_SYSTEM_PATH).split(File.pathSeparator));
+        final List<String> possibleSdkRootsFromPath = new ArrayList<String>();
 
         // Examine each directory to see whether it contains the expected Android tools
         for (String path : paths) {
-            File toolsDir = new File(path);
-            if (!toolsDir.exists() || !toolsDir.isDirectory()) {
-                continue;
-            }
-
-            int toolCount = 0;
-            for (Tool tool : tools) {
-                String executable = tool.getExecutable(isUnix);
-                if (new File(toolsDir, executable).exists()) {
-                    toolCount++;
-                }
-            }
-
-            // If all the tools were found in this directory, we have a winner
-            if (toolCount == tools.length) {
-                // Return the parent path (i.e. the SDK root)
-                return toolsDir.getParent();
+            if (path.matches(".*[\\\\/]" + ToolLocator.TOOLS_DIR + "[\\\\/]*$")) {
+                possibleSdkRootsFromPath.add(path);
             }
         }
 
-        return null;
+        return possibleSdkRootsFromPath;
     }
 
     /**
@@ -384,32 +453,53 @@ public class Utils {
     }
 
     /**
+     * Parse the given command-line and return the appropriate environment variables if known
+     * options are found.
+     *
+     * Currently this method is only used to workaround Android Emulator Bug 64356053, where
+     * the '-no-audio', '-noaudio', '-audio none' option does not work for the qemu2-emulator.
+     * If one of the options is found the environment variable 'QEMU_AUDIO_DRV=none' is set.
+     *
+     * @param commandLineOptions CLI-parameters to parse
+     * @return {@code EnvVars} (Map) of additional environment variables based on given commandLine,
+     * empty if no recognized option was found or parameters is {@code null}
+     */
+    public static EnvVars getEnvironmentVarsFromEmulatorArgs(final String commandLineOptions) {
+        final EnvVars env = new EnvVars();
+
+        if (commandLineOptions == null || commandLineOptions.isEmpty()) {
+            return env;
+        }
+
+        if (commandLineOptions.matches(".*(\\s|^)-no-?audio.*")
+                || commandLineOptions.matches(".*(\\s|^)-audio none(\\s|$).*")) {
+            env.put(Constants.ENV_VAR_QEMU_AUDIO_DRV, Constants.ENV_VALUE_QEMU_AUDIO_DRV_NONE);
+        }
+        return env;
+    }
+
+    /**
      * Generates a ready-to-use ArgumentListBuilder for one of the Android SDK tools.
      *
      * @param androidSdk The Android SDK to use.
      * @param isUnix Whether the system where this command should run is sane.
-     * @param tool The Android tool to run.
-     * @param args Any extra arguments for the command.
+     * @param sdkCmd The Android tool and any extra arguments for the command to run.
      * @return Arguments including the full path to the SDK and any extra Windows stuff required.
      */
-    public static ArgumentListBuilder getToolCommand(AndroidSdk androidSdk, boolean isUnix, Tool tool, String args) {
+    public static ArgumentListBuilder getToolCommand(AndroidSdk androidSdk, boolean isUnix, final SdkCliCommand sdkCmd) {
         // Determine the path to the desired tool
-        String androidToolsDir;
+        final Tool tool = sdkCmd.getTool();
+        final String executable;
         if (androidSdk.hasKnownRoot()) {
-            try {
-                androidToolsDir = androidSdk.getSdkRoot() + tool.findInSdk(androidSdk);
-            } catch (SdkInstallationException e) {
-                LOGGER.warning("A build-tools directory was found but there were no build-tools installed. Assuming command is on the PATH");
-                androidToolsDir = "";
-            }
+            executable = androidSdk.getSdkRoot() + "/" + tool.getPathInSdk(androidSdk, isUnix);
         } else {
             LOGGER.warning("SDK root not found. Assuming command is on the PATH");
-            androidToolsDir = "";
+            executable = tool.getExecutable(isUnix);
         }
 
         // Build tool command
-        final String executable = tool.getExecutable(isUnix);
-        ArgumentListBuilder builder = new ArgumentListBuilder(androidToolsDir + executable);
+        final ArgumentListBuilder builder = new ArgumentListBuilder(executable);
+        final String args = sdkCmd.getArgs();
         if (args != null) {
             builder.add(Util.tokenize(args));
         }
@@ -424,34 +514,33 @@ public class Utils {
      * @param stdout The stream to which standard output should be redirected.
      * @param stderr The stream to which standard error should be redirected.
      * @param androidSdk The Android SDK to use.
-     * @param tool The Android tool to run.
-     * @param args Any extra arguments for the command.
+     * @param sdkCmd The Android tool and any extra arguments for the command to run.
      * @param workingDirectory The directory to run the tool from, or {@code null} if irrelevant
      * @throws IOException If execution of the tool fails.
      * @throws InterruptedException If execution of the tool is interrupted.
      */
     public static void runAndroidTool(Launcher launcher, OutputStream stdout, OutputStream stderr,
-            AndroidSdk androidSdk, Tool tool, String args, FilePath workingDirectory)
+            AndroidSdk androidSdk, final SdkCliCommand sdkCmd, FilePath workingDirectory)
                 throws IOException, InterruptedException {
-        runAndroidTool(launcher, new EnvVars(), stdout, stderr, androidSdk, tool, args, workingDirectory);
+        runAndroidTool(launcher, new EnvVars(), stdout, stderr, androidSdk, sdkCmd, workingDirectory);
     }
 
     public static void runAndroidTool(Launcher launcher, EnvVars env, OutputStream stdout, OutputStream stderr,
-            AndroidSdk androidSdk, Tool tool, String args, FilePath workingDirectory)
+            AndroidSdk androidSdk, final SdkCliCommand sdkCmd, FilePath workingDirectory)
             throws IOException, InterruptedException {
-        runAndroidTool(launcher, env, stdout, stderr, androidSdk, tool, args, workingDirectory, 0);
+        runAndroidTool(launcher, env, stdout, stderr, androidSdk, sdkCmd, workingDirectory, 0);
     }
 
     public static void runAndroidTool(Launcher launcher, EnvVars env, OutputStream stdout, OutputStream stderr,
-            AndroidSdk androidSdk, Tool tool, String args, FilePath workingDirectory, long timeoutMs)
+            AndroidSdk androidSdk, final SdkCliCommand sdkCmd, FilePath workingDirectory, long timeoutMs)
                 throws IOException, InterruptedException {
 
-        ArgumentListBuilder cmd = Utils.getToolCommand(androidSdk, launcher.isUnix(), tool, args);
+        ArgumentListBuilder cmd = Utils.getToolCommand(androidSdk, launcher.isUnix(), sdkCmd);
         ProcStarter procStarter = launcher.launch().stdout(stdout).stderr(stderr).cmds(cmd);
         if (androidSdk.hasKnownHome()) {
             // Copy the old one, so we don't mutate the argument.
             env = new EnvVars((env == null ? new EnvVars() : env));
-            env.put("ANDROID_SDK_HOME", androidSdk.getSdkHome());
+            env.put(Constants.ENV_VAR_ANDROID_SDK_HOME, androidSdk.getSdkHome());
         }
 
         if (env != null) {
@@ -469,28 +558,6 @@ public class Utils {
         } else {
             proc.join();
         }
-    }
-
-    /**
-     * Parses the contents of a properties file into a map.
-     *
-     * @param configFile The file to read.
-     * @return The key-value pairs contained in the file, ignoring any comments or blank lines.
-     * @throws IOException If the file could not be read.
-     */
-    public static Map<String, String> parseConfigFile(File configFile) throws IOException {
-        FileReader fileReader = new FileReader(configFile);
-        BufferedReader reader = new BufferedReader(fileReader);
-        Properties properties = new Properties();
-        properties.load(reader);
-        reader.close();
-
-        final Map<String, String> values = new HashMap<String, String>();
-        for (final Map.Entry<Object, Object> entry : properties.entrySet()) {
-            values.put((String) entry.getKey(), (String) entry.getValue());
-        }
-
-        return values;
     }
 
     /**
@@ -640,8 +707,9 @@ public class Utils {
 
         String fromPath, toPath;
         try {
-            fromPath = new File(from).getCanonicalPath();
-            toPath = new File(to).getCanonicalPath();
+            // normalize separators first to avoid '//' typos on unix to get converted to UNC paths on windows
+            fromPath = new File(normalizePathSeparators(from)).getCanonicalPath();
+            toPath = new File(normalizePathSeparators(to)).getCanonicalPath();
         } catch (IOException e1) {
             e1.printStackTrace();
             return null;
@@ -651,25 +719,19 @@ public class Utils {
         if (fromPath.equals(toPath)) {
             return "";
         }
-        // Target directory is a subdirectory
-        if (toPath.startsWith(fromPath)) {
-            int fromLength = fromPath.length();
-            int index = fromLength == 1 ? 1 : fromLength + 1;
-            return toPath.substring(index) + File.separatorChar;
-        }
 
         // Quote separator, as String.split() takes a regex and
         // File.separator isn't a valid regex character on Windows
         final String separator = Pattern.quote(File.separator);
         // Target directory is somewhere above our directory
         String[] fromParts = fromPath.substring(1).split(separator);
-        final int fromLength = fromParts.length;
+        final int fromLength = getNumberOfNonEmptyEntries(fromParts);
         String[] toParts = toPath.substring(1).split(separator);
-        final int toLength = toParts.length;
+        final int toLength = getNumberOfNonEmptyEntries(toParts);
 
         // Find the number of common path segments
         int commonLength = 0;
-        for (int i = 0; i < toLength; i++) {
+        for (int i = 0; i < toLength && i < fromLength; i++) {
             if (fromParts[i].length() == 0) {
                 continue;
             }
@@ -716,36 +778,119 @@ public class Utils {
             return -1;
         }
 
-        final String[] parts = relative.split("/");
-        final int length = parts.length;
-        if (length == 1 && parts[0].isEmpty()) {
-            return 0;
-        }
-        return parts.length;
+        final String[] parts = relative.split(Pattern.quote(File.separator));
+        return getNumberOfNonEmptyEntries(parts);
     }
 
     /**
-     * Determines the API level for the given platform name.
+     * Reduce multi-slash and multi-backslash to single characters, but keeping
+     * double backslash in the beginning to keep UNC paths.
      *
-     * @param platform String like "android-4" or "Google:Google APIs:14".
-     * @return The detected version, or {@code -1} if not determined.
+     * @param path the path to normalize
+     * @return normalized path without double slash/backslash
      */
-    public static int getApiLevelFromPlatform(String platform) {
-        int apiLevel = -1;
-        platform = Util.fixEmptyAndTrim(platform);
-        if (platform == null) {
-            return apiLevel;
-        }
+    public static String normalizePathSeparators(final String path) {
+        return path
+                // multi-backslash to double first, then all except on start to single backslash, to avoid loosing UNC paths
+                .replaceAll("\\\\\\\\+", "\\\\\\\\").replaceAll("(?<!^)\\\\+", "\\\\")
+                // multi-slash to single slash for unix paths
+                .replaceAll("/+", "/");
+    }
 
-        Matcher matcher = Pattern.compile("[-:]([0-9]{1,2})$").matcher(platform);
-        if (matcher.find()) {
-            String end = matcher.group(1);
-            try {
-                apiLevel = Integer.parseInt(end);
-            } catch (NumberFormatException e) {
+    /**
+     * Returns the length of the String-Array omitting empty entries.
+     *
+     * @param array String array to retrieve length from
+     * @return number of non empty String entries
+     */
+    private static int getNumberOfNonEmptyEntries(final String[] array) {
+        int length = 0;
+        for (int idx = 0; idx < array.length; idx++) {
+            if (!array[idx].isEmpty()) {
+                length++;
             }
         }
-        return apiLevel;
+        return length;
+    }
+
+    /**
+     * Checks whether the version number string represented by the first parameter is older then
+     * the version number string represented by the second parameter. For comparison the utility class
+     * {@code VersionNumber} is used.
+     *
+     * @param strVersion the version number to check if older then {@code strVersionToCompare}
+     * @param strVersionToCompare the version number where {@code strVersion} is compared to
+     * @return {@code true} if {@code VersionNumber} representation of {@code strVersion} is older then
+     * {@code VersionNumber} representation of {@code strVersionToCompare}
+     */
+    public static boolean isVersionOlderThan(final String strVersion, final String strVersionToCompare) {
+        final VersionNumber version = new VersionNumber(Util.fixNull(strVersion));
+        final VersionNumber versiontoCompare = new VersionNumber(Util.fixNull(strVersionToCompare));
+        return version.isOlderThan(versiontoCompare);
+    }
+
+    /**
+     * Looks up the input for the given pattern with an attached version number. The pattern
+     * with the highest version found is returned. The delimiter between pattern and version
+     * may be ';' or '-'.
+     *
+     * @param multiLine multi-line input string to look up pattern + version
+     * @param pattern the pattern to look for
+     * @return The pattern found with the highest version number, or null if pattern is not found
+     */
+    public static String getPatternWithHighestSuffixedVersionNumberInMultiLineInput(final String multiLine, final String pattern) {
+        String result = null;
+        String currentMaxVersion = "0";
+
+        final String lines[] = multiLine.split("(\r\n|\r|\n)");
+        for (int pos = 0; pos < lines.length; pos++) {
+            final String line = lines[pos];
+            final String patternAndVersionRegex = "(" + pattern + "[-;][0-9\\.]+)";
+            final Matcher m = Pattern.compile(patternAndVersionRegex).matcher(line);
+            if (m.find()) {
+                final String patternAndVersion = m.group(0);
+                final String lineVersion = patternAndVersion.replaceAll("^(.*?)([0-9\\.]*)$", "$2");
+                if (isVersionOlderThan(currentMaxVersion, lineVersion)) {
+                    result = patternAndVersion;
+                    currentMaxVersion = lineVersion;
+                }
+            }
+        }
+        return result;
+    }
+
+    /**
+     * Compares one given string representing a version number ({@code"[:digit:]+(\.[:digit:]+)*"})
+     * to another one and checks for equality. Additionally the number of parts to compare can
+     * be given, this allows comparing only eg: the major and minor numbers. The version number
+     * "1.0.0" would match "1.0.1" if partsToCompare would be 2.
+     *
+     * @param strVersionA version number to compare against {@code strVersionB}
+     * @param strVersionB version number to compare against {@code strVersionA}
+     * @param partsToCompare if > 0 then the number of parts for that version number are compared,
+     * if <= 0 the complete version number is compared
+     * @return {@code true} if the versions number (or if requested parts of the version numbers) are identical,
+     * {@code false} otherwise
+     */
+    public static boolean equalsVersion(final String strVersionA, final String strVersionB, final int partsToCompare) {
+        String versionA = Util.fixNull(strVersionA);
+        String versionB = Util.fixNull(strVersionB);
+
+        if (partsToCompare <= 0) {
+            return (versionA.equals(versionB));
+        }
+
+        final String[] splitA = versionA.split("\\.");
+        final String[] splitB = versionB.split("\\.");
+
+        for (int idx = 0; idx < partsToCompare; idx++) {
+            final String a = (idx < splitA.length) ? splitA[idx] : "";
+            final String b = (idx < splitB.length) ? splitB[idx] : "";
+            if (!a.equals(b)) {
+                return false;
+            }
+        }
+        return true;
     }
 
     /** Task that will execute a command on the given emulator's console port, then quit. */
@@ -805,4 +950,20 @@ public class Utils {
         private static final long serialVersionUID = 1L;
     }
 
+    /**
+     * Checks if java.lang.Process is still alive. Native isAlive method
+     * exists since Java 8 API.
+     *
+     * @param process Process to check
+     * @return true if process is alive, false if process has exited
+     */
+    public static boolean isProcessAlive(final Process process) {
+        boolean exited = false;
+        try {
+            process.exitValue();
+            exited = true;
+        } catch (IllegalThreadStateException ex) {
+        }
+        return !exited;
+    }
 }
