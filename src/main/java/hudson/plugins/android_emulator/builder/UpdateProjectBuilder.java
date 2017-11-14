@@ -190,6 +190,8 @@ public class UpdateProjectBuilder extends AbstractBuilder {
     private static String getWorkspacePath(FilePath workspace) throws IOException,
             InterruptedException {
         return workspace.act(new MasterToSlaveFileCallable<String>() {
+            private static final long serialVersionUID = 1L;
+
             public String invoke(File f, VirtualChannel channel) throws IOException {
                 return f.getCanonicalPath();
             }

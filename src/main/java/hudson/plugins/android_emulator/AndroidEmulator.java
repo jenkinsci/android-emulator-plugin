@@ -13,7 +13,6 @@ import hudson.model.AbstractBuild;
 import hudson.model.AbstractProject;
 import hudson.model.BuildListener;
 import hudson.model.Computer;
-import hudson.model.Hudson;
 import hudson.model.Node;
 import hudson.model.Result;
 import hudson.plugins.android_emulator.sdk.AndroidSdk;
@@ -30,6 +29,7 @@ import hudson.util.ArgumentListBuilder;
 import hudson.util.ForkOutputStream;
 import hudson.util.FormValidation;
 import hudson.util.NullStream;
+import jenkins.model.Jenkins;
 import jenkins.security.MasterToSlaveCallable;
 import net.sf.json.JSONObject;
 import org.apache.commons.io.IOUtils;
@@ -179,7 +179,7 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
             throws IOException, InterruptedException {
         final PrintStream logger = listener.getLogger();
         if (descriptor == null) {
-            descriptor = Hudson.getInstance().getDescriptorByType(DescriptorImpl.class);
+            descriptor = Jenkins.getInstance().getDescriptorByType(DescriptorImpl.class);
         }
 
         // Substitute environment and build variables into config
