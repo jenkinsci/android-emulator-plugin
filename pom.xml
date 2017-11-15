@@ -12,6 +12,12 @@
   <version>2.16-SNAPSHOT</version>
   <name>Android Emulator Plugin</name>
   <url>http://wiki.jenkins-ci.org/display/JENKINS/Android+Emulator+Plugin</url>
+
+  <properties>
+    <jenkins.version>2.32</jenkins.version>
+    <java.version>1.7</java.version>
+  </properties>
+
   <developers>
     <developer>
       <id>orrc</id>
