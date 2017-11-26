@@ -28,13 +28,6 @@ public class AndroidPlatformTest extends TestCase {
     }
 
     @Test
-    public void testCreateAddonPlatform() {
-        final String name = "Some:Addon:11";
-        AndroidPlatform platform = AndroidPlatform.valueOf(name);
-        assertEquals(name, platform.getTargetName());
-    }
-
-    @Test
     public void testCreateInvalidPlatform() {
         assertNull(AndroidPlatform.valueOf(null));
 
@@ -100,6 +93,7 @@ public class AndroidPlatformTest extends TestCase {
 
     @Test
     public void testTargetName() {
+        assertEquals("Some:Addon:11", AndroidPlatform.valueOf("Some:Addon:11").getTargetName());
         assertEquals("Google Inc.:Google APIs:23", AndroidPlatform.valueOf("Google Inc.:Google APIs:23").getTargetName());
         assertEquals("Google Inc.:Google APIs:24", AndroidPlatform.valueOf("Google Inc.:Google APIs:24").getTargetName());
         assertEquals("Apple Inc.:Apple APIs:24", AndroidPlatform.valueOf("Apple Inc.:Apple APIs:24").getTargetName());
@@ -109,6 +103,19 @@ public class AndroidPlatformTest extends TestCase {
         assertEquals("android-10", AndroidPlatform.valueOf("2.3.3").getTargetName());
         assertEquals("android-26", AndroidPlatform.valueOf("8.0").getTargetName());
         assertEquals("android-26", AndroidPlatform.valueOf("26").getTargetName());
+    }
+
+    @Test
+    public void testAndroidTargetName() {
+        assertEquals("android-23", AndroidPlatform.valueOf("Google Inc.:Google APIs:23").getAndroidTargetName());
+        assertEquals("android-24", AndroidPlatform.valueOf("Google Inc.:Google APIs:24").getAndroidTargetName());
+        assertEquals("android-24", AndroidPlatform.valueOf("Apple Inc.:Apple APIs:24").getAndroidTargetName());
+        assertEquals("android-23", AndroidPlatform.valueOf("android-23").getAndroidTargetName());
+        assertEquals("android-24", AndroidPlatform.valueOf("android-24").getAndroidTargetName());
+        assertEquals("android-26", AndroidPlatform.valueOf("android-26").getAndroidTargetName());
+        assertEquals("android-10", AndroidPlatform.valueOf("2.3.3").getAndroidTargetName());
+        assertEquals("android-26", AndroidPlatform.valueOf("8.0").getAndroidTargetName());
+        assertEquals("android-26", AndroidPlatform.valueOf("26").getAndroidTargetName());
     }
 
     @Test

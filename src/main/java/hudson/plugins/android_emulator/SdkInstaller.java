@@ -352,7 +352,7 @@ public class SdkInstaller {
 
         // Add dependent platform (eg: 'android-17')
         if (androidPlatform.getSdkLevel() > 0) {
-            components.add(androidPlatform.getTargetName());
+            components.add(androidPlatform.getAndroidTargetName());
         }
 
         // Add system image, if required
