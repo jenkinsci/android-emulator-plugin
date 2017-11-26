@@ -86,6 +86,11 @@ public class SdkToolsCommands17To25_2 extends SdkToolsCommandsCurrentBase implem
         args.append(" -t ");
         args.append(androidTarget);
 
+        if (tag != null && !tag.isEmpty()) {
+            args.append(" --tag ");
+            args.append(tag);
+        }
+
         return new SdkCliCommand(Tool.ANDROID_LEGACY, args.toString());
     }
 

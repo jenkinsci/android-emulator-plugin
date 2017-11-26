@@ -234,7 +234,7 @@ public class SdkCommandsTest {
                         "android-23", null, null);
         final SdkCliCommand createAvdWithSdCardCmdV04 = SdkCliCommandFactory.getCommandsForSdk("4")
                 .getCreatedAvdCommand("test04", false, "200M", "test", null,
-                        "android-23", null, null);
+                        "android-23", null, "default");
 
         assertEquals(Tool.AVDMANAGER, createAvdWithSdCardCmdV25_3.getTool());
         assertEquals(Tool.ANDROID_LEGACY, createAvdWithSdCardCmdV25.getTool());
@@ -242,9 +242,33 @@ public class SdkCommandsTest {
         assertEquals(Tool.ANDROID_LEGACY, createAvdWithSdCardCmdV04.getTool());
 
         assertEquals("create avd -f -c 100M -d 4 -n test25 -k system-images;android-24;default;x86_64", createAvdWithSdCardCmdV25_3.getArgs());
-        assertEquals("create avd -f -c 100M -s null -n test25 -t android-23", createAvdWithSdCardCmdV25.getArgs());
+        assertEquals("create avd -f -c 100M -s null -n test25 -t android-23 --tag test", createAvdWithSdCardCmdV25.getArgs());
         assertEquals("create avd -f -a -c 1G -s 1x1 -n test17 -t android-23", createAvdWithSdCardCmdV17.getArgs());
-        assertEquals("create avd -f -c 200M -s test -n test04 -t android-23", createAvdWithSdCardCmdV04.getArgs());
+        assertEquals("create avd -f -c 200M -s test -n test04 -t android-23 --tag default", createAvdWithSdCardCmdV04.getArgs());
+
+        // Google APIs
+        final SdkCliCommand createAvdGoogleApiCmdV25_3 = SdkCliCommandFactory.getCommandsForSdk("25.3")
+                .getCreatedAvdCommand("test25", false, null, "dummy", "9",
+                        null, "system-images;android-24;google_apis;x86_64", "google_apis");
+        final SdkCliCommand createAvdGoogleApiCmdV25 = SdkCliCommandFactory.getCommandsForSdk("25")
+                .getCreatedAvdCommand("test25", false, null, "dummy", "9",
+                        "Google Inc.:Google APIs:23", "system-images;android-24;google_apis;x86_64", "google_apis");
+        final SdkCliCommand createAvdGoogleApiCmdV17 = SdkCliCommandFactory.getCommandsForSdk("17")
+                .getCreatedAvdCommand("test17", false, null, "768x1024", null,
+                        "Google Inc.:Google APIs:23", null, "google_apis");
+        final SdkCliCommand createAvdGoogleApiCmdV04 = SdkCliCommandFactory.getCommandsForSdk("4")
+                .getCreatedAvdCommand("test04", false, null, "1080x1920", "7",
+                        "Google Inc.:Google APIs:23", null, "google_apis");
+
+        assertEquals(Tool.AVDMANAGER, createAvdGoogleApiCmdV25_3.getTool());
+        assertEquals(Tool.ANDROID_LEGACY, createAvdGoogleApiCmdV25.getTool());
+        assertEquals(Tool.ANDROID_LEGACY, createAvdGoogleApiCmdV17.getTool());
+        assertEquals(Tool.ANDROID_LEGACY, createAvdGoogleApiCmdV04.getTool());
+
+        assertEquals("create avd -f -d 9 -n test25 -k system-images;android-24;google_apis;x86_64 --tag google_apis", createAvdGoogleApiCmdV25_3.getArgs());
+        assertEquals("create avd -f -s dummy -n test25 -t Google Inc.:Google APIs:23 --tag google_apis", createAvdGoogleApiCmdV25.getArgs());
+        assertEquals("create avd -f -s 768x1024 -n test17 -t Google Inc.:Google APIs:23 --tag google_apis", createAvdGoogleApiCmdV17.getArgs());
+        assertEquals("create avd -f -s 1080x1920 -n test04 -t Google Inc.:Google APIs:23 --tag google_apis", createAvdGoogleApiCmdV04.getArgs());
     }
 
     @Test
