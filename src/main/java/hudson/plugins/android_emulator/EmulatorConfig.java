@@ -709,7 +709,7 @@ class EmulatorConfig implements Serializable {
     }
 
     /** Writes an empty emulator auth file. */
-    @SuppressFBWarnings({"SIC_INNER_SHOULD_BE_STATIC", "VA_FORMAT_STRING_EXTRA_ARGUMENTS_PASSED"})
+    @SuppressFBWarnings("SIC_INNER_SHOULD_BE_STATIC")
     private final class EmulatorAuthFileTask extends MasterToSlaveCallable<Void, IOException> {
 
         private static final long serialVersionUID = 1L;
@@ -722,9 +722,9 @@ class EmulatorConfig implements Serializable {
                     FilePath authFile = new FilePath(userHome).child(".emulator_console_auth_token");
                     authFile.write("", "UTF-8");
                 } catch (IOException e) {
-                    throw new IOException(String.format("Failed to write auth file to %s.", userHome, e));
+                    throw new IOException(String.format("Failed to write auth file to %s.%n%s", userHome, e.getMessage()));
                 } catch (InterruptedException e) {
-                    throw new IOException(String.format("Interrupted while writing auth file to %s.", userHome, e));
+                    throw new IOException(String.format("Interrupted while writing auth file to %s.%n%s", userHome, e.getMessage()));
                 }
             }
 
