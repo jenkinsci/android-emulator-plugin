@@ -29,6 +29,8 @@ import jenkins.security.MasterToSlaveCallable;
 
 import org.apache.commons.lang.exception.ExceptionUtils;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 class EmulatorConfig implements Serializable {
 
     private static final long serialVersionUID = 1L;
@@ -402,6 +404,7 @@ class EmulatorConfig implements Serializable {
      * @throws IOException If execution of the emulator command fails.
      * @throws InterruptedException If execution of the emulator command is interrupted.
      */
+    @SuppressFBWarnings("DM_DEFAULT_ENCODING")
     public boolean hasExistingSnapshot(Launcher launcher, AndroidSdk androidSdk)
             throws IOException, InterruptedException {
         final PrintStream logger = launcher.getListener().getLogger();
@@ -424,6 +427,7 @@ class EmulatorConfig implements Serializable {
      * {@code FALSE} if an AVD was newly created, and throws an AndroidEmulatorException if the
      * given AVD or parts required to generate a new AVD were not found.
      */
+    @SuppressFBWarnings({"DM_DEFAULT_ENCODING", "RV_RETURN_VALUE_IGNORED_BAD_PRACTICE"})
     private final class EmulatorCreationTask extends MasterToSlaveCallable<Boolean, AndroidEmulatorException> {
 
         private static final long serialVersionUID = 1L;
@@ -705,6 +709,7 @@ class EmulatorConfig implements Serializable {
     }
 
     /** Writes an empty emulator auth file. */
+    @SuppressFBWarnings({"SIC_INNER_SHOULD_BE_STATIC", "VA_FORMAT_STRING_EXTRA_ARGUMENTS_PASSED"})
     private final class EmulatorAuthFileTask extends MasterToSlaveCallable<Void, IOException> {
 
         private static final long serialVersionUID = 1L;
@@ -729,6 +734,7 @@ class EmulatorConfig implements Serializable {
     }
 
     /** A task that deletes the AVD corresponding to our local state. */
+    @SuppressFBWarnings("RV_RETURN_VALUE_IGNORED_BAD_PRACTICE")
     private final class EmulatorDeletionTask extends MasterToSlaveCallable<Boolean, Exception> {
 
         private static final long serialVersionUID = 1L;

@@ -25,6 +25,8 @@ import java.util.HashSet;
 import org.apache.tools.ant.DirectoryScanner;
 import org.kohsuke.stapler.DataBoundConstructor;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 public class ProjectPrerequisitesInstaller extends AbstractBuilder {
 
     @DataBoundConstructor
@@ -33,6 +35,7 @@ public class ProjectPrerequisitesInstaller extends AbstractBuilder {
     }
 
     @Override
+    @SuppressFBWarnings("NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE")
     public boolean perform(AbstractBuild<?, ?> build, Launcher launcher, BuildListener listener)
             throws InterruptedException, IOException {
         final PrintStream logger = listener.getLogger();

@@ -25,11 +25,9 @@ import hudson.remoting.Future;
 import hudson.util.ArgumentListBuilder;
 import hudson.util.VersionNumber;
 
-import org.apache.commons.io.FileUtils;
-import org.apache.commons.io.filefilter.IOFileFilter;
-import org.apache.commons.io.filefilter.NameFileFilter;
-import org.apache.commons.io.filefilter.TrueFileFilter;
 import org.apache.commons.lang.exception.ExceptionUtils;
+
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -312,6 +310,7 @@ public class Utils {
      * @param fromWebConfig Whether we are being called from the web config and should be more lax.
      * @return Whether the SDK looks valid or not (or a warning if the SDK install is incomplete).
      */
+    @SuppressFBWarnings("NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE")
     public static ValidationResult validateAndroidHome(final File sdkRoot, final boolean allowLegacy, final boolean fromWebConfig) {
 
         // This can be used to check the existence of a file on the server, so needs to be protected
@@ -618,6 +617,7 @@ public class Utils {
      * @param timeoutMs How long to wait for before cancelling the attempt to kill the process.
      * @return {@code true} if the process was killed successfully.
      */
+    @SuppressFBWarnings("REC_CATCH_EXCEPTION")
     public static boolean killProcess(final Proc process, final int timeoutMs) {
         Boolean result = null;
         FutureTask<Boolean> task = null;
@@ -906,6 +906,7 @@ public class Utils {
         }
 
         @SuppressWarnings("null")
+        @SuppressFBWarnings({"DM_DEFAULT_ENCODING", "RV_DONT_JUST_NULL_CHECK_READLINE"})
         public Boolean call() throws IOException {
             Socket socket = null;
             BufferedReader in = null;

@@ -25,6 +25,8 @@ import java.util.regex.Pattern;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.export.Exported;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 public class MonkeyRecorder extends Recorder {
 
     /** Default file to read monkey results from. */
@@ -45,6 +47,7 @@ public class MonkeyRecorder extends Recorder {
     }
 
     @Override
+    @SuppressFBWarnings("NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE")
     public boolean perform(AbstractBuild<?, ?> build, Launcher launcher, BuildListener listener)
             throws InterruptedException, IOException {
         // Don't analyse anything if the build failed

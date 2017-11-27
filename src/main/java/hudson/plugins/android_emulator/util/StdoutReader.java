@@ -8,6 +8,8 @@ import java.util.Arrays;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 /**
  * Reads to contents of an InputStream in an background thread,
  * useful to retrieve OutputStream/ErrorStream of a Process, and
@@ -42,6 +44,7 @@ public class StdoutReader
      * immediately of the given InputStream in an own thread.
      * @param inputStream InputStream to read the data from
      */
+    @SuppressFBWarnings("SC_START_IN_CTOR")
     public StdoutReader(final InputStream inputStream) {
         this.stdout = inputStream;
         if (this.stdout != null) {

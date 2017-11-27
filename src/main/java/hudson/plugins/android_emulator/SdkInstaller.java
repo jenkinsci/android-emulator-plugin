@@ -23,6 +23,8 @@ import jenkins.MasterToSlaveFileCallable;
 import jenkins.security.MasterToSlaveCallable;
 import org.apache.commons.lang.StringUtils;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 import java.io.BufferedReader;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -68,6 +70,7 @@ public class SdkInstaller {
         }
     }
 
+    @SuppressFBWarnings("NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE")
     private static AndroidSdk doInstall(Launcher launcher, BuildListener listener, String androidSdkHome)
             throws SdkInstallationException, IOException, InterruptedException {
         // We should install the SDK on the current build machine
@@ -124,6 +127,7 @@ public class SdkInstaller {
     }
 
     @SuppressWarnings("serial")
+    @SuppressFBWarnings("NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE")
     private static AndroidSdk getAndroidSdkForNode(Node node, final String androidHome,
             final String androidSdkHome) throws IOException, InterruptedException {
         return node.getChannel().call(new MasterToSlaveCallable<AndroidSdk, IOException>() {
@@ -133,6 +137,7 @@ public class SdkInstaller {
         });
     }
 
+    @SuppressFBWarnings("DM_DEFAULT_ENCODING")
     private static String getBuildToolsPackageName(PrintStream logger, Launcher launcher, AndroidSdk sdk)
     throws IOException, InterruptedException {
         ByteArrayOutputStream output = new ByteArrayOutputStream();
@@ -195,6 +200,7 @@ public class SdkInstaller {
      * @param sdk Root of the SDK installation to install components for.
      * @param components Name of the component(s) to install.
      */
+    @SuppressFBWarnings({"DM_DEFAULT_ENCODING", "OS_OPEN_STREAM"})
     private static void installComponent(PrintStream logger, Launcher launcher, AndroidSdk sdk,
             final List<String> components) throws IOException, InterruptedException {
         String proxySettings = getProxySettings();
@@ -315,6 +321,7 @@ public class SdkInstaller {
         }
     }
 
+    @SuppressFBWarnings("DM_DEFAULT_ENCODING")
     private static boolean isPlatformInstalled(PrintStream logger, Launcher launcher,
             AndroidSdk sdk, String platform, String abi,
             final boolean skipSystemInstall) throws IOException, InterruptedException {
@@ -434,6 +441,7 @@ public class SdkInstaller {
      *
      * @return The semaphore for the current machine, which must be released once finished with.
      */
+    @SuppressFBWarnings("NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE")
     private static Semaphore acquireLock() throws InterruptedException {
         // Retrieve the lock for this node
         Semaphore semaphore;
@@ -464,6 +472,7 @@ public class SdkInstaller {
      * @param sdkRoot Root directory of the SDK installation to check.
      * @return {@code true} if the basic SDK <b>and</b> all required SDK components are installed.
      */
+    @SuppressFBWarnings("NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE")
     private static boolean isSdkInstallComplete(Node node, final String sdkRoot)
             throws IOException, InterruptedException {
         // Validation needs to run on the remote node
@@ -512,6 +521,7 @@ public class SdkInstaller {
     }
 
     /** Helper to run SDK statistics opt-out task on a remote node. */
+    @SuppressFBWarnings("DM_DEFAULT_ENCODING")
     private static final class StatsOptOutTask extends MasterToSlaveCallable<Void, Exception> {
 
         private static final long serialVersionUID = 1L;
@@ -525,6 +535,7 @@ public class SdkInstaller {
             this.listener = listener;
         }
 
+        @SuppressFBWarnings("RV_RETURN_VALUE_IGNORED_BAD_PRACTICE")
         public Void call() throws Exception {
             if (logger == null) {
                 logger = listener.getLogger();
@@ -573,6 +584,7 @@ public class SdkInstaller {
             return null;
         }
 
+        @SuppressFBWarnings("NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE")
         static AndroidInstaller fromNode(Node node) throws SdkUnavailableException,
                 IOException, InterruptedException {
             return node.getChannel().call(new MasterToSlaveCallable<AndroidInstaller, SdkUnavailableException>() {

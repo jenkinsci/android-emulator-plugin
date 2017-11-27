@@ -41,6 +41,8 @@ import org.jvnet.localizer.Localizable;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.w3c.dom.NodeList;
 import org.xml.sax.InputSource;
+
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import jenkins.MasterToSlaveFileCallable;
 
 public class UpdateProjectBuilder extends AbstractBuilder {
@@ -88,6 +90,7 @@ public class UpdateProjectBuilder extends AbstractBuilder {
     }
 
     @Override
+    @SuppressFBWarnings("NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE")
     public boolean perform(AbstractBuild<?, ?> build, Launcher launcher, BuildListener listener)
             throws InterruptedException, IOException {
         final PrintStream logger = listener.getLogger();
@@ -263,6 +266,7 @@ public class UpdateProjectBuilder extends AbstractBuilder {
         }
 
         /** Determines whether the given directory contains an Android test project. */
+        @SuppressFBWarnings("DM_DEFAULT_ENCODING")
         private static boolean isTestProject(PrintStream logger, File projectDir) {
             File manifest = new File(projectDir, "AndroidManifest.xml");
             try {
