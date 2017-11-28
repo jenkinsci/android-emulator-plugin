@@ -617,7 +617,6 @@ public class Utils {
      * @param timeoutMs How long to wait for before cancelling the attempt to kill the process.
      * @return {@code true} if the process was killed successfully.
      */
-    @SuppressFBWarnings("REC_CATCH_EXCEPTION")
     public static boolean killProcess(final Proc process, final int timeoutMs) {
         Boolean result = null;
         FutureTask<Boolean> task = null;
@@ -633,7 +632,9 @@ public class Utils {
             // Execute the task asynchronously and wait for a result or timeout
             Executors.newSingleThreadExecutor().execute(task);
             result = task.get(timeoutMs, TimeUnit.MILLISECONDS);
-        } catch (Exception e) {
+        } catch (TimeoutException ex) {
+        } catch (InterruptedException ex) {
+        } catch (ExecutionException ex) {
             // Ignore
         } finally {
             if (task != null && !task.isDone()) {
