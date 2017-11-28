@@ -713,8 +713,7 @@ class EmulatorConfig implements Serializable {
     }
 
     /** Writes an empty emulator auth file. */
-    @SuppressFBWarnings("SIC_INNER_SHOULD_BE_STATIC")
-    private final class EmulatorAuthFileTask extends MasterToSlaveCallable<Void, IOException> {
+    private static final class EmulatorAuthFileTask extends MasterToSlaveCallable<Void, IOException> {
 
         private static final long serialVersionUID = 1L;
 
