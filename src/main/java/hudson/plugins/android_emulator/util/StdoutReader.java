@@ -8,14 +8,12 @@ import java.util.Arrays;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-
 /**
  * Reads to contents of an InputStream in an background thread,
  * useful to retrieve OutputStream/ErrorStream of a Process, and
  * allows retrieval as String representing a line of the output.
  */
-public class StdoutReader
+public final class StdoutReader
 {
     /**
      * InputStream to read data from
@@ -39,19 +37,23 @@ public class StdoutReader
      */
     final AtomicBoolean closed = new AtomicBoolean(false);
 
+    private StdoutReader(final InputStream inputStream) {
+        this.stdout = inputStream;
+    }
+
     /**
      * Creates a new StdoutReader starting to read the data
      * immediately of the given InputStream in an own thread.
      * @param inputStream InputStream to read the data from
      */
-    @SuppressFBWarnings("SC_START_IN_CTOR")
-    public StdoutReader(final InputStream inputStream) {
-        this.stdout = inputStream;
-        if (this.stdout != null) {
-            runner.start();
+    public static StdoutReader createAndRunAsyncReader(final InputStream inputStream) {
+        final StdoutReader instance = new StdoutReader(inputStream);
+        if (instance.stdout != null) {
+            instance.runner.start();
         } else {
-            closed.set(true);
+            instance.closed.set(true);
         }
+        return instance;
     }
 
     final Thread runner = new Thread(new Runnable() {

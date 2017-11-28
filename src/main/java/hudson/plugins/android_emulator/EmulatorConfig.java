@@ -572,7 +572,7 @@ class EmulatorConfig implements Serializable {
             }
 
             final OutputStream procstdin = process.getOutputStream();
-            final StdoutReader procstdout = new StdoutReader(process.getInputStream());
+            final StdoutReader procstdout = StdoutReader.createAndRunAsyncReader(process.getInputStream());
 
             // Command may prompt us whether we want to further customise the AVD.
             // Just "press" Enter to continue with the selected target's defaults.
