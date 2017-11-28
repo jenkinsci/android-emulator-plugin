@@ -262,6 +262,10 @@ class AndroidPlatform implements Serializable {
             return name;
         }
 
+        return getAndroidTargetName();
+    }
+
+    public String getAndroidTargetName() {
         return AndroidPlatform.getTargetName(level);
     }
 
