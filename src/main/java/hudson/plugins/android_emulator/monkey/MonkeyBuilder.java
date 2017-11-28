@@ -1,12 +1,14 @@
 package hudson.plugins.android_emulator.monkey;
 
 import hudson.Extension;
+import hudson.FilePath;
 import hudson.Functions;
 import hudson.Launcher;
 import hudson.model.AbstractBuild;
 import hudson.model.BuildListener;
 import hudson.model.Descriptor;
 import hudson.model.TaskListener;
+import hudson.plugins.android_emulator.BuildNodeUnavailableException;
 import hudson.plugins.android_emulator.Messages;
 import hudson.plugins.android_emulator.builder.AbstractBuilder;
 import hudson.plugins.android_emulator.sdk.AndroidSdk;
@@ -36,6 +38,9 @@ public class MonkeyBuilder extends AbstractBuilder {
 
     /** File to write monkey results to if none specified. */
     private static final String DEFAULT_OUTPUT_FILENAME = "monkey.txt";
+
+    /** Random if string radom is used as seed */
+    private static Random random;
 
     /** File to write monkey results to. */
     @Exported
@@ -114,7 +119,11 @@ public class MonkeyBuilder extends AbstractBuilder {
         }
 
         // Start monkeying around
-        OutputStream monkeyOutput = build.getWorkspace().child(outputFile).write();
+        final FilePath workspace = build.getWorkspace();
+        if (workspace == null) {
+            throw new BuildNodeUnavailableException();
+        }
+        final OutputStream monkeyOutput = workspace.child(outputFile).write();
         try {
             log(logger, Messages.STARTING_MONKEY(packageNamesLog, eventCount, seedValue, categoryNamesLog));
             Utils.runAndroidTool(launcher, build.getEnvironment(TaskListener.NULL), monkeyOutput,
@@ -161,7 +170,7 @@ public class MonkeyBuilder extends AbstractBuilder {
     private static long parseSeed(String seed) {
         long seedValue;
         if ("random".equals(seed)) {
-            seedValue = new Random().nextLong();
+            seedValue = getNextLongFromRandom();
         } else if ("timestamp".equals(seed)) {
             seedValue = System.currentTimeMillis();
         } else if (seed != null) {
@@ -174,6 +183,13 @@ public class MonkeyBuilder extends AbstractBuilder {
             seedValue = 0;
         }
         return seedValue;
+    }
+
+    private synchronized static long getNextLongFromRandom() {
+        if (random == null) {
+            random = new Random();
+        }
+        return random.nextLong();
     }
 
     @Extension

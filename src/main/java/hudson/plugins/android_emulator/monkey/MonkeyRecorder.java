@@ -10,6 +10,7 @@ import hudson.model.AbstractBuild;
 import hudson.model.AbstractProject;
 import hudson.model.BuildListener;
 import hudson.model.Result;
+import hudson.plugins.android_emulator.BuildNodeUnavailableException;
 import hudson.plugins.android_emulator.Messages;
 import hudson.plugins.android_emulator.util.Utils;
 import hudson.tasks.BuildStepDescriptor;
@@ -48,7 +49,8 @@ public class MonkeyRecorder extends Recorder {
     public boolean perform(AbstractBuild<?, ?> build, Launcher launcher, BuildListener listener)
             throws InterruptedException, IOException {
         // Don't analyse anything if the build failed
-        if (build.getResult().isWorseThan(Result.UNSTABLE)) {
+        final Result buildResult = build.getResult();
+        if (buildResult != null && buildResult.isWorseThan(Result.UNSTABLE)) {
             return true;
         }
 
@@ -61,7 +63,11 @@ public class MonkeyRecorder extends Recorder {
         }
 
         // Read monkey results from file
-        FilePath monkeyFile = build.getWorkspace().child(inputFile);
+        final FilePath workspace = build.getWorkspace();
+        if (workspace == null) {
+            throw new BuildNodeUnavailableException();
+        }
+        final FilePath monkeyFile = workspace.child(inputFile);
         String monkeyOutput = null;
         try {
             monkeyOutput = monkeyFile.readToString();

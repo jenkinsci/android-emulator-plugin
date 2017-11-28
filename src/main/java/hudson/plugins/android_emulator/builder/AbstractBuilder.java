@@ -32,6 +32,8 @@ import java.io.File;
 import java.io.IOException;
 import java.io.PrintStream;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 import static hudson.plugins.android_emulator.AndroidEmulator.log;
 
 public abstract class AbstractBuilder extends Builder {
@@ -184,6 +186,7 @@ public abstract class AbstractBuilder extends Builder {
      *
      * @return {@code true} if the process has started; {@code false} if it did not start within a reasonable timeout.
      */
+    @SuppressFBWarnings("DM_DEFAULT_ENCODING")
     protected boolean waitForCoreProcess(AbstractBuild<?, ?> build, Launcher launcher,
             AndroidSdk androidSdk, String deviceIdentifier) throws IOException, InterruptedException {
 
@@ -260,6 +263,7 @@ public abstract class AbstractBuilder extends Builder {
      * @throws IOException If execution failed.
      * @throws InterruptedException If execution failed.
      */
+    @SuppressFBWarnings("DM_DEFAULT_ENCODING")
     protected static boolean uninstallApk(AbstractBuild<?, ?> build, Launcher launcher,
             PrintStream logger, AndroidSdk androidSdk, String deviceIdentifier, String packageId)
                 throws IOException, InterruptedException {

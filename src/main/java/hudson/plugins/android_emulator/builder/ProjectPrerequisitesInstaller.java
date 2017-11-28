@@ -2,11 +2,13 @@ package hudson.plugins.android_emulator.builder;
 
 import static hudson.plugins.android_emulator.AndroidEmulator.log;
 import hudson.Extension;
+import hudson.FilePath;
 import hudson.Functions;
 import hudson.Launcher;
 import hudson.model.BuildListener;
 import hudson.model.Descriptor;
 import hudson.model.AbstractBuild;
+import hudson.plugins.android_emulator.BuildNodeUnavailableException;
 import hudson.plugins.android_emulator.Messages;
 import hudson.plugins.android_emulator.SdkInstaller;
 import hudson.plugins.android_emulator.sdk.AndroidSdk;
@@ -39,7 +41,11 @@ public class ProjectPrerequisitesInstaller extends AbstractBuilder {
 
         // Gather list of platforms specified by Android project files in the workspace
         log(logger, Messages.FINDING_PROJECTS());
-        Collection<String> platforms = build.getWorkspace().act(new ProjectPlatformFinder(listener));
+        final FilePath workspace = build.getWorkspace();
+        if (workspace == null) {
+            throw new BuildNodeUnavailableException();
+        }
+        final Collection<String> platforms = workspace.act(new ProjectPlatformFinder(listener));
         if (platforms == null || platforms.isEmpty()) {
             // Nothing to install, but that's ok
             log(logger, Messages.NO_PROJECTS_FOUND_FOR_PREREQUISITES());

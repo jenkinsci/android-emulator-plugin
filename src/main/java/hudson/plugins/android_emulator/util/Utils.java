@@ -25,11 +25,9 @@ import hudson.remoting.Future;
 import hudson.util.ArgumentListBuilder;
 import hudson.util.VersionNumber;
 
-import org.apache.commons.io.FileUtils;
-import org.apache.commons.io.filefilter.IOFileFilter;
-import org.apache.commons.io.filefilter.NameFileFilter;
-import org.apache.commons.io.filefilter.TrueFileFilter;
 import org.apache.commons.lang.exception.ExceptionUtils;
+
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -345,7 +343,8 @@ public class Utils {
 
         // Give the user a nice warning (not error) if they've not downloaded any platforms yet
         File platformsDir = new File(sdkRoot, ToolLocator.PLATFORMS_DIR);
-        if (platformsDir.list() == null || platformsDir.list().length == 0) {
+        final String[] platformsDirList = platformsDir.list();
+        if (platformsDirList == null || platformsDirList.length == 0) {
             return ValidationResult.warning(Messages.SDK_PLATFORMS_EMPTY());
         }
 
@@ -633,7 +632,9 @@ public class Utils {
             // Execute the task asynchronously and wait for a result or timeout
             Executors.newSingleThreadExecutor().execute(task);
             result = task.get(timeoutMs, TimeUnit.MILLISECONDS);
-        } catch (Exception e) {
+        } catch (TimeoutException ex) {
+        } catch (InterruptedException ex) {
+        } catch (ExecutionException ex) {
             // Ignore
         } finally {
             if (task != null && !task.isDone()) {
@@ -906,6 +907,7 @@ public class Utils {
         }
 
         @SuppressWarnings("null")
+        @SuppressFBWarnings({"DM_DEFAULT_ENCODING", "RV_DONT_JUST_NULL_CHECK_READLINE"})
         public Boolean call() throws IOException {
             Socket socket = null;
             BufferedReader in = null;

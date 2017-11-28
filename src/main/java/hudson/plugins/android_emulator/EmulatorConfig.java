@@ -17,6 +17,8 @@ import hudson.plugins.android_emulator.util.Utils;
 import hudson.remoting.Callable;
 import hudson.util.ArgumentListBuilder;
 
+import static hudson.plugins.android_emulator.AndroidEmulator.log;
+
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
@@ -28,6 +30,8 @@ import java.util.regex.Pattern;
 import jenkins.security.MasterToSlaveCallable;
 
 import org.apache.commons.lang.exception.ExceptionUtils;
+
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 class EmulatorConfig implements Serializable {
 
@@ -402,6 +406,7 @@ class EmulatorConfig implements Serializable {
      * @throws IOException If execution of the emulator command fails.
      * @throws InterruptedException If execution of the emulator command is interrupted.
      */
+    @SuppressFBWarnings("DM_DEFAULT_ENCODING")
     public boolean hasExistingSnapshot(Launcher launcher, AndroidSdk androidSdk)
             throws IOException, InterruptedException {
         final PrintStream logger = launcher.getListener().getLogger();
@@ -424,6 +429,7 @@ class EmulatorConfig implements Serializable {
      * {@code FALSE} if an AVD was newly created, and throws an AndroidEmulatorException if the
      * given AVD or parts required to generate a new AVD were not found.
      */
+    @SuppressFBWarnings("DM_DEFAULT_ENCODING")
     private final class EmulatorCreationTask extends MasterToSlaveCallable<Boolean, AndroidEmulatorException> {
 
         private static final long serialVersionUID = 1L;
@@ -468,7 +474,9 @@ class EmulatorConfig implements Serializable {
 
                     // We should ensure that we start out with a clean SD card for the build
                     if (sdCardRequired && sdCardFile.exists()) {
-                        sdCardFile.delete();
+                        if (!sdCardFile.delete()) {
+                            log(logger, Messages.FAILED_TO_DELETE_FILE(sdCardFile.getAbsolutePath()));
+                        }
                     }
                 }
 
@@ -564,7 +572,7 @@ class EmulatorConfig implements Serializable {
             }
 
             final OutputStream procstdin = process.getOutputStream();
-            final StdoutReader procstdout = new StdoutReader(process.getInputStream());
+            final StdoutReader procstdout = StdoutReader.createAndRunAsyncReader(process.getInputStream());
 
             // Command may prompt us whether we want to further customise the AVD.
             // Just "press" Enter to continue with the selected target's defaults.
@@ -705,7 +713,7 @@ class EmulatorConfig implements Serializable {
     }
 
     /** Writes an empty emulator auth file. */
-    private final class EmulatorAuthFileTask extends MasterToSlaveCallable<Void, IOException> {
+    private static final class EmulatorAuthFileTask extends MasterToSlaveCallable<Void, IOException> {
 
         private static final long serialVersionUID = 1L;
 
@@ -717,9 +725,9 @@ class EmulatorConfig implements Serializable {
                     FilePath authFile = new FilePath(userHome).child(".emulator_console_auth_token");
                     authFile.write("", "UTF-8");
                 } catch (IOException e) {
-                    throw new IOException(String.format("Failed to write auth file to %s.", userHome, e));
+                    throw new IOException(String.format("Failed to write auth file to %s.%n%s", userHome, e.getMessage()));
                 } catch (InterruptedException e) {
-                    throw new IOException(String.format("Interrupted while writing auth file to %s.", userHome, e));
+                    throw new IOException(String.format("Interrupted while writing auth file to %s.%n%s", userHome, e.getMessage()));
                 }
             }
 
@@ -758,7 +766,10 @@ class EmulatorConfig implements Serializable {
             new FilePath(avdDirectory).deleteRecursive();
 
             // Delete the metadata file
-            getAvdMetadataFile().delete();
+            final File avdMetaDataFile = getAvdMetadataFile();
+            if (!avdMetaDataFile.delete()) {
+                log(logger, Messages.FAILED_TO_DELETE_FILE(avdMetaDataFile.getAbsolutePath()));
+            }
 
             // Success!
             return true;

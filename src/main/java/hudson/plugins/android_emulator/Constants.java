@@ -7,12 +7,15 @@ import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 public interface Constants {
 
     /** The locale to which Android emulators default if not otherwise specified. */
     static final String DEFAULT_LOCALE = "en_US";
 
     /** Locales supported: http://developer.android.com/sdk/android-3.0.html#locs */
+    @SuppressFBWarnings("MS_OOI_PKGPROTECT")
     static final String[] EMULATOR_LOCALES = {
         "ar_EG", "ar_IL", "bg_BG", "ca_ES", "cs_CZ", "da_DK", "de_AT", "de_CH",
         "de_DE", "de_LI", "el_GR", "en_AU", "en_CA", "en_GB", "en_IE", "en_IN",
@@ -25,6 +28,7 @@ public interface Constants {
     };
 
     /** Commonly-used hardware properties that can be emulated. */
+    @SuppressFBWarnings("MS_OOI_PKGPROTECT")
     static final String[] HARDWARE_PROPERTIES = {
         "hw.accelerometer", "hw.battery", "hw.camera", "hw.dPad", "hw.gps",
         "hw.gsmModem", "hw.keyboard", "hw.ramSize", "hw.sdCard",
@@ -32,6 +36,7 @@ public interface Constants {
     };
 
     /** Common ABIs. */
+    @SuppressFBWarnings("MS_OOI_PKGPROTECT")
     static final String[] TARGET_ABIS = {
         "armeabi", "armeabi-v7a", "mips", "x86", "x86_64"
     };

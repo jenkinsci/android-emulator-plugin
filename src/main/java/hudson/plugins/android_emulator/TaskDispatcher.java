@@ -3,6 +3,7 @@ package hudson.plugins.android_emulator;
 import hudson.Extension;
 import hudson.matrix.MatrixConfiguration;
 import hudson.model.BuildableItemWithBuildWrappers;
+import hudson.model.Computer;
 import hudson.model.Executor;
 import hudson.model.Node;
 import hudson.model.Queue;
@@ -66,7 +67,12 @@ public class TaskDispatcher extends QueueTaskDispatcher {
         }
 
         // Check whether a build with this emulator config is already running on this machine
-        for (Executor e : node.toComputer().getExecutors()) {
+        final Computer computer = node.toComputer();
+        if (computer == null) {
+            return CauseOfBlockage.fromMessage(Messages._NO_EXECUTORS_ON_NODE());
+        }
+
+        for (Executor e : computer.getExecutors()) {
             Executable executable = e.getCurrentExecutable();
             if (executable == null) {
                 continue;

@@ -3,6 +3,8 @@ package hudson.plugins.android_emulator.sdk;
 import java.util.ArrayList;
 import java.util.List;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 public enum Tool {
     ADB("adb", ".exe", new PlatformToolLocator()),
     ANDROID_LEGACY("android", ".bat"),
@@ -17,6 +19,7 @@ public enum Tool {
     SDKMANAGER("sdkmanager", ".bat", new SdkToolLocator()),
     MKSDCARD("mksdcard", ".exe");
 
+    @SuppressFBWarnings("MS_MUTABLE_ARRAY")
     public static Tool[] EMULATORS = new Tool[] { EMULATOR,
            EMULATOR_ARM,   EMULATOR_MIPS,   EMULATOR_X86,
            EMULATOR64_ARM, EMULATOR64_MIPS, EMULATOR64_X86

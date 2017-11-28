@@ -39,6 +39,8 @@ import org.kohsuke.stapler.StaplerRequest;
 import org.kohsuke.stapler.export.Exported;
 import org.kohsuke.stapler.export.ExportedBean;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 import java.io.BufferedReader;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -101,6 +103,7 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
 
 
     @DataBoundConstructor
+    @SuppressFBWarnings("EI_EXPOSE_REP2")
     public AndroidEmulator(String avdName, String osVersion, String screenDensity,
             String screenResolution, String deviceLocale, String sdCardSize,
             HardwareProperty[] hardwareProperties, boolean wipeData, boolean showWindow,
@@ -153,7 +156,11 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
     public String getConfigHash(Node node, Combination combination) {
         EnvVars envVars;
         try {
-            envVars = node.toComputer().getEnvironment();
+            final Computer computer = node.toComputer();
+            if (computer == null) {
+                throw new BuildNodeUnavailableException();
+            }
+            envVars = computer.getEnvironment();
         } catch (Exception e) {
             e.printStackTrace();
             return null;
@@ -292,6 +299,7 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
         return doSetUp(build, launcher, listener, androidSdk, emuConfig, expandedProperties);
     }
 
+    @SuppressFBWarnings("DM_DEFAULT_ENCODING")
     private Environment doSetUp(final AbstractBuild<?, ?> build, final Launcher launcher,
             final BuildListener listener, final AndroidSdk androidSdk,
             final EmulatorConfig emuConfig, final HardwareProperty[] hardwareProperties)
@@ -446,7 +454,11 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
 
         // Start dumping logcat to temporary file
         final File artifactsDir = build.getArtifactsDir();
-        final FilePath logcatFile = build.getWorkspace().createTextTempFile("logcat_", ".log", "", false);
+        final FilePath workspace = build.getWorkspace();
+        if (workspace == null) {
+            throw new BuildNodeUnavailableException();
+        }
+        final FilePath logcatFile = workspace.createTextTempFile("logcat_", ".log", "", false);
         final OutputStream logcatStream = logcatFile.write();
         final SdkCliCommand adbSetLogCatFormatCmd = adbShellCmds.getSetLogCatFormatToTimeCommand(emu.serial());
         final Proc logWriter = emu.getToolProcStarter(adbSetLogCatFormatCmd)
@@ -727,6 +739,7 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
      * @param emu The emulator context
      * @return <code>true</code> if the emulator has booted, <code>false</code> if we timed-out.
      */
+    @SuppressFBWarnings({"DM_DEFAULT_ENCODING", "ICAST_IDIV_CAST_TO_DOUBLE"})
     private boolean waitForBootCompletion(final boolean ignoreProcess,
             final int timeout, EmulatorConfig config, AndroidEmulatorContext emu) {
         long start = System.currentTimeMillis();
@@ -1119,6 +1132,7 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
             this.timeout = timeout;
         }
 
+        @SuppressFBWarnings("DM_DEFAULT_ENCODING")
         public Integer call() throws InterruptedException {
             ServerSocket socket = null;
             try {

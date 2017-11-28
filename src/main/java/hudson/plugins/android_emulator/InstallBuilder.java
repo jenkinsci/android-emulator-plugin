@@ -20,6 +20,8 @@ import net.sf.json.JSONObject;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.StaplerRequest;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.PrintStream;
@@ -61,6 +63,7 @@ public class InstallBuilder extends AbstractBuilder {
     }
 
     @Override
+    @SuppressFBWarnings("DM_DEFAULT_ENCODING")
     public boolean perform(AbstractBuild<?, ?> build, Launcher launcher, BuildListener listener)
             throws InterruptedException, IOException {
         final PrintStream logger = listener.getLogger();
@@ -80,7 +83,11 @@ public class InstallBuilder extends AbstractBuilder {
 
         // Get absolute path to the APK file
         String apkFileExpanded = Utils.expandVariables(build, listener, apkFile);
-        FilePath apkPath = build.getWorkspace().child(apkFileExpanded);
+        final FilePath workspace = build.getWorkspace();
+        if (workspace == null) {
+            throw new BuildNodeUnavailableException();
+        }
+        final FilePath apkPath = workspace.child(apkFileExpanded);
 
         // Check whether the file exists
         boolean exists = apkPath.exists();

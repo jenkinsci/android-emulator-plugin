@@ -23,6 +23,8 @@ import jenkins.MasterToSlaveFileCallable;
 import jenkins.security.MasterToSlaveCallable;
 import org.apache.commons.lang.StringUtils;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 import java.io.BufferedReader;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -71,7 +73,10 @@ public class SdkInstaller {
     private static AndroidSdk doInstall(Launcher launcher, BuildListener listener, String androidSdkHome)
             throws SdkInstallationException, IOException, InterruptedException {
         // We should install the SDK on the current build machine
-        Node node = Computer.currentComputer().getNode();
+        final Node node = Computer.currentComputer().getNode();
+        if (node == null) {
+            throw new BuildNodeUnavailableException();
+        }
 
         // Install the SDK if required
         String androidHome;
@@ -126,13 +131,18 @@ public class SdkInstaller {
     @SuppressWarnings("serial")
     private static AndroidSdk getAndroidSdkForNode(Node node, final String androidHome,
             final String androidSdkHome) throws IOException, InterruptedException {
-        return node.getChannel().call(new MasterToSlaveCallable<AndroidSdk, IOException>() {
+        final VirtualChannel channel = node.getChannel();
+        if (channel == null) {
+            throw new BuildNodeUnavailableException();
+        }
+        return channel.call(new MasterToSlaveCallable<AndroidSdk, IOException>() {
             public AndroidSdk call() throws IOException {
                 return new AndroidSdk(androidHome, androidSdkHome);
             }
         });
     }
 
+    @SuppressFBWarnings("DM_DEFAULT_ENCODING")
     private static String getBuildToolsPackageName(PrintStream logger, Launcher launcher, AndroidSdk sdk)
     throws IOException, InterruptedException {
         ByteArrayOutputStream output = new ByteArrayOutputStream();
@@ -195,6 +205,7 @@ public class SdkInstaller {
      * @param sdk Root of the SDK installation to install components for.
      * @param components Name of the component(s) to install.
      */
+    @SuppressFBWarnings("DM_DEFAULT_ENCODING")
     private static void installComponent(PrintStream logger, Launcher launcher, AndroidSdk sdk,
             final List<String> components) throws IOException, InterruptedException {
         String proxySettings = getProxySettings();
@@ -216,14 +227,18 @@ public class SdkInstaller {
         // Run the command and accept any licence requests during installation
         Proc proc = procStarter.start();
         BufferedReader r = new BufferedReader(new InputStreamReader(proc.getStdout()));
-        String line;
-        while (proc.isAlive() && (line = r.readLine()) != null) {
-            logger.println(line);
-            if (line.toLowerCase(Locale.ENGLISH).startsWith("license id: ") ||
-                    line.toLowerCase(Locale.ENGLISH).startsWith("license android-sdk")) {
-                proc.getStdin().write("y\r\n".getBytes());
-                proc.getStdin().flush();
+        try {
+            String line;
+            while (proc.isAlive() && (line = r.readLine()) != null) {
+                logger.println(line);
+                if (line.toLowerCase(Locale.ENGLISH).startsWith("license id: ") ||
+                        line.toLowerCase(Locale.ENGLISH).startsWith("license android-sdk")) {
+                    proc.getStdin().write("y\r\n".getBytes());
+                    proc.getStdin().flush();
+                }
             }
+        } finally {
+            r.close();
         }
     }
 
@@ -315,6 +330,7 @@ public class SdkInstaller {
         }
     }
 
+    @SuppressFBWarnings("DM_DEFAULT_ENCODING")
     private static boolean isPlatformInstalled(PrintStream logger, Launcher launcher,
             AndroidSdk sdk, String platform, String abi,
             final boolean skipSystemInstall) throws IOException, InterruptedException {
@@ -434,10 +450,13 @@ public class SdkInstaller {
      *
      * @return The semaphore for the current machine, which must be released once finished with.
      */
-    private static Semaphore acquireLock() throws InterruptedException {
+    private static Semaphore acquireLock() throws InterruptedException, IOException {
         // Retrieve the lock for this node
         Semaphore semaphore;
         final Node node = Computer.currentComputer().getNode();
+        if (node == null) {
+            throw new BuildNodeUnavailableException();
+        }
         synchronized (node) {
             semaphore = mutexByNode.get(node);
             if (semaphore == null) {
@@ -467,7 +486,11 @@ public class SdkInstaller {
     private static boolean isSdkInstallComplete(Node node, final String sdkRoot)
             throws IOException, InterruptedException {
         // Validation needs to run on the remote node
-        ValidationResult result = node.getChannel().call(new MasterToSlaveCallable<ValidationResult, InterruptedException>() {
+        final VirtualChannel channel = node.getChannel();
+        if (channel == null) {
+            throw new BuildNodeUnavailableException();
+        }
+        final ValidationResult result = channel.call(new MasterToSlaveCallable<ValidationResult, InterruptedException>() {
             public ValidationResult call() throws InterruptedException {
                 return Utils.validateAndroidHome(new File(sdkRoot), false, false);
             }
@@ -512,6 +535,7 @@ public class SdkInstaller {
     }
 
     /** Helper to run SDK statistics opt-out task on a remote node. */
+    @SuppressFBWarnings("DM_DEFAULT_ENCODING")
     private static final class StatsOptOutTask extends MasterToSlaveCallable<Void, Exception> {
 
         private static final long serialVersionUID = 1L;
@@ -532,7 +556,9 @@ public class SdkInstaller {
 
             final File homeDir = Utils.getAndroidSdkHomeDirectory(androidSdkHome);
             final File androidDir = new File(homeDir, ".android");
-            androidDir.mkdirs();
+            if (!androidDir.mkdirs()) {
+                log(logger, Messages.FAILED_TO_CREATE_FILE(androidDir.getAbsolutePath()));
+            }
 
             File configFile = new File(androidDir, "ddms.cfg");
             PrintWriter out;
@@ -575,7 +601,11 @@ public class SdkInstaller {
 
         static AndroidInstaller fromNode(Node node) throws SdkUnavailableException,
                 IOException, InterruptedException {
-            return node.getChannel().call(new MasterToSlaveCallable<AndroidInstaller, SdkUnavailableException>() {
+            final VirtualChannel channel = node.getChannel();
+            if (channel == null) {
+                throw new BuildNodeUnavailableException();
+            }
+            return channel.call(new MasterToSlaveCallable<AndroidInstaller, SdkUnavailableException>() {
                 public AndroidInstaller call() throws SdkUnavailableException {
                     return get();
                 }

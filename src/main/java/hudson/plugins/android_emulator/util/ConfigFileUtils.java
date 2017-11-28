@@ -11,6 +11,7 @@ import java.util.Properties;
 
 import org.apache.commons.io.FilenameUtils;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.plugins.android_emulator.Messages;
 
 import java.util.Map.Entry;
@@ -46,6 +47,7 @@ public class ConfigFileUtils {
      * @return The key-value pairs contained in the file, ignoring any comments or blank lines.
      * @throws IOException If the file could not be read.
      */
+    @SuppressFBWarnings("DM_DEFAULT_ENCODING")
     private static Map<String, String> parsePropertiesFile(File configFile) throws IOException {
         final FileReader fileReader = new FileReader(configFile);
         final BufferedReader reader = new BufferedReader(fileReader);
@@ -68,6 +70,7 @@ public class ConfigFileUtils {
      * @return The key-value pairs contained in the file, ignoring any comments or blank lines.
      * @throws IOException If the file could not be read.
      */
+    @SuppressFBWarnings("DM_DEFAULT_ENCODING")
     private static Map<String, String> parseSimpleINIFormatFile(File configFile) throws IOException {
         final Map<String, String> values = new HashMap<String, String>();
 
@@ -126,6 +129,7 @@ public class ConfigFileUtils {
      * @param values configuration key-value-pairs to write.
      * @throws IOException If the file could not be written.
      */
+    @SuppressFBWarnings("DM_DEFAULT_ENCODING")
     private static void writeConfigFilePropertiesFormat(final File configFile, final Map<String,String> values) throws IOException {
         final Properties props = new Properties();
 
@@ -146,6 +150,7 @@ public class ConfigFileUtils {
      * @param values configuration key-value-pairs to write
      * @throws IOException If the file could not be written.
      */
+    @SuppressFBWarnings("DM_DEFAULT_ENCODING")
     private static void writeConfigFileSimpleINIFormat(final File configFile, final Map<String,String> values) throws IOException {
         PrintWriter out = new PrintWriter(configFile);
         for (final Entry<String, String> entry : values.entrySet()) {
