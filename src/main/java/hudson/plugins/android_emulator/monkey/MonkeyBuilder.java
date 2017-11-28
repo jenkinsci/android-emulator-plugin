@@ -21,8 +21,6 @@ import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.StaplerRequest;
 import org.kohsuke.stapler.export.Exported;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.PrintStream;
@@ -40,6 +38,9 @@ public class MonkeyBuilder extends AbstractBuilder {
 
     /** File to write monkey results to if none specified. */
     private static final String DEFAULT_OUTPUT_FILENAME = "monkey.txt";
+
+    /** Random if string radom is used as seed */
+    private static Random random;
 
     /** File to write monkey results to. */
     @Exported
@@ -166,11 +167,10 @@ public class MonkeyBuilder extends AbstractBuilder {
         }
     }
 
-    @SuppressFBWarnings("DMI_RANDOM_USED_ONLY_ONCE")
     private static long parseSeed(String seed) {
         long seedValue;
         if ("random".equals(seed)) {
-            seedValue = new Random().nextLong();
+            seedValue = getNextLongFromRandom();
         } else if ("timestamp".equals(seed)) {
             seedValue = System.currentTimeMillis();
         } else if (seed != null) {
@@ -183,6 +183,13 @@ public class MonkeyBuilder extends AbstractBuilder {
             seedValue = 0;
         }
         return seedValue;
+    }
+
+    private synchronized static long getNextLongFromRandom() {
+        if (random == null) {
+            random = new Random();
+        }
+        return random.nextLong();
     }
 
     @Extension
