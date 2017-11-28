@@ -17,6 +17,8 @@ import hudson.plugins.android_emulator.util.Utils;
 import hudson.remoting.Callable;
 import hudson.util.ArgumentListBuilder;
 
+import static hudson.plugins.android_emulator.AndroidEmulator.log;
+
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
@@ -427,7 +429,7 @@ class EmulatorConfig implements Serializable {
      * {@code FALSE} if an AVD was newly created, and throws an AndroidEmulatorException if the
      * given AVD or parts required to generate a new AVD were not found.
      */
-    @SuppressFBWarnings({"DM_DEFAULT_ENCODING", "RV_RETURN_VALUE_IGNORED_BAD_PRACTICE"})
+    @SuppressFBWarnings("DM_DEFAULT_ENCODING")
     private final class EmulatorCreationTask extends MasterToSlaveCallable<Boolean, AndroidEmulatorException> {
 
         private static final long serialVersionUID = 1L;
@@ -472,7 +474,9 @@ class EmulatorConfig implements Serializable {
 
                     // We should ensure that we start out with a clean SD card for the build
                     if (sdCardRequired && sdCardFile.exists()) {
-                        sdCardFile.delete();
+                        if (!sdCardFile.delete()) {
+                            log(logger, Messages.FAILED_TO_DELETE_FILE(sdCardFile.getAbsolutePath()));
+                        }
                     }
                 }
 
@@ -734,7 +738,6 @@ class EmulatorConfig implements Serializable {
     }
 
     /** A task that deletes the AVD corresponding to our local state. */
-    @SuppressFBWarnings("RV_RETURN_VALUE_IGNORED_BAD_PRACTICE")
     private final class EmulatorDeletionTask extends MasterToSlaveCallable<Boolean, Exception> {
 
         private static final long serialVersionUID = 1L;
@@ -764,7 +767,10 @@ class EmulatorConfig implements Serializable {
             new FilePath(avdDirectory).deleteRecursive();
 
             // Delete the metadata file
-            getAvdMetadataFile().delete();
+            final File avdMetaDataFile = getAvdMetadataFile();
+            if (!avdMetaDataFile.delete()) {
+                log(logger, Messages.FAILED_TO_DELETE_FILE(avdMetaDataFile.getAbsolutePath()));
+            }
 
             // Success!
             return true;

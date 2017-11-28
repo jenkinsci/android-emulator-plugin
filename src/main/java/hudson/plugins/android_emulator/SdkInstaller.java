@@ -549,7 +549,6 @@ public class SdkInstaller {
             this.listener = listener;
         }
 
-        @SuppressFBWarnings("RV_RETURN_VALUE_IGNORED_BAD_PRACTICE")
         public Void call() throws Exception {
             if (logger == null) {
                 logger = listener.getLogger();
@@ -557,7 +556,9 @@ public class SdkInstaller {
 
             final File homeDir = Utils.getAndroidSdkHomeDirectory(androidSdkHome);
             final File androidDir = new File(homeDir, ".android");
-            androidDir.mkdirs();
+            if (!androidDir.mkdirs()) {
+                log(logger, Messages.FAILED_TO_CREATE_FILE(androidDir.getAbsolutePath()));
+            }
 
             File configFile = new File(androidDir, "ddms.cfg");
             PrintWriter out;
