@@ -63,7 +63,7 @@ public class InstallBuilder extends AbstractBuilder {
     }
 
     @Override
-    @SuppressFBWarnings({"NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE", "DM_DEFAULT_ENCODING"})
+    @SuppressFBWarnings("DM_DEFAULT_ENCODING")
     public boolean perform(AbstractBuild<?, ?> build, Launcher launcher, BuildListener listener)
             throws InterruptedException, IOException {
         final PrintStream logger = listener.getLogger();
@@ -83,7 +83,11 @@ public class InstallBuilder extends AbstractBuilder {
 
         // Get absolute path to the APK file
         String apkFileExpanded = Utils.expandVariables(build, listener, apkFile);
-        FilePath apkPath = build.getWorkspace().child(apkFileExpanded);
+        final FilePath workspace = build.getWorkspace();
+        if (workspace == null) {
+            throw new BuildNodeUnavailableException();
+        }
+        final FilePath apkPath = workspace.child(apkFileExpanded);
 
         // Check whether the file exists
         boolean exists = apkPath.exists();

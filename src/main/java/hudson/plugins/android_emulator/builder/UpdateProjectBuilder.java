@@ -8,6 +8,7 @@ import hudson.Launcher;
 import hudson.model.BuildListener;
 import hudson.model.Descriptor;
 import hudson.model.AbstractBuild;
+import hudson.plugins.android_emulator.BuildNodeUnavailableException;
 import hudson.plugins.android_emulator.Messages;
 import hudson.plugins.android_emulator.sdk.AndroidSdk;
 import hudson.plugins.android_emulator.sdk.cli.SdkCliCommand;
@@ -90,7 +91,6 @@ public class UpdateProjectBuilder extends AbstractBuilder {
     }
 
     @Override
-    @SuppressFBWarnings("NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE")
     public boolean perform(AbstractBuild<?, ?> build, Launcher launcher, BuildListener listener)
             throws InterruptedException, IOException {
         final PrintStream logger = listener.getLogger();
@@ -109,7 +109,11 @@ public class UpdateProjectBuilder extends AbstractBuilder {
 
         // Gather list of projects, determined by reading Android project files in the workspace
         log(logger, Messages.FINDING_PROJECTS());
-        List<Project> projects = build.getWorkspace().act(new ProjectFinder(listener));
+        final FilePath buildWorkspace = build.getWorkspace();
+        if (buildWorkspace == null) {
+            throw new BuildNodeUnavailableException();
+        }
+        final List<Project> projects = buildWorkspace.act(new ProjectFinder(listener));
         if (projects == null || projects.isEmpty()) {
             // No projects found. Odd, but that's ok
             log(logger, Messages.NO_PROJECTS_FOUND_TO_UPDATE());
@@ -121,7 +125,7 @@ public class UpdateProjectBuilder extends AbstractBuilder {
         new ProjectPrerequisitesInstaller().perform(build, launcher, listener);
 
         // Run the appropriate command for each project found
-        final String workspace = getWorkspacePath(build.getWorkspace());
+        final String workspace = getWorkspacePath(buildWorkspace);
         for (Project project : projects) {
             log(logger, "");
 

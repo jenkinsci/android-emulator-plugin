@@ -10,6 +10,7 @@ import hudson.model.AbstractBuild;
 import hudson.model.AbstractProject;
 import hudson.model.BuildListener;
 import hudson.model.Result;
+import hudson.plugins.android_emulator.BuildNodeUnavailableException;
 import hudson.plugins.android_emulator.Messages;
 import hudson.plugins.android_emulator.util.Utils;
 import hudson.tasks.BuildStepDescriptor;
@@ -24,8 +25,6 @@ import java.util.regex.Pattern;
 
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.export.Exported;
-
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 public class MonkeyRecorder extends Recorder {
 
@@ -47,11 +46,11 @@ public class MonkeyRecorder extends Recorder {
     }
 
     @Override
-    @SuppressFBWarnings("NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE")
     public boolean perform(AbstractBuild<?, ?> build, Launcher launcher, BuildListener listener)
             throws InterruptedException, IOException {
         // Don't analyse anything if the build failed
-        if (build.getResult().isWorseThan(Result.UNSTABLE)) {
+        final Result buildResult = build.getResult();
+        if (buildResult != null && buildResult.isWorseThan(Result.UNSTABLE)) {
             return true;
         }
 
@@ -64,7 +63,11 @@ public class MonkeyRecorder extends Recorder {
         }
 
         // Read monkey results from file
-        FilePath monkeyFile = build.getWorkspace().child(inputFile);
+        final FilePath workspace = build.getWorkspace();
+        if (workspace == null) {
+            throw new BuildNodeUnavailableException();
+        }
+        final FilePath monkeyFile = workspace.child(inputFile);
         String monkeyOutput = null;
         try {
             monkeyOutput = monkeyFile.readToString();

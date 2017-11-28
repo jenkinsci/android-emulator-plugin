@@ -310,7 +310,6 @@ public class Utils {
      * @param fromWebConfig Whether we are being called from the web config and should be more lax.
      * @return Whether the SDK looks valid or not (or a warning if the SDK install is incomplete).
      */
-    @SuppressFBWarnings("NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE")
     public static ValidationResult validateAndroidHome(final File sdkRoot, final boolean allowLegacy, final boolean fromWebConfig) {
 
         // This can be used to check the existence of a file on the server, so needs to be protected
@@ -344,7 +343,8 @@ public class Utils {
 
         // Give the user a nice warning (not error) if they've not downloaded any platforms yet
         File platformsDir = new File(sdkRoot, ToolLocator.PLATFORMS_DIR);
-        if (platformsDir.list() == null || platformsDir.list().length == 0) {
+        final String[] platformsDirList = platformsDir.list();
+        if (platformsDirList == null || platformsDirList.length == 0) {
             return ValidationResult.warning(Messages.SDK_PLATFORMS_EMPTY());
         }
 

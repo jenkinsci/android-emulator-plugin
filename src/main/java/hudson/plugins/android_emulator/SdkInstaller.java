@@ -70,11 +70,13 @@ public class SdkInstaller {
         }
     }
 
-    @SuppressFBWarnings("NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE")
     private static AndroidSdk doInstall(Launcher launcher, BuildListener listener, String androidSdkHome)
             throws SdkInstallationException, IOException, InterruptedException {
         // We should install the SDK on the current build machine
-        Node node = Computer.currentComputer().getNode();
+        final Node node = Computer.currentComputer().getNode();
+        if (node == null) {
+            throw new BuildNodeUnavailableException();
+        }
 
         // Install the SDK if required
         String androidHome;
@@ -127,10 +129,13 @@ public class SdkInstaller {
     }
 
     @SuppressWarnings("serial")
-    @SuppressFBWarnings("NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE")
     private static AndroidSdk getAndroidSdkForNode(Node node, final String androidHome,
             final String androidSdkHome) throws IOException, InterruptedException {
-        return node.getChannel().call(new MasterToSlaveCallable<AndroidSdk, IOException>() {
+        final VirtualChannel channel = node.getChannel();
+        if (channel == null) {
+            throw new BuildNodeUnavailableException();
+        }
+        return channel.call(new MasterToSlaveCallable<AndroidSdk, IOException>() {
             public AndroidSdk call() throws IOException {
                 return new AndroidSdk(androidHome, androidSdkHome);
             }
@@ -445,11 +450,13 @@ public class SdkInstaller {
      *
      * @return The semaphore for the current machine, which must be released once finished with.
      */
-    @SuppressFBWarnings("NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE")
-    private static Semaphore acquireLock() throws InterruptedException {
+    private static Semaphore acquireLock() throws InterruptedException, IOException {
         // Retrieve the lock for this node
         Semaphore semaphore;
         final Node node = Computer.currentComputer().getNode();
+        if (node == null) {
+            throw new BuildNodeUnavailableException();
+        }
         synchronized (node) {
             semaphore = mutexByNode.get(node);
             if (semaphore == null) {
@@ -476,11 +483,14 @@ public class SdkInstaller {
      * @param sdkRoot Root directory of the SDK installation to check.
      * @return {@code true} if the basic SDK <b>and</b> all required SDK components are installed.
      */
-    @SuppressFBWarnings("NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE")
     private static boolean isSdkInstallComplete(Node node, final String sdkRoot)
             throws IOException, InterruptedException {
         // Validation needs to run on the remote node
-        ValidationResult result = node.getChannel().call(new MasterToSlaveCallable<ValidationResult, InterruptedException>() {
+        final VirtualChannel channel = node.getChannel();
+        if (channel == null) {
+            throw new BuildNodeUnavailableException();
+        }
+        final ValidationResult result = channel.call(new MasterToSlaveCallable<ValidationResult, InterruptedException>() {
             public ValidationResult call() throws InterruptedException {
                 return Utils.validateAndroidHome(new File(sdkRoot), false, false);
             }
@@ -588,10 +598,13 @@ public class SdkInstaller {
             return null;
         }
 
-        @SuppressFBWarnings("NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE")
         static AndroidInstaller fromNode(Node node) throws SdkUnavailableException,
                 IOException, InterruptedException {
-            return node.getChannel().call(new MasterToSlaveCallable<AndroidInstaller, SdkUnavailableException>() {
+            final VirtualChannel channel = node.getChannel();
+            if (channel == null) {
+                throw new BuildNodeUnavailableException();
+            }
+            return channel.call(new MasterToSlaveCallable<AndroidInstaller, SdkUnavailableException>() {
                 public AndroidInstaller call() throws SdkUnavailableException {
                     return get();
                 }

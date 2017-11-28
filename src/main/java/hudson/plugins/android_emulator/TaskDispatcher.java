@@ -1,9 +1,9 @@
 package hudson.plugins.android_emulator;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.Extension;
 import hudson.matrix.MatrixConfiguration;
 import hudson.model.BuildableItemWithBuildWrappers;
+import hudson.model.Computer;
 import hudson.model.Executor;
 import hudson.model.Node;
 import hudson.model.Queue;
@@ -35,7 +35,6 @@ import jenkins.model.Jenkins;
 public class TaskDispatcher extends QueueTaskDispatcher {
 
     @Override
-    @SuppressFBWarnings("NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE")
     public CauseOfBlockage canTake(Node node, Task task) {
         // If the given task doesn't use the AndroidEmulator BuildWrapper, we don't care.
         // Or, if there is an emulator hash, but with unresolved environment variables, we shouldn't block the build
@@ -68,7 +67,12 @@ public class TaskDispatcher extends QueueTaskDispatcher {
         }
 
         // Check whether a build with this emulator config is already running on this machine
-        for (Executor e : node.toComputer().getExecutors()) {
+        final Computer computer = node.toComputer();
+        if (computer == null) {
+            return CauseOfBlockage.fromMessage(Messages._NO_EXECUTORS_ON_NODE());
+        }
+
+        for (Executor e : computer.getExecutors()) {
             Executable executable = e.getCurrentExecutable();
             if (executable == null) {
                 continue;

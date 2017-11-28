@@ -1,12 +1,14 @@
 package hudson.plugins.android_emulator.monkey;
 
 import hudson.Extension;
+import hudson.FilePath;
 import hudson.Functions;
 import hudson.Launcher;
 import hudson.model.AbstractBuild;
 import hudson.model.BuildListener;
 import hudson.model.Descriptor;
 import hudson.model.TaskListener;
+import hudson.plugins.android_emulator.BuildNodeUnavailableException;
 import hudson.plugins.android_emulator.Messages;
 import hudson.plugins.android_emulator.builder.AbstractBuilder;
 import hudson.plugins.android_emulator.sdk.AndroidSdk;
@@ -80,7 +82,6 @@ public class MonkeyBuilder extends AbstractBuilder {
     }
 
     @Override
-    @SuppressFBWarnings("NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE")
     public boolean perform(AbstractBuild<?, ?> build, Launcher launcher, BuildListener listener)
             throws InterruptedException, IOException {
         final PrintStream logger = listener.getLogger();
@@ -117,7 +118,11 @@ public class MonkeyBuilder extends AbstractBuilder {
         }
 
         // Start monkeying around
-        OutputStream monkeyOutput = build.getWorkspace().child(outputFile).write();
+        final FilePath workspace = build.getWorkspace();
+        if (workspace == null) {
+            throw new BuildNodeUnavailableException();
+        }
+        final OutputStream monkeyOutput = workspace.child(outputFile).write();
         try {
             log(logger, Messages.STARTING_MONKEY(packageNamesLog, eventCount, seedValue, categoryNamesLog));
             Utils.runAndroidTool(launcher, build.getEnvironment(TaskListener.NULL), monkeyOutput,
