@@ -200,7 +200,7 @@ public class SdkInstaller {
      * @param sdk Root of the SDK installation to install components for.
      * @param components Name of the component(s) to install.
      */
-    @SuppressFBWarnings({"DM_DEFAULT_ENCODING", "OS_OPEN_STREAM"})
+    @SuppressFBWarnings("DM_DEFAULT_ENCODING")
     private static void installComponent(PrintStream logger, Launcher launcher, AndroidSdk sdk,
             final List<String> components) throws IOException, InterruptedException {
         String proxySettings = getProxySettings();
@@ -222,14 +222,18 @@ public class SdkInstaller {
         // Run the command and accept any licence requests during installation
         Proc proc = procStarter.start();
         BufferedReader r = new BufferedReader(new InputStreamReader(proc.getStdout()));
-        String line;
-        while (proc.isAlive() && (line = r.readLine()) != null) {
-            logger.println(line);
-            if (line.toLowerCase(Locale.ENGLISH).startsWith("license id: ") ||
-                    line.toLowerCase(Locale.ENGLISH).startsWith("license android-sdk")) {
-                proc.getStdin().write("y\r\n".getBytes());
-                proc.getStdin().flush();
+        try {
+            String line;
+            while (proc.isAlive() && (line = r.readLine()) != null) {
+                logger.println(line);
+                if (line.toLowerCase(Locale.ENGLISH).startsWith("license id: ") ||
+                        line.toLowerCase(Locale.ENGLISH).startsWith("license android-sdk")) {
+                    proc.getStdin().write("y\r\n".getBytes());
+                    proc.getStdin().flush();
+                }
             }
+        } finally {
+            r.close();
         }
     }
 
