@@ -1,6 +1,7 @@
 package hudson.plugins.android_emulator;
 
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.EnvVars;
 import hudson.Extension;
 import hudson.FilePath;
@@ -29,6 +30,7 @@ import hudson.util.ArgumentListBuilder;
 import hudson.util.ForkOutputStream;
 import hudson.util.FormValidation;
 import hudson.util.NullStream;
+import jenkins.model.ArtifactManager;
 import jenkins.model.Jenkins;
 import jenkins.security.MasterToSlaveCallable;
 import net.sf.json.JSONObject;
@@ -39,8 +41,7 @@ import org.kohsuke.stapler.StaplerRequest;
 import org.kohsuke.stapler.export.Exported;
 import org.kohsuke.stapler.export.ExportedBean;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-
+import javax.annotation.Nullable;
 import java.io.BufferedReader;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -54,6 +55,7 @@ import java.io.StringWriter;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
@@ -453,11 +455,11 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
         final AdbShellCommands adbShellCmds = SdkCliCommandFactory.getAdbShellCommandForAPILevel(emulatorAPILevel);
 
         // Start dumping logcat to temporary file
-        final File artifactsDir = build.getArtifactsDir();
         final FilePath workspace = build.getWorkspace();
         if (workspace == null) {
             throw new BuildNodeUnavailableException();
         }
+        final ArtifactManager artifactManager = build.getArtifactManager();
         final FilePath logcatFile = workspace.createTextTempFile("logcat_", ".log", "", false);
         final OutputStream logcatStream = logcatFile.write();
         final SdkCliCommand adbSetLogCatFormatCmd = adbShellCmds.getSetLogCatFormatToTimeCommand(emu.serial());
@@ -523,7 +525,7 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
                 boolean restarted = emu.sendCommand("avd start");
                 if (!restarted) {
                     log(logger, Messages.EMULATOR_RESUME_FAILED());
-                    cleanUp(emuConfig, emu, androidSdk, logWriter, logcatFile, logcatStream, artifactsDir);
+                    cleanUp(emuConfig, emu, androidSdk, logWriter, logcatFile, logcatStream, artifactManager, launcher, listener);
                 }
             } else {
                 log(logger, Messages.SNAPSHOT_CREATION_FAILED());
@@ -567,8 +569,7 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
             @SuppressWarnings("rawtypes")
             public boolean tearDown(AbstractBuild build, BuildListener listener)
                     throws IOException, InterruptedException {
-                cleanUp(emuConfig, emu, androidSdk, logWriter, logcatFile, logcatStream, artifactsDir);
-
+                cleanUp(emuConfig, emu, androidSdk, logWriter, logcatFile, logcatStream, artifactManager, launcher, listener);
                 return true;
             }
         };
@@ -604,7 +605,7 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
      * @param androidSdk The current android SDK
      */
     private void cleanUp(EmulatorConfig emulatorConfig, AndroidEmulatorContext emu, final AndroidSdk androidSdk) throws IOException, InterruptedException {
-        cleanUp(emulatorConfig, emu, androidSdk, null, null, null, null);
+        cleanUp(emulatorConfig, emu, androidSdk, null, null, null, null, null, null);
     }
 
     /**
@@ -615,10 +616,15 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
      * @param logcatProcess The adb logcat process.
      * @param logcatFile The file the logcat output is being written to.
      * @param logcatStream The stream the logcat output is being written to.
-     * @param artifactsDir The directory where build artifacts should go.
+     * @param artifactManager The artifact manager. Used to archive the logcatFile.
+     * @param launcher a launcher used by artifactManager to archive the logcatFile.
+     * @param listener a listener used by artifactManager to archive the logcatFile.
      */
-    private void cleanUp(EmulatorConfig emulatorConfig, AndroidEmulatorContext emu, final AndroidSdk androidSdk, Proc logcatProcess,
-            FilePath logcatFile, OutputStream logcatStream, File artifactsDir) throws IOException, InterruptedException {
+    private void cleanUp(EmulatorConfig emulatorConfig, AndroidEmulatorContext emu, AndroidSdk androidSdk,
+                         @Nullable Proc logcatProcess, @Nullable FilePath logcatFile, @Nullable OutputStream logcatStream,
+                         @Nullable ArtifactManager artifactManager, @Nullable Launcher launcher, @Nullable BuildListener listener)
+           throws IOException, InterruptedException {
+
         // FIXME: Sometimes on Windows neither the emulator.exe nor the adb.exe processes die.
         //        Launcher.kill(EnvVars) does not appear to help either.
         //        This is (a) inconsistent; (b) very annoying.
@@ -652,9 +658,11 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
             } catch (Exception ignore) {}
 
             // Archive the logs
-            if (logcatFile.length() != 0) {
+            if (logcatFile.length() != 0 && artifactManager != null && launcher != null && listener != null) {
                 log(emu.logger(), Messages.ARCHIVING_LOG());
-                logcatFile.copyTo(new FilePath(artifactsDir).child("logcat.txt"));
+                final FilePath workspace = logcatFile.getParent();
+                final Map<String, String> artifacts = Collections.singletonMap("logcat.txt", logcatFile.getName());
+                artifactManager.archive(workspace, launcher, listener, artifacts);
             }
             logcatFile.delete();
         }
