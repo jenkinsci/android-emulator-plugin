@@ -658,14 +658,11 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
             } catch (Exception ignore) {}
 
             // Archive the logs
-            if (logcatFile.length() != 0) {
+            if (logcatFile.length() != 0 && artifactManager != null && launcher != null && listener != null) {
                 log(emu.logger(), Messages.ARCHIVING_LOG());
-                if (artifactManager != null && launcher != null && listener != null) {
-                    final FilePath workspace = logcatFile.getParent();
-                    final String path = logcatFile.getName();
-                    final Map<String, String> artifacts = Collections.singletonMap(path, path);
-                    artifactManager.archive(workspace, launcher, listener, artifacts);
-                }
+                final FilePath workspace = logcatFile.getParent();
+                final Map<String, String> artifacts = Collections.singletonMap("logcat.txt", logcatFile.getName());
+                artifactManager.archive(workspace, launcher, listener, artifacts);
             }
             logcatFile.delete();
         }
