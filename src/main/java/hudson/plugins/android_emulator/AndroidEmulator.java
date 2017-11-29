@@ -460,7 +460,7 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
             throw new BuildNodeUnavailableException();
         }
         final ArtifactManager artifactManager = build.getArtifactManager();
-        final FilePath logcatFile = build.getWorkspace().createTextTempFile("logcat_", ".log", "", false);
+        final FilePath logcatFile = workspace.createTextTempFile("logcat_", ".log", "", false);
         final OutputStream logcatStream = logcatFile.write();
         final SdkCliCommand adbSetLogCatFormatCmd = adbShellCmds.getSetLogCatFormatToTimeCommand(emu.serial());
         final Proc logWriter = emu.getToolProcStarter(adbSetLogCatFormatCmd)
