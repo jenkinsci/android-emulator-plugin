@@ -1,5 +1,7 @@
 package hudson.plugins.android_emulator.sdk.cli;
 
+import hudson.plugins.android_emulator.sdk.Tool;
+
 import java.util.List;
 
 /**
@@ -29,7 +31,7 @@ public interface SdkToolsCommands {
      */
     SdkCliCommand getCreateSdkCardCommand(final String absolutePathToSdCard, final String requestedSdCardSize);
 
-    SdkCliCommand getEmulatorListSnapshotsCommand(final String avdName, final boolean useArmEmulator);
+    SdkCliCommand getEmulatorListSnapshotsCommand(final String avdName, final Tool executable);
 
     SdkCliCommand getAdbStartServerCommand();
     SdkCliCommand getAdbKillServerCommand();

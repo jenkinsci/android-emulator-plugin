@@ -360,15 +360,19 @@ public class SdkCommandsTest {
 
     @Test
     public void testEmulatorListSnapshotsCommand() {
-        final SdkCliCommand emulatorListSnapshotsCmdV25_3 = SdkCliCommandFactory.getCommandsForSdk("25.3").getEmulatorListSnapshotsCommand("avdtest", true);
-        final SdkCliCommand emulatorListSnapshotsCmdV25 = SdkCliCommandFactory.getCommandsForSdk("25").getEmulatorListSnapshotsCommand("avdtest", true);
-        final SdkCliCommand emulatorListSnapshotsCmdV17 = SdkCliCommandFactory.getCommandsForSdk("17").getEmulatorListSnapshotsCommand("dummy", false);
-        final SdkCliCommand emulatorListSnapshotsCmdV04 = SdkCliCommandFactory.getCommandsForSdk("4").getEmulatorListSnapshotsCommand("test", true);
+        final SdkCliCommand emulatorListSnapshotsCmdV25_3 = SdkCliCommandFactory.getCommandsForSdk("25.3")
+                .getEmulatorListSnapshotsCommand("avdtest", Tool.EMULATOR64_X86);
+        final SdkCliCommand emulatorListSnapshotsCmdV25 = SdkCliCommandFactory.getCommandsForSdk("25")
+                .getEmulatorListSnapshotsCommand("avdtest", Tool.EMULATOR_ARM);
+        final SdkCliCommand emulatorListSnapshotsCmdV17 = SdkCliCommandFactory.getCommandsForSdk("17")
+                .getEmulatorListSnapshotsCommand("dummy", Tool.EMULATOR);
+        final SdkCliCommand emulatorListSnapshotsCmdV04 = SdkCliCommandFactory.getCommandsForSdk("4")
+                .getEmulatorListSnapshotsCommand("test", Tool.EMULATOR);
 
-        assertEquals(Tool.EMULATOR_ARM, emulatorListSnapshotsCmdV25_3.getTool());
+        assertEquals(Tool.EMULATOR64_X86, emulatorListSnapshotsCmdV25_3.getTool());
         assertEquals(Tool.EMULATOR_ARM, emulatorListSnapshotsCmdV25.getTool());
         assertEquals(Tool.EMULATOR, emulatorListSnapshotsCmdV17.getTool());
-        assertEquals(Tool.EMULATOR_ARM, emulatorListSnapshotsCmdV04.getTool());
+        assertEquals(Tool.EMULATOR, emulatorListSnapshotsCmdV04.getTool());
 
         assertEquals("-snapshot-list -no-window -avd avdtest", emulatorListSnapshotsCmdV25_3.getArgs());
         assertEquals("-snapshot-list -no-window -avd avdtest", emulatorListSnapshotsCmdV25.getArgs());
