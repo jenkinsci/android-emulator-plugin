@@ -10,9 +10,12 @@ import hudson.model.Descriptor;
 import hudson.plugins.android_emulator.builder.AbstractBuilder;
 import hudson.plugins.android_emulator.sdk.AndroidSdk;
 import hudson.plugins.android_emulator.util.Utils;
+import hudson.plugins.android_emulator.util.ValidationResult;
 import hudson.tasks.Builder;
+import hudson.util.FormValidation;
 import net.sf.json.JSONObject;
 import org.kohsuke.stapler.DataBoundConstructor;
+import org.kohsuke.stapler.QueryParameter;
 import org.kohsuke.stapler.StaplerRequest;
 
 import java.io.IOException;
@@ -103,6 +106,22 @@ public class UninstallBuilder extends AbstractBuilder {
         @Override
         public String getDisplayName() {
             return Messages.UNINSTALL_ANDROID_PACKAGE();
+        }
+
+        /**
+         * Check the package id is set in the uninstall configure
+         * @param value specified by UninstallBuilder/config.jelly
+         * @return FormValidation
+         */
+        public FormValidation doCheckPackageId(@QueryParameter String value) {
+            // trim first
+            String packageId = Util.fixEmptyAndTrim(value);
+
+            if (packageId == null || packageId.length() == 0) {
+                return ValidationResult.error(Messages.PACKAGE_ID_NOT_SPECIFIED()).getFormValidation();
+            }
+
+            return ValidationResult.ok().getFormValidation();
         }
 
     }
