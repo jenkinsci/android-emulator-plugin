@@ -69,7 +69,7 @@ public class SdkToolsCommandsCurrentBase implements SdkToolsCommands {
     }
 
     @Override
-    public SdkCliCommand getCreatedAvdCommand(final String avdName, final boolean createSnapshot,
+    public SdkCliCommand getCreatedAvdCommand(final String avdName, final boolean supportsSnapshots,
             final String sdCardSize, final String screenResolutionSkinName, final String deviceDefinition,
             final String androidTarget, final String systemImagePackagePath, final String tag) {
 
@@ -81,7 +81,7 @@ public class SdkToolsCommandsCurrentBase implements SdkToolsCommands {
         args.append("-f");
 
         // Initialise snapshot support, regardless of whether we will actually use it
-        if (createSnapshot) {
+        if (supportsSnapshots) {
             args.append(" -a");
         }
 
