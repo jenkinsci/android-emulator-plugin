@@ -350,6 +350,11 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
         Proc adbStart2 = emu.getToolProcStarter(adbStartCmd).stdout(logger).stderr(logger).start();
         adbStart2.joinWithTimeout(5L, TimeUnit.SECONDS, listener);
 
+        // Show warning about snapshots being enabled, but not supported
+        if (useSnapshots && !androidSdk.supportsSnapshots()) {
+            log(logger, Messages.SNAPSHOTS_NOT_SUPPORTED());
+        }
+
         // Determine whether we need to create the first snapshot
         final SnapshotState snapshotState;
         if (useSnapshots && androidSdk.supportsSnapshots()) {
