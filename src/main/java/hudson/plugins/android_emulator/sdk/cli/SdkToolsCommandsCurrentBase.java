@@ -140,9 +140,8 @@ public class SdkToolsCommandsCurrentBase implements SdkToolsCommands {
     }
 
     @Override
-    public SdkCliCommand getEmulatorListSnapshotsCommand(final String avdName, final boolean useArmEmulator) {
+    public SdkCliCommand getEmulatorListSnapshotsCommand(final String avdName, final Tool executable) {
         final String emulatorListSnapshotArgs = String.format("-snapshot-list -no-window -avd %s", avdName);
-        final Tool executable = useArmEmulator ? Tool.EMULATOR_ARM : Tool.EMULATOR;
         return new SdkCliCommand(executable, emulatorListSnapshotArgs);
     }
 
