@@ -583,7 +583,7 @@ public class SdkInstaller {
         MAC_OS_X("darwin", "zip"),
         WINDOWS("windows", "zip");
 
-        private static final String PATTERN = "http://dl.google.com/android/repository/sdk-tools-%s-%s.%s";
+        private static final String PATTERN = "https://dl.google.com/android/repository/sdk-tools-%s-%s.%s";
         private final String platform;
         private final String extension;
 
