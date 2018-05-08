@@ -781,6 +781,7 @@ public class Utils {
      * Looks up the input for the given pattern with an attached version number. The pattern
      * with the highest version found is returned. The delimiter between pattern and version
      * may be ';' or '-'.
+     * No RC or beta versions are supported, those versions with an additional suffix will be ignored
      *
      * @param multiLine multi-line input string to look up pattern + version
      * @param pattern the pattern to look for
