@@ -348,6 +348,34 @@ public interface SdkCommandsTestData {
             "    Description:        Android SDK Build-Tools 26.0.1\n" + 
             "    Version:            26.0.1\n" + 
             "\n" + 
+            "build-tools;26.0.2\n" +
+            "    Description:        Android SDK Build-Tools 26.0.2\n" +
+            "    Version:            26.0.2\n" +
+            "\n" +
+            "build-tools;26.0.3\n" +
+            "    Description:        Android SDK Build-Tools 26.0.3\n" +
+            "    Version:            26.0.3\n" +
+            "\n" +
+            "build-tools;27.0.0\n" +
+            "    Description:        Android SDK Build-Tools 27\n" +
+            "    Version:            27.0.0\n" +
+            "\n" +
+            "build-tools;27.0.1\n" +
+            "    Description:        Android SDK Build-Tools 27.0.1\n" +
+            "    Version:            27.0.1\n" +
+            "\n" +
+            "build-tools;27.0.2\n" +
+            "    Description:        Android SDK Build-Tools 27.0.2\n" +
+            "    Version:            27.0.2\n" +
+            "\n" +
+            "build-tools;27.0.3\n" +
+            "    Description:        Android SDK Build-Tools 27.0.3\n" +
+            "    Version:            27.0.3\n" +
+            "\n" +
+            "build-tools;28.0.0-rc1\n" +
+            "    Description:        Android SDK Build-Tools 28-rc1\n" +
+            "    Version:            28.0.0 rc1\n" +
+            "\n" +
             "cmake;3.6.4111459\n" + 
             "    Description:        CMake 3.6.4111459\n" + 
             "    Version:            3.6.4111459\n" + 

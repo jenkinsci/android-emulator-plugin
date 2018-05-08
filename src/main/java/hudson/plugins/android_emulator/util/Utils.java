@@ -834,6 +834,7 @@ public class Utils {
      * Looks up the input for the given pattern with an attached version number. The pattern
      * with the highest version found is returned. The delimiter between pattern and version
      * may be ';' or '-'.
+     * No RC or beta versions are supported, those versions with an additional suffix will be ignored
      *
      * @param multiLine multi-line input string to look up pattern + version
      * @param pattern the pattern to look for
@@ -845,16 +846,23 @@ public class Utils {
 
         final String lines[] = multiLine.split("(\r\n|\r|\n)");
         for (int pos = 0; pos < lines.length; pos++) {
-            final String line = lines[pos];
-            final String patternAndVersionRegex = "(" + pattern + "[-;][0-9\\.]+)";
-            final Matcher m = Pattern.compile(patternAndVersionRegex).matcher(line);
-            if (m.find()) {
-                final String patternAndVersion = m.group(0);
-                final String lineVersion = patternAndVersion.replaceAll("^(.*?)([0-9\\.]*)$", "$2");
-                if (isVersionOlderThan(currentMaxVersion, lineVersion)) {
-                    result = patternAndVersion;
-                    currentMaxVersion = lineVersion;
-                }
+            final String line = lines[pos].trim();
+
+            if (!line.contains(pattern)) {
+                continue;
+            }
+
+            final String lineVersionAndPattern = line.replaceAll("^(.*)(" + pattern + "[-;].*)", "$2").replaceAll("[\"']$", "").split("\\s+")[0];
+            final String lineVersion = lineVersionAndPattern.replaceAll("(" + pattern + "[-;])(.*)", "$2");
+
+            // Do not respect rc or any other suffix, only allow dot-separated version numbers like x.y.z 
+            if (!lineVersion.matches("^[0-9\\.]+$")) {
+                continue;
+            }
+
+            if (isVersionOlderThan(currentMaxVersion, lineVersion)) {
+                result = lineVersionAndPattern;
+                currentMaxVersion = lineVersion;
             }
         }
         return result;
