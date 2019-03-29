@@ -51,7 +51,7 @@ public interface Constants {
      * a build id. So it's crucial to keep this version in sync
      * with the BUILD_ID variable beneath.
      */
-    static final String SDK_TOOLS_DEFAULT_VERSION = "26.0.1";
+    static final String SDK_TOOLS_DEFAULT_VERSION = "28.0.3";
 
     /**
      * Build ID? of the recent version of the Android SDK that will be installed.
