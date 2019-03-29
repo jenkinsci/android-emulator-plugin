@@ -51,7 +51,7 @@ public interface Constants {
      * a build id. So it's crucial to keep this version in sync
      * with the BUILD_ID variable beneath.
      */
-    static final String SDK_TOOLS_DEFAULT_VERSION = "26.0.1";
+    static final String SDK_TOOLS_DEFAULT_VERSION = "28.0.3";
 
     /**
      * Build ID? of the recent version of the Android SDK that will be installed.
@@ -60,7 +60,7 @@ public interface Constants {
      * a build id. So it's crucial to keep this build id in sync
      * with the VERSION variable above.
      */
-    static final String SDK_TOOLS_DEFAULT_BUILD_ID = "3859397";
+    static final String SDK_TOOLS_DEFAULT_BUILD_ID = "4333796";
 
     // From hudson.Util.VARIABLE
     static final String REGEX_VARIABLE = "\\$([A-Za-z0-9_]+|\\{[A-Za-z0-9_]+\\}|\\$)";
@@ -140,7 +140,10 @@ enum AndroidPlatformVersions {
     API_LEVEL_23("Marshmallow", "6.0", 23, 8),
     API_LEVEL_24("Nougat", "7.0", 24, 8),
     API_LEVEL_25("Nougat", "7.1", 25, 8),
-    API_LEVEL_26("O", "8.0", 26, 8);
+    API_LEVEL_26("Oreo", "8.0", 26, 8),
+    API_LEVEL_27("Oreo", "8.1", 27, 8),
+    API_LEVEL_28("Pie", "9.0", 28, 8),
+    API_LEVEL_29("Q", "10.0", 29, 8);
 
     final String codename;
     final String version;

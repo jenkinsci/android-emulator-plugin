@@ -53,7 +53,10 @@ public class AndroidPlatformTest extends TestCase {
         assertEquals(26, AndroidPlatform.valueOf("android-26").getSdkLevel());
         assertEquals(26, AndroidPlatform.valueOf("8.0").getSdkLevel());
         assertEquals(26, AndroidPlatform.valueOf("8.0.1").getSdkLevel());
-        assertEquals(-1, AndroidPlatform.valueOf("8.1").getSdkLevel());
+        assertEquals(27, AndroidPlatform.valueOf("8.1").getSdkLevel());
+        assertEquals(28, AndroidPlatform.valueOf("9.0").getSdkLevel());
+        assertEquals(29, AndroidPlatform.valueOf("10.0").getSdkLevel());
+        assertEquals(-1, AndroidPlatform.valueOf("11.0").getSdkLevel());
     }
 
     @Test

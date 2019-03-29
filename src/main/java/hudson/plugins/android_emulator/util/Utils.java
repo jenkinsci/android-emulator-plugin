@@ -793,7 +793,7 @@ public class Utils {
         final String lines[] = multiLine.split("(\r\n|\r|\n)");
         for (int pos = 0; pos < lines.length; pos++) {
             final String line = lines[pos];
-            final String patternAndVersionRegex = "(" + pattern + "[-;][0-9\\.]+)";
+            final String patternAndVersionRegex = "(" + pattern + "[-;][0-9\\.]+(?:-rc[0-9])?)";
             final Matcher m = Pattern.compile(patternAndVersionRegex).matcher(line);
             if (m.find()) {
                 final String patternAndVersion = m.group(0);
