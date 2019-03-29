@@ -140,9 +140,9 @@ enum AndroidPlatformVersions {
     API_LEVEL_23("Marshmallow", "6.0", 23, 8),
     API_LEVEL_24("Nougat", "7.0", 24, 8),
     API_LEVEL_25("Nougat", "7.1", 25, 8),
-    API_LEVEL_26("Oreo", "8.0", 26, 8);
-    API_LEVEL_27("Oreo", "8.1", 27, 8);
-    API_LEVEL_28("Pie", "9.0", 28, 8);
+    API_LEVEL_26("Oreo", "8.0", 26, 8),
+    API_LEVEL_27("Oreo", "8.1", 27, 8),
+    API_LEVEL_28("Pie", "9.0", 28, 8),
     API_LEVEL_29("Q", "10.0", 29, 8);
 
     final String codename;
