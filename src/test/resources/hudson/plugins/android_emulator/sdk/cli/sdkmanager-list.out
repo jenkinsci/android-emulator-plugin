@@ -1,0 +1,1412 @@
+Info: Parsing /opt/android-sdk/tools/package.xml
+Info: Parsing /opt/android-sdk/tools/package.xml
+Installed packages:
+--------------------------------------
+add-ons;addon-google_apis-google-23
+    Description:        Google APIs
+    Version:            1
+    Installed Location: /opt/android-sdk/add-ons/addon-google_apis-google-23
+
+add-ons;addon-google_apis-google-24
+    Description:        Google APIs
+    Version:            1
+    Installed Location: /opt/android-sdk/add-ons/addon-google_apis-google-24
+
+build-tools;25.0.0
+    Description:        Android SDK Build-Tools 25
+    Version:            25.0.0
+    Installed Location: /opt/android-sdk/build-tools/25.0.0
+
+build-tools;25.0.1
+    Description:        Android SDK Build-Tools 25.0.1
+    Version:            25.0.1
+    Installed Location: /opt/android-sdk/build-tools/25.0.1
+
+build-tools;25.0.3
+    Description:        Android SDK Build-Tools 25.0.3
+    Version:            25.0.3
+    Installed Location: /opt/android-sdk/build-tools/25.0.3
+
+build-tools;26.0.0
+    Description:        Android SDK Build-Tools 26
+    Version:            26.0.0
+    Installed Location: /opt/android-sdk/build-tools/26.0.0
+
+build-tools;26.0.1
+    Description:        Android SDK Build-Tools 26.0.1
+    Version:            26.0.1
+    Installed Location: /opt/android-sdk/build-tools/26.0.1
+
+cmake;3.6.3155560
+    Description:        CMake 3.6.3155560
+    Version:            3.6.3155560
+    Installed Location: /opt/android-sdk/cmake/3.6.3155560
+
+cmake;3.6.4111459
+    Description:        CMake 3.6.4111459
+    Version:            3.6.4111459
+    Installed Location: /opt/android-sdk/cmake/3.6.4111459
+
+emulator
+    Description:        Android Emulator
+    Version:            26.1.3
+    Installed Location: /opt/android-sdk/emulator
+
+extras;android;gapid;3
+    Description:        GPU Debugging tools
+    Version:            3.1.0
+    Installed Location: /opt/android-sdk/extras/android/gapid/3
+
+extras;android;m2repository
+    Description:        Android Support Repository
+    Version:            47.0.0
+    Installed Location: /opt/android-sdk/extras/android/m2repository
+
+extras;google;m2repository
+    Description:        Google Repository
+    Version:            57
+    Installed Location: /opt/android-sdk/extras/google/m2repository
+
+extras;m2repository;com;android;support;constraint;constraint-layout-solver;1.0.2
+    Description:        Solver for ConstraintLayout 1.0.2
+    Version:            1
+    Installed Location: /opt/android-sdk/extras/m2repository/com/android/support/constraint/constraint-layout-solver/1.0.2
+
+extras;m2repository;com;android;support;constraint;constraint-layout;1.0.2
+    Description:        ConstraintLayout for Android 1.0.2
+    Version:            1
+    Installed Location: /opt/android-sdk/extras/m2repository/com/android/support/constraint/constraint-layout/1.0.2
+
+lldb;2.0
+    Description:        LLDB 2.0
+    Version:            2.0.2558144
+    Installed Location: /opt/android-sdk/lldb/2.0
+
+lldb;2.3
+    Description:        LLDB 2.3
+    Version:            2.3.3614996
+    Installed Location: /opt/android-sdk/lldb/2.3
+
+lldb;3.0
+    Description:        LLDB 3.0
+    Version:            3.0.3970975
+    Installed Location: /opt/android-sdk/lldb/3.0
+
+ndk-bundle
+    Description:        NDK
+    Version:            15.1.4119039
+    Installed Location: /opt/android-sdk/ndk-bundle
+
+patcher;v4
+    Description:        SDK Patch Applier v4
+    Version:            1
+    Installed Location: /opt/android-sdk/patcher/v4
+
+platform-tools
+    Description:        Android SDK Platform-Tools
+    Version:            26.0.0
+    Installed Location: /opt/android-sdk/platform-tools
+
+platforms;android-23
+    Description:        Android SDK Platform 23
+    Version:            3
+    Installed Location: /opt/android-sdk/platforms/android-23
+
+platforms;android-24
+    Description:        Android SDK Platform 24
+    Version:            2
+    Installed Location: /opt/android-sdk/platforms/android-24
+
+platforms;android-25
+    Description:        Android SDK Platform 25
+    Version:            3
+    Installed Location: /opt/android-sdk/platforms/android-25
+
+platforms;android-26
+    Description:        Android SDK Platform 26
+    Version:            2
+    Installed Location: /opt/android-sdk/platforms/android-26
+
+sources;android-23
+    Description:        Sources for Android 23
+    Version:            1
+    Installed Location: /opt/android-sdk/sources/android-23
+
+sources;android-24
+    Description:        Sources for Android 24
+    Version:            1
+    Installed Location: /opt/android-sdk/sources/android-24
+
+system-images;android-24;default;x86_64
+    Description:        Intel x86 Atom_64 System Image
+    Version:            8
+    Installed Location: /opt/android-sdk/system-images/android-24/default/x86_64
+
+system-images;android-24;google_apis;x86_64
+    Description:        Google APIs Intel x86 Atom_64 System Image
+    Version:            16
+    Installed Location: /opt/android-sdk/system-images/android-24/google_apis/x86_64
+
+system-images;android-26;google_apis;x86
+    Description:        Google APIs Intel x86 Atom System Image
+    Version:            5
+    Installed Location: /opt/android-sdk/system-images/android-26/google_apis/x86
+
+tools
+    Description:        Android SDK Tools 26.0.2
+    Version:            26.0.2
+    Installed Location: /opt/android-sdk/tools
+
+Available Packages:
+--------------------------------------
+add-ons;addon-google_apis-google-15
+    Description:        Google APIs
+    Version:            3
+
+add-ons;addon-google_apis-google-16
+    Description:        Google APIs
+    Version:            4
+
+add-ons;addon-google_apis-google-17
+    Description:        Google APIs
+    Version:            4
+
+add-ons;addon-google_apis-google-18
+    Description:        Google APIs
+    Version:            4
+
+add-ons;addon-google_apis-google-19
+    Description:        Google APIs
+    Version:            20
+
+add-ons;addon-google_apis-google-21
+    Description:        Google APIs
+    Version:            1
+
+add-ons;addon-google_apis-google-22
+    Description:        Google APIs
+    Version:            1
+
+add-ons;addon-google_apis-google-23
+    Description:        Google APIs
+    Version:            1
+
+add-ons;addon-google_apis-google-24
+    Description:        Google APIs
+    Version:            1
+
+build-tools;19.1.0
+    Description:        Android SDK Build-Tools 19.1
+    Version:            19.1.0
+
+build-tools;20.0.0
+    Description:        Android SDK Build-Tools 20
+    Version:            20.0.0
+
+build-tools;21.1.2
+    Description:        Android SDK Build-Tools 21.1.2
+    Version:            21.1.2
+
+build-tools;22.0.1
+    Description:        Android SDK Build-Tools 22.0.1
+    Version:            22.0.1
+
+build-tools;23.0.1
+    Description:        Android SDK Build-Tools 23.0.1
+    Version:            23.0.1
+
+build-tools;23.0.2
+    Description:        Android SDK Build-Tools 23.0.2
+    Version:            23.0.2
+
+build-tools;23.0.3
+    Description:        Android SDK Build-Tools 23.0.3
+    Version:            23.0.3
+
+build-tools;24.0.0
+    Description:        Android SDK Build-Tools 24
+    Version:            24.0.0
+
+build-tools;24.0.1
+    Description:        Android SDK Build-Tools 24.0.1
+    Version:            24.0.1
+
+build-tools;24.0.2
+    Description:        Android SDK Build-Tools 24.0.2
+    Version:            24.0.2
+
+build-tools;24.0.3
+    Description:        Android SDK Build-Tools 24.0.3
+    Version:            24.0.3
+
+build-tools;25.0.0
+    Description:        Android SDK Build-Tools 25
+    Version:            25.0.0
+
+build-tools;25.0.1
+    Description:        Android SDK Build-Tools 25.0.1
+    Version:            25.0.1
+
+build-tools;25.0.2
+    Description:        Android SDK Build-Tools 25.0.2
+    Version:            25.0.2
+
+build-tools;25.0.3
+    Description:        Android SDK Build-Tools 25.0.3
+    Version:            25.0.3
+
+build-tools;26.0.0
+    Description:        Android SDK Build-Tools 26
+    Version:            26.0.0
+
+build-tools;26.0.1
+    Description:        Android SDK Build-Tools 26.0.1
+    Version:            26.0.1
+
+build-tools;26.0.2
+    Description:        Android SDK Build-Tools 26.0.2
+    Version:            26.0.2
+
+build-tools;26.0.3
+    Description:        Android SDK Build-Tools 26.0.3
+    Version:            26.0.3
+
+build-tools;27.0.0
+    Description:        Android SDK Build-Tools 27
+    Version:            27.0.0
+
+build-tools;27.0.1
+    Description:        Android SDK Build-Tools 27.0.1
+    Version:            27.0.1
+
+build-tools;27.0.2
+    Description:        Android SDK Build-Tools 27.0.2
+    Version:            27.0.2
+
+build-tools;27.0.3
+    Description:        Android SDK Build-Tools 27.0.3
+    Version:            27.0.3
+
+build-tools;28.0.0
+    Description:        Android SDK Build-Tools 28
+    Version:            28.0.0
+
+build-tools;28.0.1
+    Description:        Android SDK Build-Tools 28.0.1
+    Version:            28.0.1
+
+build-tools;28.0.2
+    Description:        Android SDK Build-Tools 28.0.2
+    Version:            28.0.2
+
+build-tools;28.0.3
+    Description:        Android SDK Build-Tools 28.0.3
+    Version:            28.0.3
+
+build-tools;29.0.0
+    Description:        Android SDK Build-Tools 29
+    Version:            29.0.0
+
+build-tools;29.0.1
+    Description:        Android SDK Build-Tools 29.0.1
+    Version:            29.0.1
+
+build-tools;29.0.2
+    Description:        Android SDK Build-Tools 29.0.2
+    Version:            29.0.2
+
+build-tools;29.0.3
+    Description:        Android SDK Build-Tools 29.0.3
+    Version:            29.0.3
+
+build-tools;30.0.0-rc1
+    Description:        Android SDK Build-Tools 30-rc1
+    Version:            30.0.0 rc1
+
+build-tools;30.0.0-rc2
+    Description:        Android SDK Build-Tools 30-rc2
+    Version:            30.0.0 rc2
+
+cmake;3.10.2.4988404
+    Description:        CMake 3.10.2.4988404
+    Version:            3.10.2
+
+cmake;3.6.4111459
+    Description:        CMake 3.6.4111459
+    Version:            3.6.4111459
+
+cmdline-tools;1.0
+    Description:        Android SDK Command-line Tools
+    Version:            1.0
+    Dependencies:
+        patcher;v4
+
+cmdline-tools;latest
+    Description:        Android SDK Command-line Tools (latest)
+    Version:            1.0
+    Dependencies:
+        patcher;v4
+
+docs
+    Description:        Documentation for Android SDK
+    Version:            1
+
+emulator
+    Description:        Android Emulator
+    Version:            30.0.5
+    Dependencies:
+        patcher;v4
+
+extras;android;gapid;1
+    Description:        GPU Debugging tools
+    Version:            1.0.3
+
+extras;android;gapid;3
+    Description:        GPU Debugging tools
+    Version:            3.1.0
+
+extras;android;m2repository
+    Description:        Android Support Repository
+    Version:            47.0.0
+
+extras;google;Android_Emulator_Hypervisor_Driver
+    Description:        Android Emulator Hypervisor Driver for AMD Processors (installer)
+    Version:            1.4.0
+
+extras;google;auto
+    Description:        Android Auto Desktop Head Unit emulator
+    Version:            1.1
+
+extras;google;google_play_services
+    Description:        Google Play services
+    Version:            49
+    Dependencies:
+        patcher;v4
+
+extras;google;instantapps
+    Description:        Google Play Instant Development SDK
+    Version:            1.9.0
+
+extras;google;m2repository
+    Description:        Google Repository
+    Version:            58
+    Dependencies:
+        patcher;v4
+
+extras;google;market_apk_expansion
+    Description:        Google Play APK Expansion library
+    Version:            1
+
+extras;google;market_licensing
+    Description:        Google Play Licensing Library
+    Version:            1
+
+extras;google;simulators
+    Description:        Android Auto API Simulators
+    Version:            1
+
+extras;google;usb_driver
+    Description:        Google USB Driver
+    Version:            12
+
+extras;google;webdriver
+    Description:        Google Web Driver
+    Version:            2
+
+extras;intel;Hardware_Accelerated_Execution_Manager
+    Description:        Intel x86 Emulator Accelerator (HAXM installer)
+    Version:            7.5.6
+
+extras;m2repository;com;android;support;constraint;constraint-layout-solver;1.0.0
+    Description:        Solver for ConstraintLayout 1.0.0
+    Version:            1
+
+extras;m2repository;com;android;support;constraint;constraint-layout-solver;1.0.0-alpha4
+    Description:        com.android.support.constraint:constraint-layout-solver:1.0.0-alpha4
+    Version:            1
+
+extras;m2repository;com;android;support;constraint;constraint-layout-solver;1.0.0-alpha8
+    Description:        Solver for ConstraintLayout 1.0.0-alpha8
+    Version:            1
+
+extras;m2repository;com;android;support;constraint;constraint-layout-solver;1.0.0-beta1
+    Description:        Solver for ConstraintLayout 1.0.0-beta1
+    Version:            1
+
+extras;m2repository;com;android;support;constraint;constraint-layout-solver;1.0.0-beta2
+    Description:        Solver for ConstraintLayout 1.0.0-beta2
+    Version:            1
+
+extras;m2repository;com;android;support;constraint;constraint-layout-solver;1.0.0-beta3
+    Description:        Solver for ConstraintLayout 1.0.0-beta3
+    Version:            1
+
+extras;m2repository;com;android;support;constraint;constraint-layout-solver;1.0.0-beta4
+    Description:        Solver for ConstraintLayout 1.0.0-beta4
+    Version:            1
+
+extras;m2repository;com;android;support;constraint;constraint-layout-solver;1.0.0-beta5
+    Description:        Solver for ConstraintLayout 1.0.0-beta5
+    Version:            1
+
+extras;m2repository;com;android;support;constraint;constraint-layout-solver;1.0.1
+    Description:        Solver for ConstraintLayout 1.0.1
+    Version:            1
+
+extras;m2repository;com;android;support;constraint;constraint-layout-solver;1.0.2
+    Description:        Solver for ConstraintLayout 1.0.2
+    Version:            1
+
+extras;m2repository;com;android;support;constraint;constraint-layout;1.0.0
+    Description:        ConstraintLayout for Android 1.0.0
+    Version:            1
+    Dependencies:
+        extras;m2repository;com;android;support;constraint;constraint-layout-solver;1.0.0
+
+extras;m2repository;com;android;support;constraint;constraint-layout;1.0.0-alpha4
+    Description:        com.android.support.constraint:constraint-layout:1.0.0-alpha4
+    Version:            1
+    Dependencies:
+        extras;m2repository;com;android;support;constraint;constraint-layout-solver;1.0.0-alpha4
+
+extras;m2repository;com;android;support;constraint;constraint-layout;1.0.0-alpha8
+    Description:        ConstraintLayout for Android 1.0.0-alpha8
+    Version:            1
+    Dependencies:
+        extras;m2repository;com;android;support;constraint;constraint-layout-solver;1.0.0-alpha8
+
+extras;m2repository;com;android;support;constraint;constraint-layout;1.0.0-beta1
+    Description:        ConstraintLayout for Android 1.0.0-beta1
+    Version:            1
+    Dependencies:
+        extras;m2repository;com;android;support;constraint;constraint-layout-solver;1.0.0-beta1
+
+extras;m2repository;com;android;support;constraint;constraint-layout;1.0.0-beta2
+    Description:        ConstraintLayout for Android 1.0.0-beta2
+    Version:            1
+    Dependencies:
+        extras;m2repository;com;android;support;constraint;constraint-layout-solver;1.0.0-beta2
+
+extras;m2repository;com;android;support;constraint;constraint-layout;1.0.0-beta3
+    Description:        ConstraintLayout for Android 1.0.0-beta3
+    Version:            1
+    Dependencies:
+        extras;m2repository;com;android;support;constraint;constraint-layout-solver;1.0.0-beta3
+
+extras;m2repository;com;android;support;constraint;constraint-layout;1.0.0-beta4
+    Description:        ConstraintLayout for Android 1.0.0-beta4
+    Version:            1
+    Dependencies:
+        extras;m2repository;com;android;support;constraint;constraint-layout-solver;1.0.0-beta4
+
+extras;m2repository;com;android;support;constraint;constraint-layout;1.0.0-beta5
+    Description:        ConstraintLayout for Android 1.0.0-beta5
+    Version:            1
+    Dependencies:
+        extras;m2repository;com;android;support;constraint;constraint-layout-solver;1.0.0-beta5
+
+extras;m2repository;com;android;support;constraint;constraint-layout;1.0.1
+    Description:        ConstraintLayout for Android 1.0.1
+    Version:            1
+    Dependencies:
+        extras;m2repository;com;android;support;constraint;constraint-layout-solver;1.0.1
+
+extras;m2repository;com;android;support;constraint;constraint-layout;1.0.2
+    Description:        ConstraintLayout for Android 1.0.2
+    Version:            1
+    Dependencies:
+        extras;m2repository;com;android;support;constraint;constraint-layout-solver;1.0.2
+
+lldb;2.0
+    Description:        LLDB 2.0
+    Version:            2.0.2558144
+
+lldb;2.1
+    Description:        LLDB 2.1
+    Version:            2.1.2852477
+
+lldb;2.2
+    Description:        LLDB 2.2
+    Version:            2.2.3271982
+    Dependencies:
+        patcher;v4
+
+lldb;2.3
+    Description:        LLDB 2.3
+    Version:            2.3.3614996
+    Dependencies:
+        patcher;v4
+
+lldb;3.0
+    Description:        LLDB 3.0
+    Version:            3.0.4213617
+    Dependencies:
+        patcher;v4
+
+lldb;3.1
+    Description:        LLDB 3.1
+    Version:            3.1.4508709
+    Dependencies:
+        patcher;v4
+
+ndk-bundle
+    Description:        NDK
+    Version:            21.0.6113669
+    Dependencies:
+        patcher;v4
+
+ndk;16.1.4479499
+    Description:        NDK (Side by side) 16.1.4479499
+    Version:            16.1.4479499
+    Dependencies:
+        patcher;v4
+
+ndk;17.2.4988734
+    Description:        NDK (Side by side) 17.2.4988734
+    Version:            17.2.4988734
+    Dependencies:
+        patcher;v4
+
+ndk;18.1.5063045
+    Description:        NDK (Side by side) 18.1.5063045
+    Version:            18.1.5063045
+    Dependencies:
+        patcher;v4
+
+ndk;19.2.5345600
+    Description:        NDK (Side by side) 19.2.5345600
+    Version:            19.2.5345600
+    Dependencies:
+        patcher;v4
+
+ndk;20.0.5594570
+    Description:        NDK (Side by side) 20.0.5594570
+    Version:            20.0.5594570
+    Dependencies:
+        patcher;v4
+
+ndk;20.1.5948944
+    Description:        NDK (Side by side) 20.1.5948944
+    Version:            20.1.5948944
+    Dependencies:
+        patcher;v4
+
+ndk;21.0.6113669
+    Description:        NDK (Side by side) 21.0.6113669
+    Version:            21.0.6113669
+    Dependencies:
+        patcher;v4
+
+patcher;v4
+    Description:        SDK Patch Applier v4
+    Version:            1
+
+platform-tools
+    Description:        Android SDK Platform-Tools
+    Version:            29.0.6
+
+platforms;android-10
+    Description:        Android SDK Platform 10
+    Version:            2
+
+platforms;android-11
+    Description:        Android SDK Platform 11
+    Version:            2
+
+platforms;android-12
+    Description:        Android SDK Platform 12
+    Version:            3
+
+platforms;android-13
+    Description:        Android SDK Platform 13
+    Version:            1
+
+platforms;android-14
+    Description:        Android SDK Platform 14
+    Version:            4
+
+platforms;android-15
+    Description:        Android SDK Platform 15
+    Version:            5
+
+platforms;android-16
+    Description:        Android SDK Platform 16
+    Version:            5
+
+platforms;android-17
+    Description:        Android SDK Platform 17
+    Version:            3
+
+platforms;android-18
+    Description:        Android SDK Platform 18
+    Version:            3
+
+platforms;android-19
+    Description:        Android SDK Platform 19
+    Version:            4
+
+platforms;android-20
+    Description:        Android SDK Platform 20
+    Version:            2
+
+platforms;android-21
+    Description:        Android SDK Platform 21
+    Version:            2
+
+platforms;android-22
+    Description:        Android SDK Platform 22
+    Version:            2
+
+platforms;android-23
+    Description:        Android SDK Platform 23
+    Version:            3
+
+platforms;android-24
+    Description:        Android SDK Platform 24
+    Version:            2
+
+platforms;android-25
+    Description:        Android SDK Platform 25
+    Version:            3
+
+platforms;android-26
+    Description:        Android SDK Platform 26
+    Version:            2
+
+platforms;android-27
+    Description:        Android SDK Platform 27
+    Version:            3
+
+platforms;android-28
+    Description:        Android SDK Platform 28
+    Version:            6
+
+platforms;android-29
+    Description:        Android SDK Platform 29
+    Version:            4
+
+platforms;android-7
+    Description:        Android SDK Platform 7
+    Version:            3
+
+platforms;android-8
+    Description:        Android SDK Platform 8
+    Version:            3
+
+platforms;android-9
+    Description:        Android SDK Platform 9
+    Version:            2
+
+platforms;android-R
+    Description:        Android SDK Platform R
+    Version:            2
+
+sources;android-15
+    Description:        Sources for Android 15
+    Version:            2
+
+sources;android-16
+    Description:        Sources for Android 16
+    Version:            2
+
+sources;android-17
+    Description:        Sources for Android 17
+    Version:            1
+
+sources;android-18
+    Description:        Sources for Android 18
+    Version:            1
+
+sources;android-19
+    Description:        Sources for Android 19
+    Version:            2
+
+sources;android-20
+    Description:        Sources for Android 20
+    Version:            1
+
+sources;android-21
+    Description:        Sources for Android 21
+    Version:            1
+
+sources;android-22
+    Description:        Sources for Android 22
+    Version:            1
+
+sources;android-23
+    Description:        Sources for Android 23
+    Version:            1
+
+sources;android-24
+    Description:        Sources for Android 24
+    Version:            1
+
+sources;android-25
+    Description:        Sources for Android 25
+    Version:            1
+
+sources;android-26
+    Description:        Sources for Android 26
+    Version:            1
+
+sources;android-27
+    Description:        Sources for Android 27
+    Version:            1
+
+sources;android-28
+    Description:        Sources for Android 28
+    Version:            1
+
+sources;android-29
+    Description:        Sources for Android 29
+    Version:            1
+
+system-images;android-10;default;armeabi-v7a
+    Description:        ARM EABI v7a System Image
+    Version:            5
+    Dependencies:
+        patcher;v4
+
+system-images;android-10;default;x86
+    Description:        Intel x86 Atom System Image
+    Version:            5
+    Dependencies:
+        patcher;v4
+
+system-images;android-10;google_apis;armeabi-v7a
+    Description:        Google APIs ARM EABI v7a System Image
+    Version:            6
+    Dependencies:
+        patcher;v4
+
+system-images;android-10;google_apis;x86
+    Description:        Google APIs Intel x86 Atom System Image
+    Version:            6
+    Dependencies:
+        patcher;v4
+
+system-images;android-14;default;armeabi-v7a
+    Description:        ARM EABI v7a System Image
+    Version:            2
+
+system-images;android-15;default;armeabi-v7a
+    Description:        ARM EABI v7a System Image
+    Version:            5
+    Dependencies:
+        patcher;v4
+
+system-images;android-15;default;x86
+    Description:        Intel x86 Atom System Image
+    Version:            5
+    Dependencies:
+        patcher;v4
+
+system-images;android-15;google_apis;armeabi-v7a
+    Description:        Google APIs ARM EABI v7a System Image
+    Version:            6
+    Dependencies:
+        patcher;v4
+
+system-images;android-15;google_apis;x86
+    Description:        Google APIs Intel x86 Atom System Image
+    Version:            6
+    Dependencies:
+        patcher;v4
+
+system-images;android-16;default;armeabi-v7a
+    Description:        ARM EABI v7a System Image
+    Version:            6
+    Dependencies:
+        patcher;v4
+
+system-images;android-16;default;mips
+    Description:        MIPS System Image
+    Version:            1
+
+system-images;android-16;default;x86
+    Description:        Intel x86 Atom System Image
+    Version:            6
+    Dependencies:
+        patcher;v4
+
+system-images;android-16;google_apis;armeabi-v7a
+    Description:        Google APIs ARM EABI v7a System Image
+    Version:            6
+    Dependencies:
+        patcher;v4
+
+system-images;android-16;google_apis;x86
+    Description:        Google APIs Intel x86 Atom System Image
+    Version:            6
+    Dependencies:
+        patcher;v4
+
+system-images;android-17;default;armeabi-v7a
+    Description:        ARM EABI v7a System Image
+    Version:            6
+    Dependencies:
+        patcher;v4
+
+system-images;android-17;default;mips
+    Description:        MIPS System Image
+    Version:            1
+
+system-images;android-17;default;x86
+    Description:        Intel x86 Atom System Image
+    Version:            4
+    Dependencies:
+        patcher;v4
+
+system-images;android-17;google_apis;armeabi-v7a
+    Description:        Google APIs ARM EABI v7a System Image
+    Version:            6
+    Dependencies:
+        patcher;v4
+
+system-images;android-17;google_apis;x86
+    Description:        Google APIs Intel x86 Atom System Image
+    Version:            6
+    Dependencies:
+        patcher;v4
+
+system-images;android-18;default;armeabi-v7a
+    Description:        ARM EABI v7a System Image
+    Version:            5
+    Dependencies:
+        patcher;v4
+
+system-images;android-18;default;x86
+    Description:        Intel x86 Atom System Image
+    Version:            4
+    Dependencies:
+        patcher;v4
+
+system-images;android-18;google_apis;armeabi-v7a
+    Description:        Google APIs ARM EABI v7a System Image
+    Version:            6
+    Dependencies:
+        patcher;v4
+
+system-images;android-18;google_apis;x86
+    Description:        Google APIs Intel x86 Atom System Image
+    Version:            6
+    Dependencies:
+        patcher;v4
+
+system-images;android-19;default;armeabi-v7a
+    Description:        ARM EABI v7a System Image
+    Version:            5
+    Dependencies:
+        patcher;v4
+
+system-images;android-19;default;x86
+    Description:        Intel x86 Atom System Image
+    Version:            6
+    Dependencies:
+        patcher;v4
+
+system-images;android-19;google_apis;armeabi-v7a
+    Description:        Google APIs ARM EABI v7a System Image
+    Version:            38
+    Dependencies:
+        patcher;v4
+
+system-images;android-19;google_apis;x86
+    Description:        Google APIs Intel x86 Atom System Image
+    Version:            38
+    Dependencies:
+        patcher;v4
+
+system-images;android-21;android-tv;armeabi-v7a
+    Description:        Android TV ARM EABI v7a System Image
+    Version:            3
+
+system-images;android-21;android-tv;x86
+    Description:        Android TV Intel x86 Atom System Image
+    Version:            3
+
+system-images;android-21;default;armeabi-v7a
+    Description:        ARM EABI v7a System Image
+    Version:            4
+    Dependencies:
+        patcher;v4
+
+system-images;android-21;default;x86
+    Description:        Intel x86 Atom System Image
+    Version:            5
+    Dependencies:
+        patcher;v4
+
+system-images;android-21;default;x86_64
+    Description:        Intel x86 Atom_64 System Image
+    Version:            5
+    Dependencies:
+        patcher;v4
+
+system-images;android-21;google_apis;armeabi-v7a
+    Description:        Google APIs ARM EABI v7a System Image
+    Version:            30
+    Dependencies:
+        patcher;v4
+
+system-images;android-21;google_apis;x86
+    Description:        Google APIs Intel x86 Atom System Image
+    Version:            30
+    Dependencies:
+        patcher;v4
+
+system-images;android-21;google_apis;x86_64
+    Description:        Google APIs Intel x86 Atom_64 System Image
+    Version:            30
+    Dependencies:
+        patcher;v4
+
+system-images;android-22;android-tv;x86
+    Description:        Android TV Intel x86 Atom System Image
+    Version:            3
+
+system-images;android-22;default;armeabi-v7a
+    Description:        ARM EABI v7a System Image
+    Version:            2
+    Dependencies:
+        patcher;v4
+
+system-images;android-22;default;x86
+    Description:        Intel x86 Atom System Image
+    Version:            6
+    Dependencies:
+        patcher;v4
+
+system-images;android-22;default;x86_64
+    Description:        Intel x86 Atom_64 System Image
+    Version:            6
+    Dependencies:
+        patcher;v4
+
+system-images;android-22;google_apis;armeabi-v7a
+    Description:        Google APIs ARM EABI v7a System Image
+    Version:            24
+    Dependencies:
+        patcher;v4
+
+system-images;android-22;google_apis;x86
+    Description:        Google APIs Intel x86 Atom System Image
+    Version:            24
+    Dependencies:
+        patcher;v4
+
+system-images;android-22;google_apis;x86_64
+    Description:        Google APIs Intel x86 Atom_64 System Image
+    Version:            24
+    Dependencies:
+        patcher;v4
+
+system-images;android-23;android-tv;armeabi-v7a
+    Description:        Android TV ARM EABI v7a System Image
+    Version:            12
+
+system-images;android-23;android-tv;x86
+    Description:        Android TV Intel x86 Atom System Image
+    Version:            19
+    Dependencies:
+        patcher;v4
+
+system-images;android-23;android-wear;armeabi-v7a
+    Description:        Android Wear ARM EABI v7a System Image
+    Version:            6
+    Dependencies:
+        patcher;v4
+
+system-images;android-23;android-wear;x86
+    Description:        Android Wear Intel x86 Atom System Image
+    Version:            6
+    Dependencies:
+        patcher;v4
+
+system-images;android-23;default;armeabi-v7a
+    Description:        ARM EABI v7a System Image
+    Version:            6
+    Dependencies:
+        patcher;v4
+
+system-images;android-23;default;x86
+    Description:        Intel x86 Atom System Image
+    Version:            10
+    Dependencies:
+        patcher;v4
+
+system-images;android-23;default;x86_64
+    Description:        Intel x86 Atom_64 System Image
+    Version:            10
+    Dependencies:
+        patcher;v4
+
+system-images;android-23;google_apis;armeabi-v7a
+    Description:        Google APIs ARM EABI v7a System Image
+    Version:            31
+    Dependencies:
+        patcher;v4
+
+system-images;android-23;google_apis;x86
+    Description:        Google APIs Intel x86 Atom System Image
+    Version:            31
+    Dependencies:
+        patcher;v4
+
+system-images;android-23;google_apis;x86_64
+    Description:        Google APIs Intel x86 Atom_64 System Image
+    Version:            31
+    Dependencies:
+        patcher;v4
+
+system-images;android-24;android-tv;x86
+    Description:        Android TV Intel x86 Atom System Image
+    Version:            20
+    Dependencies:
+        patcher;v4
+
+system-images;android-24;default;arm64-v8a
+    Description:        ARM 64 v8a System Image
+    Version:            7
+
+system-images;android-24;default;armeabi-v7a
+    Description:        ARM EABI v7a System Image
+    Version:            7
+    Dependencies:
+        patcher;v4
+
+system-images;android-24;default;x86
+    Description:        Intel x86 Atom System Image
+    Version:            8
+    Dependencies:
+        patcher;v4
+
+system-images;android-24;default;x86_64
+    Description:        Intel x86 Atom_64 System Image
+    Version:            8
+    Dependencies:
+        patcher;v4
+
+system-images;android-24;google_apis;arm64-v8a
+    Description:        Google APIs ARM 64 v8a System Image
+    Version:            25
+    Dependencies:
+        patcher;v4
+
+system-images;android-24;google_apis;armeabi-v7a
+    Description:        Google APIs ARM EABI v7a System Image
+    Version:            25
+    Dependencies:
+        patcher;v4
+
+system-images;android-24;google_apis;x86
+    Description:        Google APIs Intel x86 Atom System Image
+    Version:            25
+    Dependencies:
+        patcher;v4
+
+system-images;android-24;google_apis;x86_64
+    Description:        Google APIs Intel x86 Atom_64 System Image
+    Version:            25
+    Dependencies:
+        patcher;v4
+
+system-images;android-24;google_apis_playstore;x86
+    Description:        Google Play Intel x86 Atom System Image
+    Version:            19
+    Dependencies:
+        patcher;v4
+
+system-images;android-25;android-tv;x86
+    Description:        Android TV Intel x86 Atom System Image
+    Version:            14
+    Dependencies:
+        patcher;v4
+
+system-images;android-25;android-wear-cn;armeabi-v7a
+    Description:        China version of Android Wear ARM EABI v7a System Image
+    Version:            4
+    Dependencies:
+        patcher;v4
+
+system-images;android-25;android-wear-cn;x86
+    Description:        China version of Android Wear Intel x86 Atom System Image
+    Version:            4
+    Dependencies:
+        patcher;v4
+
+system-images;android-25;android-wear;armeabi-v7a
+    Description:        Android Wear ARM EABI v7a System Image
+    Version:            3
+    Dependencies:
+        patcher;v4
+
+system-images;android-25;android-wear;x86
+    Description:        Android Wear Intel x86 Atom System Image
+    Version:            3
+    Dependencies:
+        patcher;v4
+
+system-images;android-25;default;x86
+    Description:        Intel x86 Atom System Image
+    Version:            1
+    Dependencies:
+        patcher;v4
+
+system-images;android-25;default;x86_64
+    Description:        Intel x86 Atom_64 System Image
+    Version:            1
+    Dependencies:
+        patcher;v4
+
+system-images;android-25;google_apis;arm64-v8a
+    Description:        Google APIs ARM 64 v8a System Image
+    Version:            16
+    Dependencies:
+        patcher;v4
+
+system-images;android-25;google_apis;armeabi-v7a
+    Description:        Google APIs ARM EABI v7a System Image
+    Version:            16
+    Dependencies:
+        patcher;v4
+
+system-images;android-25;google_apis;x86
+    Description:        Google APIs Intel x86 Atom System Image
+    Version:            16
+    Dependencies:
+        patcher;v4
+
+system-images;android-25;google_apis;x86_64
+    Description:        Google APIs Intel x86 Atom_64 System Image
+    Version:            16
+    Dependencies:
+        patcher;v4
+
+system-images;android-25;google_apis_playstore;x86
+    Description:        Google Play Intel x86 Atom System Image
+    Version:            9
+    Dependencies:
+        patcher;v4
+
+system-images;android-26;android-tv;x86
+    Description:        Android TV Intel x86 Atom System Image
+    Version:            12
+    Dependencies:
+        patcher;v4
+        emulator Revision 26.1.3
+
+system-images;android-26;android-wear-cn;x86
+    Description:        China version of Android Wear Intel x86 Atom System Image
+    Version:            4
+    Dependencies:
+        patcher;v4
+
+system-images;android-26;android-wear;x86
+    Description:        Android Wear Intel x86 Atom System Image
+    Version:            4
+    Dependencies:
+        patcher;v4
+
+system-images;android-26;default;x86
+    Description:        Intel x86 Atom System Image
+    Version:            1
+    Dependencies:
+        patcher;v4
+
+system-images;android-26;default;x86_64
+    Description:        Intel x86 Atom_64 System Image
+    Version:            1
+    Dependencies:
+        patcher;v4
+
+system-images;android-26;google_apis;x86
+    Description:        Google APIs Intel x86 Atom System Image
+    Version:            14
+    Dependencies:
+        patcher;v4
+        emulator Revision 26.1.3
+
+system-images;android-26;google_apis;x86_64
+    Description:        Google APIs Intel x86 Atom_64 System Image
+    Version:            14
+    Dependencies:
+        patcher;v4
+        emulator Revision 26.1.3
+
+system-images;android-26;google_apis_playstore;x86
+    Description:        Google Play Intel x86 Atom System Image
+    Version:            7
+    Dependencies:
+        patcher;v4
+        emulator Revision 26.1.3
+
+system-images;android-27;android-tv;x86
+    Description:        Android TV Intel x86 Atom System Image
+    Version:            7
+    Dependencies:
+        patcher;v4
+
+system-images;android-27;default;x86
+    Description:        Intel x86 Atom System Image
+    Version:            1
+    Dependencies:
+        patcher;v4
+
+system-images;android-27;default;x86_64
+    Description:        Intel x86 Atom_64 System Image
+    Version:            1
+    Dependencies:
+        patcher;v4
+
+system-images;android-27;google_apis;x86
+    Description:        Google APIs Intel x86 Atom System Image
+    Version:            9
+    Dependencies:
+        patcher;v4
+        emulator Revision 27.1.7
+
+system-images;android-27;google_apis_playstore;x86
+    Description:        Google Play Intel x86 Atom System Image
+    Version:            3
+    Dependencies:
+        patcher;v4
+        emulator Revision 26.1.3
+
+system-images;android-28;android-tv;x86
+    Description:        Android TV Intel x86 Atom System Image
+    Version:            8
+    Dependencies:
+        patcher;v4
+
+system-images;android-28;android-wear-cn;x86
+    Description:        China version of Wear OS Intel x86 Atom System Image
+    Version:            3
+    Dependencies:
+        patcher;v4
+
+system-images;android-28;android-wear;x86
+    Description:        Wear OS Intel x86 Atom System Image
+    Version:            3
+    Dependencies:
+        patcher;v4
+
+system-images;android-28;default;x86
+    Description:        Intel x86 Atom System Image
+    Version:            4
+
+system-images;android-28;default;x86_64
+    Description:        Intel x86 Atom_64 System Image
+    Version:            4
+
+system-images;android-28;google_apis;x86
+    Description:        Google APIs Intel x86 Atom System Image
+    Version:            10
+    Dependencies:
+        patcher;v4
+        emulator Revision 29.1.12
+
+system-images;android-28;google_apis;x86_64
+    Description:        Google APIs Intel x86 Atom_64 System Image
+    Version:            9
+    Dependencies:
+        patcher;v4
+        emulator Revision 27.1.7
+
+system-images;android-28;google_apis_playstore;x86
+    Description:        Google Play Intel x86 Atom System Image
+    Version:            9
+    Dependencies:
+        patcher;v4
+        emulator Revision 29.1.12
+
+system-images;android-28;google_apis_playstore;x86_64
+    Description:        Google Play Intel x86 Atom_64 System Image
+    Version:            8
+    Dependencies:
+        patcher;v4
+        emulator Revision 27.1.7
+
+system-images;android-29;default;x86
+    Description:        Intel x86 Atom System Image
+    Version:            7
+    Dependencies:
+        patcher;v4
+        extras;intel;Hardware_Accelerated_Execution_Manager Revision 7.5.2
+
+system-images;android-29;default;x86_64
+    Description:        Intel x86 Atom_64 System Image
+    Version:            7
+    Dependencies:
+        patcher;v4
+        extras;intel;Hardware_Accelerated_Execution_Manager Revision 7.5.2
+
+system-images;android-29;google_apis;x86
+    Description:        Google APIs Intel x86 Atom System Image
+    Version:            9
+    Dependencies:
+        patcher;v4
+        emulator Revision 28.1.9
+
+system-images;android-29;google_apis;x86_64
+    Description:        Google APIs Intel x86 Atom_64 System Image
+    Version:            9
+    Dependencies:
+        patcher;v4
+        emulator Revision 28.1.9
+
+system-images;android-29;google_apis_playstore;x86
+    Description:        Google Play Intel x86 Atom System Image
+    Version:            8
+    Dependencies:
+        patcher;v4
+        extras;intel;Hardware_Accelerated_Execution_Manager Revision 7.5.2
+
+system-images;android-29;google_apis_playstore;x86_64
+    Description:        Google Play Intel x86 Atom_64 System Image
+    Version:            8
+    Dependencies:
+        patcher;v4
+        extras;intel;Hardware_Accelerated_Execution_Manager Revision 7.5.2
+
+system-images;android-Q;android-tv;x86
+    Description:        Android TV Intel x86 Atom System Image
+    Version:            1
+    Dependencies:
+        patcher;v4
+
+system-images;android-R;google_apis;x86
+    Description:        Google APIs Intel x86 Atom System Image
+    Version:            2
+    Dependencies:
+        patcher;v4
+        emulator Revision 30.0.0
+
+system-images;android-R;google_apis;x86_64
+    Description:        Google APIs Intel x86 Atom_64 System Image
+    Version:            2
+    Dependencies:
+        patcher;v4
+        emulator Revision 30.0.0
+
+system-images;android-R;google_apis_playstore;x86
+    Description:        Google Play Intel x86 Atom System Image
+    Version:            2
+    Dependencies:
+        patcher;v4
+        extras;intel;Hardware_Accelerated_Execution_Manager Revision 7.5.2
+
+system-images;android-R;google_apis_playstore;x86_64
+    Description:        Google Play Intel x86 Atom_64 System Image
+    Version:            2
+    Dependencies:
+        patcher;v4
+        extras;intel;Hardware_Accelerated_Execution_Manager Revision 7.5.2
+
+Available Updates:
+--------------------------------------
+tools
+    Local Version:  26.0.1
+    Remote Version: 26.1.1
+    (Obsolete)
+done

@@ -1,15 +1,19 @@
 package hudson.plugins.android_emulator.sdk.cli;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
+import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.apache.commons.io.IOUtils;
+import org.apache.commons.lang.StringUtils;
 import org.junit.Test;
 
 import hudson.plugins.android_emulator.sdk.Tool;
-import hudson.plugins.android_emulator.sdk.cli.SdkCliCommand;
-import hudson.plugins.android_emulator.sdk.cli.SdkCliCommandFactory;
 
 public class SdkCommandsTest {
 
@@ -147,23 +151,29 @@ public class SdkCommandsTest {
     }
 
     @Test
-    public void testIsImageForPlatformAndABIInstalledParser() {
+    public void testIsImageForPlatformAndABIInstalledParser() throws Exception {
+        String listOutput = null;
+        try (InputStream is = getClass().getResourceAsStream("sdkmanager-list.out")) {
+            listOutput = StringUtils.join(IOUtils.readLines(is), "\n");
+        }
+        assertNotNull(listOutput);
+
         assertFalse(SdkCliCommandFactory.getCommandsForSdk("26")
-                .isImageForPlatformAndABIInstalled(SdkCommandsTestData.LIST_SDK_COMPONENTS_SDKMANAGER, "android-24", "x86"));
+                .isImageForPlatformAndABIInstalled(listOutput, "android-24", "x86"));
         assertFalse(SdkCliCommandFactory.getCommandsForSdk("25.3")
-                .isImageForPlatformAndABIInstalled(SdkCommandsTestData.LIST_SDK_COMPONENTS_SDKMANAGER, "android-26", "x86_64"));
+                .isImageForPlatformAndABIInstalled(listOutput, "android-26", "x86_64"));
         assertTrue(SdkCliCommandFactory.getCommandsForSdk("25.3")
-                .isImageForPlatformAndABIInstalled(SdkCommandsTestData.LIST_SDK_COMPONENTS_SDKMANAGER, "android-26", "google_apis/x86"));
+                .isImageForPlatformAndABIInstalled(listOutput, "android-26", "google_apis/x86"));
         assertTrue(SdkCliCommandFactory.getCommandsForSdk("25.3")
-                .isImageForPlatformAndABIInstalled(SdkCommandsTestData.LIST_SDK_COMPONENTS_SDKMANAGER, "android-24", "x86_64"));
+                .isImageForPlatformAndABIInstalled(listOutput, "android-24", "x86_64"));
         assertTrue(SdkCliCommandFactory.getCommandsForSdk("26")
-                .isImageForPlatformAndABIInstalled(SdkCommandsTestData.LIST_SDK_COMPONENTS_SDKMANAGER, "android-24", "google_apis/x86_64"));
+                .isImageForPlatformAndABIInstalled(listOutput, "android-24", "google_apis/x86_64"));
         assertFalse(SdkCliCommandFactory.getCommandsForSdk("26")
-                .isImageForPlatformAndABIInstalled(SdkCommandsTestData.LIST_SDK_COMPONENTS_SDKMANAGER, "android-24", "armeabi-v7a"));
+                .isImageForPlatformAndABIInstalled(listOutput, "android-24", "armeabi-v7a"));
         assertFalse(SdkCliCommandFactory.getCommandsForSdk("25.3")
-                .isImageForPlatformAndABIInstalled(SdkCommandsTestData.LIST_SDK_COMPONENTS_SDKMANAGER, "android-23", "x86_64"));
+                .isImageForPlatformAndABIInstalled(listOutput, "android-23", "x86_64"));
         assertFalse(SdkCliCommandFactory.getCommandsForSdk("25.3")
-                .isImageForPlatformAndABIInstalled(SdkCommandsTestData.LIST_SDK_COMPONENTS_SDKMANAGER, "android-23", "armeabi-v7a"));
+                .isImageForPlatformAndABIInstalled(listOutput, "android-23", "armeabi-v7a"));
         assertFalse(SdkCliCommandFactory.getCommandsForSdk("23")
                 .isImageForPlatformAndABIInstalled(SdkCommandsTestData.LIST_TARGETS_LEGACY_OUTPUT, "android-23", "x86_64"));
         assertTrue(SdkCliCommandFactory.getCommandsForSdk("25")

@@ -19,6 +19,7 @@ import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang.SystemUtils;
 import org.junit.Test;
+import org.jvnet.hudson.test.Issue;
 
 import hudson.EnvVars;
 
@@ -325,11 +326,14 @@ public class UtilsTest {
         final String versions8 = "build-tools-3.3\nbild-tools-20.1\rbuild-tools-1\r\nbuild-tools-3.1";
         final String result8 = Utils.getPatternWithHighestSuffixedVersionNumberInMultiLineInput(versions8, "dummy-tools");
         assertNull(result8);
+    }
 
-        // JENKINS-51197: do not install beta/rc versions
-        final String versions9 = "build-tools-27.0.0\nbuild-tools-27.0.1\rbuild-tools-28.0.0-rc1";
-        final String result9 = Utils.getPatternWithHighestSuffixedVersionNumberInMultiLineInput(versions9, "build-tools");
-        assertEquals("build-tools-27.0.1", result9);
+    @Issue("JENKINS-51197")
+    @Test
+    public void testPatternExcludeSnapshotVersion() {
+        String input = "build-tools-27.0.0\nbuild-tools-27.0.1\rbuild-tools-30.0.0-rc2";
+        String result = Utils.getPatternWithHighestSuffixedVersionNumberInMultiLineInput(input, "build-tools");
+        assertEquals("build-tools-27.0.1", result);
     }
 
     // Workaround for Bug 64356053 ('-no-audio'-, '-noaudio'- and '-audio none'-options ignored)
