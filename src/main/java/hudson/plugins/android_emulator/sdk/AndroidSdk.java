@@ -90,7 +90,7 @@ public class AndroidSdk implements Serializable {
             return 0;
         }
         // We create this object on-demand rather than holding on to it, as VersionNumber is not Serializable
-        return new VersionNumber(sdkToolsVersion).digit(0);
+        return new VersionNumber(sdkToolsVersion).getDigitAt(0);
     }
 
     /**

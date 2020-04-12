@@ -21,6 +21,8 @@ import hudson.remoting.VirtualChannel;
 import hudson.util.ArgumentListBuilder;
 import jenkins.MasterToSlaveFileCallable;
 import jenkins.security.MasterToSlaveCallable;
+
+import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -31,7 +33,9 @@ import java.io.File;
 import java.io.FileFilter;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.OutputStream;
 import java.io.PrintStream;
 import java.io.PrintWriter;
 import java.io.Serializable;
@@ -128,18 +132,13 @@ public class SdkInstaller {
         return Utils.getAndroidSdk(launcher, androidHome, androidSdkHome);
     }
 
-    @SuppressWarnings("serial")
     private static AndroidSdk getAndroidSdkForNode(Node node, final String androidHome,
             final String androidSdkHome) throws IOException, InterruptedException {
         final VirtualChannel channel = node.getChannel();
         if (channel == null) {
             throw new BuildNodeUnavailableException();
         }
-        return channel.call(new MasterToSlaveCallable<AndroidSdk, IOException>() {
-            public AndroidSdk call() throws IOException {
-                return new AndroidSdk(androidHome, androidSdkHome);
-            }
-        });
+        return channel.call(new AndroidSDKCallable(androidSdkHome, androidHome));
     }
 
     @SuppressFBWarnings("DM_DEFAULT_ENCODING")
@@ -226,19 +225,28 @@ public class SdkInstaller {
 
         // Run the command and accept any licence requests during installation
         Proc proc = procStarter.start();
-        BufferedReader r = new BufferedReader(new InputStreamReader(proc.getStdout()));
-        try {
-            String line;
-            while (proc.isAlive() && (line = r.readLine()) != null) {
-                logger.println(line);
-                if (line.toLowerCase(Locale.ENGLISH).startsWith("license id: ") ||
-                        line.toLowerCase(Locale.ENGLISH).startsWith("license android-sdk")) {
-                    proc.getStdin().write("y\r\n".getBytes());
-                    proc.getStdin().flush();
-                }
+        try (InputStream stdout = proc.getStdout(); OutputStream stdin = proc.getStdin()) {
+            if (stdout == null) {
+                return;
             }
-        } finally {
-            r.close();
+            BufferedReader r = new BufferedReader(new InputStreamReader(stdout));
+            try {
+                String line;
+                while (proc.isAlive() && (line = r.readLine()) != null) {
+                    logger.println(line);
+                    if (line.toLowerCase(Locale.ENGLISH).startsWith("license id: ") ||
+                            line.toLowerCase(Locale.ENGLISH).startsWith("license android-sdk")) {
+                        if (stdin != null) {
+                            stdin.write("y\r\n".getBytes());
+                            stdin.flush();
+                        } else {
+                            throw new IllegalStateException("Can not accept license");
+                        }
+                    }
+                }
+            } finally {
+                r.close();
+            }
         }
     }
 
@@ -417,14 +425,11 @@ public class SdkInstaller {
      */
     private static String getPlatformFromExistingEmulator(Launcher launcher,
             final EmulatorConfig emuConfig) throws IOException, InterruptedException {
-        return launcher.getChannel().call(new MasterToSlaveCallable<String, IOException>() {
-            public String call() throws IOException {
-                File metadataFile = emuConfig.getAvdMetadataFile();
-                Map<String, String> metadata = ConfigFileUtils.parseConfigFile(metadataFile);
-                return metadata.get("target");
-            }
-            private static final long serialVersionUID = 1L;
-        });
+        VirtualChannel channel = launcher.getChannel();
+        if (channel == null) {
+            throw new IllegalStateException("Channel is not configured");
+        }
+        return channel.call(new EmulatorPlatformCallable(emuConfig.getAvdMetadataFile()));
     }
 
     /**
@@ -436,7 +441,11 @@ public class SdkInstaller {
     public static void optOutOfSdkStatistics(Launcher launcher, BuildListener listener, String androidSdkHome) {
         Callable<Void, Exception> optOutTask = new StatsOptOutTask(androidSdkHome, listener);
         try {
-            launcher.getChannel().call(optOutTask);
+            VirtualChannel channel = launcher.getChannel();
+            if (channel == null) {
+                throw new IllegalStateException("Channel is not configured");
+            }
+            channel.call(optOutTask);
         } catch (Exception e) {
             log(listener.getLogger(), "SDK statistics opt-out failed.", e);
         }
@@ -490,12 +499,7 @@ public class SdkInstaller {
         if (channel == null) {
             throw new BuildNodeUnavailableException();
         }
-        final ValidationResult result = channel.call(new MasterToSlaveCallable<ValidationResult, InterruptedException>() {
-            public ValidationResult call() throws InterruptedException {
-                return Utils.validateAndroidHome(new File(sdkRoot), false, false);
-            }
-            private static final long serialVersionUID = 1L;
-        });
+        final ValidationResult result = channel.call(new AndroidHomeCallable(sdkRoot));
 
         if (result.isFatal()) {
             // No, we're missing some tools
@@ -522,6 +526,48 @@ public class SdkInstaller {
         }
         for (FilePath f : toolsDir.list(new ToolFileFilter())) {
             f.chmod(0755);
+        }
+    }
+
+    private static final class AndroidHomeCallable extends MasterToSlaveCallable<ValidationResult, InterruptedException> {
+        private static final long serialVersionUID = 1L;
+        private final String sdkRoot;
+
+        private AndroidHomeCallable(String sdkRoot) {
+            this.sdkRoot = sdkRoot;
+        }
+
+        public ValidationResult call() throws InterruptedException {
+            return Utils.validateAndroidHome(new File(sdkRoot), false, false);
+        }
+    }
+
+    @SuppressWarnings("serial")
+    private static final class AndroidSDKCallable extends MasterToSlaveCallable<AndroidSdk, IOException> {
+        private final String androidSdkHome;
+        private final String androidHome;
+
+        private AndroidSDKCallable(String androidSdkHome, String androidHome) {
+            this.androidSdkHome = androidSdkHome;
+            this.androidHome = androidHome;
+        }
+
+        public AndroidSdk call() throws IOException {
+            return new AndroidSdk(androidHome, androidSdkHome);
+        }
+    }
+
+    private static final class EmulatorPlatformCallable extends MasterToSlaveCallable<String, IOException> {
+        private final File metadataFile;
+        private static final long serialVersionUID = 1L;
+
+        private EmulatorPlatformCallable(File metadataFile) {
+            this.metadataFile = metadataFile;
+        }
+
+        public String call() throws IOException {
+            Map<String, String> metadata = ConfigFileUtils.parseConfigFile(metadataFile);
+            return metadata.get("target");
         }
     }
 
@@ -605,27 +651,26 @@ public class SdkInstaller {
             if (channel == null) {
                 throw new BuildNodeUnavailableException();
             }
-            return channel.call(new MasterToSlaveCallable<AndroidInstaller, SdkUnavailableException>() {
-                public AndroidInstaller call() throws SdkUnavailableException {
-                    return get();
-                }
-                private static final long serialVersionUID = 1L;
-            });
+            return channel.call(new PlatformCallable());
         }
 
-        private static AndroidInstaller get() throws SdkUnavailableException {
-            String prop = System.getProperty("os.name");
-            String os = prop.toLowerCase(Locale.ENGLISH);
-            if (os.contains("linux")) {
-                return LINUX;
+        private static final class PlatformCallable extends MasterToSlaveCallable<AndroidInstaller, SdkUnavailableException> {
+            private static final long serialVersionUID = 1L;
+
+            public AndroidInstaller call() throws SdkUnavailableException {
+                String prop = System.getProperty("os.name");
+                String os = prop.toLowerCase(Locale.ENGLISH);
+                if (os.contains("linux")) {
+                    return LINUX;
+                }
+                if (os.contains("mac")) {
+                    return MAC_OS_X;
+                }
+                if (os.contains("windows")) {
+                    return WINDOWS;
+                }
+                throw new SdkUnavailableException(Messages.SDK_UNAVAILABLE(prop));
             }
-            if (os.contains("mac")) {
-                return MAC_OS_X;
-            }
-            if (os.contains("windows")) {
-                return WINDOWS;
-            }
-            throw new SdkUnavailableException(Messages.SDK_UNAVAILABLE(prop));
         }
 
         static final class SdkUnavailableException extends Exception {

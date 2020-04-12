@@ -461,10 +461,10 @@ class EmulatorConfig implements Serializable {
             // Check whether AVD needs to be created
             boolean createSdCard = false;
             boolean createSnapshot = false;
-            File snapshotsFile = new File(getAvdDirectory(homeDir), "snapshots.img");
+            File snapshotsFile = new File(avdDirectory, "snapshots.img");
             if (emulatorExists) {
                 // AVD exists: check whether there's anything still to be set up
-                File sdCardFile = new File(getAvdDirectory(homeDir), "sdcard.img");
+                File sdCardFile = new File(avdDirectory, "sdcard.img");
                 boolean sdCardRequired = getSdCardSize() != null;
 
                 // Check if anything needs to be done for snapshot-enabled builds

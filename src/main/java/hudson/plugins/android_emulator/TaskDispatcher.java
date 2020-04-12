@@ -44,13 +44,13 @@ public class TaskDispatcher extends QueueTaskDispatcher {
         }
 
         // If the AndroidEmulator uses workspace-local emulators, we don't care.
-        DescriptorImpl descriptor = Jenkins.getInstance().getDescriptorByType(DescriptorImpl.class);
+        DescriptorImpl descriptor = Jenkins.get().getDescriptorByType(DescriptorImpl.class);
         if (descriptor != null && descriptor.shouldKeepInWorkspace) {
           return null;
         }
 
         // Check for builds in the queue which have the same emulator config as this task
-        Queue queue = Jenkins.getInstance().getQueue();
+        Queue queue = Jenkins.get().getQueue();
         for (BuildableItem item : queue.getBuildableItems()) {
             Task queuedTask = item.task;
             if (task == queuedTask) {

@@ -24,6 +24,7 @@ import hudson.plugins.android_emulator.sdk.cli.SdkCliCommandFactory;
 import hudson.plugins.android_emulator.util.Utils;
 import hudson.plugins.android_emulator.util.ValidationResult;
 import hudson.remoting.Callable;
+import hudson.remoting.VirtualChannel;
 import hudson.tasks.BuildWrapper;
 import hudson.tasks.BuildWrapperDescriptor;
 import hudson.util.ArgumentListBuilder;
@@ -188,7 +189,7 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
             throws IOException, InterruptedException {
         final PrintStream logger = listener.getLogger();
         if (descriptor == null) {
-            descriptor = Jenkins.getInstance().getDescriptorByType(DescriptorImpl.class);
+            descriptor = Jenkins.get().getDescriptorByType(DescriptorImpl.class);
         }
 
         // Substitute environment and build variables into config
@@ -310,9 +311,13 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
 
         // First ensure that emulator exists
         final boolean emulatorAlreadyExists;
+        VirtualChannel channel = launcher.getChannel();
+        if (channel == null) {
+            throw new IllegalStateException("Channel is not configured");
+        }
         try {
             Callable<Boolean, AndroidEmulatorException> task = emuConfig.getEmulatorCreationTask(androidSdk, listener);
-            emulatorAlreadyExists = launcher.getChannel().call(task);
+            emulatorAlreadyExists = channel.call(task);
         } catch (EmulatorDiscoveryException ex) {
             log(logger, Messages.CANNOT_START_EMULATOR(ex.getMessage()));
             build.setResult(Result.FAILURE);
@@ -326,12 +331,12 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
         // Update emulator configuration with desired hardware properties
         if (!emuConfig.isNamedEmulator() && hardwareProperties.length != 0) {
             Callable<Void, IOException> task = emuConfig.getEmulatorConfigTask(hardwareProperties, listener);
-            launcher.getChannel().call(task);
+            channel.call(task);
         }
 
         // Write the auth token file for the emulator
         Callable<Void, IOException> authFileTask = emuConfig.getEmulatorAuthFileTask();
-        launcher.getChannel().callAsync(authFileTask);
+        channel.callAsync(authFileTask);
 
         // Delay start up by the configured amount of time
         final int delaySecs = startupDelay;
@@ -683,7 +688,11 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
             try {
                 Callable<Boolean, Exception> deletionTask = emulatorConfig.getEmulatorDeletionTask(
                         emu.launcher().getListener());
-                emu.launcher().getChannel().call(deletionTask);
+                VirtualChannel channel = emu.launcher().getChannel();
+                if (channel == null) {
+                    throw new IllegalStateException("Channel is not configured");
+                }
+                channel.call(deletionTask);
             } catch (Exception ex) {
                 log(emu.logger(), Messages.FAILED_TO_DELETE_AVD(ex.getLocalizedMessage()));
             }
@@ -739,7 +748,11 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
     private int waitForSocket(Launcher launcher, int port, int timeout) throws InterruptedException {
         try {
             ReceiveEmulatorPortTask task = new ReceiveEmulatorPortTask(port, timeout);
-            return launcher.getChannel().call(task);
+            VirtualChannel channel = launcher.getChannel();
+            if (channel == null) {
+                throw new IllegalStateException("Channel is not configured");
+            }
+            return channel.call(task);
         } catch (IOException ignore) {
         }
         return -1;

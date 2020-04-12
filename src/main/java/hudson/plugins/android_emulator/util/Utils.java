@@ -22,6 +22,7 @@ import hudson.plugins.android_emulator.sdk.ToolLocator;
 import hudson.plugins.android_emulator.sdk.cli.SdkCliCommand;
 import hudson.remoting.Callable;
 import hudson.remoting.Future;
+import hudson.remoting.VirtualChannel;
 import hudson.util.ArgumentListBuilder;
 import hudson.util.VersionNumber;
 
@@ -67,7 +68,7 @@ public class Utils {
      * @return The configured Android SDK root, if any. May include un-expanded variables.
      */
     public static String getConfiguredAndroidHome() {
-        DescriptorImpl descriptor = Jenkins.getInstance().getDescriptorByType(DescriptorImpl.class);
+        DescriptorImpl descriptor = Jenkins.get().getDescriptorByType(DescriptorImpl.class);
         if (descriptor != null) {
             return descriptor.androidHome;
         }
@@ -157,75 +158,16 @@ public class Utils {
         final TaskListener listener = launcher.getListener();
         final String autoInstallDir = (!checkPreferredOnly) ? getSdkInstallDirectory(node).getRemote() : "";
 
-        Callable<AndroidSdk, IOException> task = new MasterToSlaveCallable<AndroidSdk, IOException>() {
-            public AndroidSdk call() throws IOException {
-
-                final List<String> potentialSdkDirs = getPotentialSdkDirs();
-                final StringBuilder determinationLog = new StringBuilder();
-
-                // Check each directory to see if it's a valid Android SDK
-                for (String potentialSdkDir : potentialSdkDirs) {
-                    if (Util.fixEmptyAndTrim(potentialSdkDir) == null) {
-                        continue;
-                    }
-
-                    final ValidationResult result = Utils.validateAndroidHome(new File(potentialSdkDir), true, false);
-                    if (!result.isFatal()) {
-                        // Create SDK instance with what we know so far
-                        return new AndroidSdk(potentialSdkDir, androidSdkHome);
-                    } else {
-                        determinationLog.append("['" + potentialSdkDir + "']: " + result.getMessage() + "\n");
-                    }
-                }
-
-                // Give up
-                log(listener.getLogger(), Messages.SDK_DETERMINATION_FAILED());
-                log(listener.getLogger(), determinationLog.toString(), true);
-                return null;
-            }
-
-            private List<String> getPotentialSdkDirs() {
-                final List<String> potentialSdkDirs = new ArrayList<String>();
-
-                // Add global config path first
-                potentialSdkDirs.add(androidSdkRootPreferred);
-
-                // do not add any other possible dirs
-                if (checkPreferredOnly) {
-                    return potentialSdkDirs;
-                }
-
-                // Add common environment variables
-                String[] keys = { Constants.ENV_VAR_ANDROID_SDK_ROOT,
-                        Constants.ENV_VAR_ANDROID_SDK_HOME,
-                        Constants.ENV_VAR_ANDROID_HOME,
-                        Constants.ENV_VAR_ANDROID_SDK };
-
-                // Resolve each variable to its directory name
-                for (String key : keys) {
-                    final String envValue = envVars.get(key);
-                    if (envValue != null && !envValue.isEmpty()) {
-                        potentialSdkDirs.add(envVars.get(key));
-                    }
-                }
-
-                // Also add the auto-installed SDK directory to the list of candidates
-                if (Util.fixEmptyAndTrim(autoInstallDir) != null) {
-                    potentialSdkDirs.add(autoInstallDir);
-                }
-
-                // At last, add potential path directories
-                potentialSdkDirs.addAll(getPossibleSdkRootDirectoriesFromPath(envVars));
-
-                return potentialSdkDirs;
-            }
-
-            private static final long serialVersionUID = 1L;
-        };
+        Callable<AndroidSdk, IOException> task = new AndroidSDKCallable(envVars, checkPreferredOnly, androidSdkRootPreferred,
+                androidSdkHome, autoInstallDir, listener);
 
         final PrintStream logger = listener.getLogger();
         try {
-            return launcher.getChannel().call(task);
+            VirtualChannel channel = launcher.getChannel();
+            if (channel == null) {
+                throw new IllegalStateException("Channel is not configured");
+            }
+            return channel.call(task);
         } catch (IOException e) {
             // Ignore, log only
             log(logger, ExceptionUtils.getFullStackTrace(e));
@@ -313,7 +255,7 @@ public class Utils {
     public static ValidationResult validateAndroidHome(final File sdkRoot, final boolean allowLegacy, final boolean fromWebConfig) {
 
         // This can be used to check the existence of a file on the server, so needs to be protected
-        if (fromWebConfig && !Jenkins.getInstance().hasPermission(Hudson.ADMINISTER)) {
+        if (fromWebConfig && !Jenkins.get().hasPermission(Hudson.ADMINISTER)) {
             return ValidationResult.ok();
         }
 
@@ -658,12 +600,17 @@ public class Utils {
      */
     public static boolean sendEmulatorCommand(final Launcher launcher, final PrintStream logger,
             final int port, final String command, int timeoutMs) {
+        VirtualChannel channel = launcher.getChannel();
+        if (channel == null) {
+            throw new IllegalStateException("Channel not configured");
+        }
+
         Boolean result = null;
         Future<Boolean> future = null;
         try {
             // Execute the task on the remote machine asynchronously, with a timeout
             EmulatorCommandTask task = new EmulatorCommandTask(port, command);
-            future = launcher.getChannel().callAsync(task);
+            future = channel.callAsync(task);
             result = future.get(timeoutMs, TimeUnit.MILLISECONDS);
         } catch (IOException e) {
             // Slave communication failed
@@ -893,6 +840,89 @@ public class Utils {
         }
         return true;
     }
+
+    private static final class AndroidSDKCallable extends MasterToSlaveCallable<AndroidSdk, IOException> {
+        private final String androidSdkHome;
+        private final String androidSdkRootPreferred;
+        private final boolean checkPreferredOnly;
+        private final EnvVars envVars;
+        private final String autoInstallDir;
+        private final TaskListener listener;
+
+        public AndroidSDKCallable(final EnvVars envVars, final boolean checkPreferredOnly,
+                                  final String androidSdkRootPreferred, final String androidSdkHome,
+                                  final String autoInstallDir, final TaskListener listener) {
+            this.envVars = envVars;
+            this.androidSdkHome = androidSdkHome;
+            this.androidSdkRootPreferred = androidSdkRootPreferred;
+            this.checkPreferredOnly = checkPreferredOnly;
+            this.autoInstallDir = autoInstallDir;
+            this.listener = listener;
+        }
+
+        public AndroidSdk call() throws IOException {
+            final List<String> potentialSdkDirs = getPotentialSdkDirs();
+            final StringBuilder determinationLog = new StringBuilder();
+
+            // Check each directory to see if it's a valid Android SDK
+            for (String potentialSdkDir : potentialSdkDirs) {
+                if (Util.fixEmptyAndTrim(potentialSdkDir) == null) {
+                    continue;
+                }
+
+                final ValidationResult result = Utils.validateAndroidHome(new File(potentialSdkDir), true, false);
+                if (!result.isFatal()) {
+                    // Create SDK instance with what we know so far
+                    return new AndroidSdk(potentialSdkDir, androidSdkHome);
+                } else {
+                    determinationLog.append("['" + potentialSdkDir + "']: " + result.getMessage() + "\n");
+                }
+            }
+
+            // Give up
+            log(listener.getLogger(), Messages.SDK_DETERMINATION_FAILED());
+            log(listener.getLogger(), determinationLog.toString(), true);
+            return null;
+        }
+
+        private List<String> getPotentialSdkDirs() {
+            final List<String> potentialSdkDirs = new ArrayList<String>();
+
+            // Add global config path first
+            potentialSdkDirs.add(androidSdkRootPreferred);
+
+            // do not add any other possible dirs
+            if (checkPreferredOnly) {
+                return potentialSdkDirs;
+            }
+
+            // Add common environment variables
+            String[] keys = { Constants.ENV_VAR_ANDROID_SDK_ROOT,
+                    Constants.ENV_VAR_ANDROID_SDK_HOME,
+                    Constants.ENV_VAR_ANDROID_HOME,
+                    Constants.ENV_VAR_ANDROID_SDK };
+
+            // Resolve each variable to its directory name
+            for (String key : keys) {
+                final String envValue = envVars.get(key);
+                if (envValue != null && !envValue.isEmpty()) {
+                    potentialSdkDirs.add(envVars.get(key));
+                }
+            }
+
+            // Also add the auto-installed SDK directory to the list of candidates
+            if (Util.fixEmptyAndTrim(autoInstallDir) != null) {
+                potentialSdkDirs.add(autoInstallDir);
+            }
+
+            // At last, add potential path directories
+            potentialSdkDirs.addAll(getPossibleSdkRootDirectoriesFromPath(envVars));
+
+            return potentialSdkDirs;
+        }
+
+        private static final long serialVersionUID = 1L;
+    };
 
     /** Task that will execute a command on the given emulator's console port, then quit. */
     private static final class EmulatorCommandTask extends MasterToSlaveCallable<Boolean, IOException> {

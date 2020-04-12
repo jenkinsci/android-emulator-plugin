@@ -24,7 +24,7 @@ import hudson.tasks.Builder;
 import hudson.util.ForkOutputStream;
 import jenkins.MasterToSlaveFileCallable;
 import jenkins.model.Jenkins;
-import net.dongliu.apk.parser.ApkParser;
+import net.dongliu.apk.parser.ApkFile;
 import net.dongliu.apk.parser.bean.ApkMeta;
 
 import java.io.ByteArrayOutputStream;
@@ -53,7 +53,7 @@ public abstract class AbstractBuilder extends Builder {
             BuildListener listener) throws IOException, InterruptedException {
         boolean shouldInstallSdk = true;
         boolean keepInWorkspace = false;
-        DescriptorImpl descriptor = Jenkins.getInstance().getDescriptorByType(DescriptorImpl.class);
+        DescriptorImpl descriptor = Jenkins.get().getDescriptorByType(DescriptorImpl.class);
         if (descriptor != null) {
             shouldInstallSdk = descriptor.shouldInstallSdk;
             keepInWorkspace = descriptor.shouldKeepInWorkspace;
@@ -300,7 +300,7 @@ public abstract class AbstractBuilder extends Builder {
 
     /** @return The application metadata of the given APK file. */
     private static ApkMeta getApkMetadata(File apk) throws IOException, InterruptedException {
-        ApkParser apkParser = new ApkParser(apk);
+        ApkFile apkParser = new ApkFile(apk);
         try {
             return apkParser.getApkMeta();
         } finally {
