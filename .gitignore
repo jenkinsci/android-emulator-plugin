@@ -1,3 +1,7 @@
-target
-work
+/target
+/work
 .DS_Store
+.settings/
+.classpath
+.project
+.idea/
