@@ -171,14 +171,7 @@ public class SdkInstaller {
         final FilePath toolsSubdir = installDir.child("tools");
 
         // Download the SDK, if required
-        boolean wasNowInstalled = installDir.act(new MasterToSlaveFileCallable<Boolean>() {
-            public Boolean invoke(File f, VirtualChannel channel)
-                    throws InterruptedException, IOException {
-                String msg = Messages.DOWNLOADING_SDK_FROM(downloadUrl);
-                return toolsSubdir.installIfNecessaryFrom(downloadUrl, listener, msg);
-            }
-            private static final long serialVersionUID = 1L;
-        });
+        boolean wasNowInstalled = installDir.act(new DownloadSDKCallable(toolsSubdir, listener, downloadUrl));
 
         if (wasNowInstalled) {
             // If the SDK was required, pull files up from the intermediate directory
@@ -526,6 +519,25 @@ public class SdkInstaller {
         }
         for (FilePath f : toolsDir.list(new ToolFileFilter())) {
             f.chmod(0755);
+        }
+    }
+
+    private static final class DownloadSDKCallable extends MasterToSlaveFileCallable<Boolean> {
+        private final FilePath toolsSubdir;
+        private final BuildListener listener;
+        private final URL downloadUrl;
+        private static final long serialVersionUID = 1L;
+
+        private DownloadSDKCallable(FilePath toolsSubdir, BuildListener listener, URL downloadUrl) {
+            this.toolsSubdir = toolsSubdir;
+            this.listener = listener;
+            this.downloadUrl = downloadUrl;
+        }
+
+        public Boolean invoke(File f, VirtualChannel channel)
+                throws InterruptedException, IOException {
+            String msg = Messages.DOWNLOADING_SDK_FROM(downloadUrl);
+            return toolsSubdir.installIfNecessaryFrom(downloadUrl, listener, msg);
         }
     }
 

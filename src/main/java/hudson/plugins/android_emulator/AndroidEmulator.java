@@ -256,7 +256,7 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
         AndroidSdk androidSdk = Utils.getAndroidSdk(launcher, node, envVars, configuredAndroidSdkRoot, androidSdkHome);
 
         final boolean sdkFound = (androidSdk != null);
-        final boolean sdkOldVersion = (androidSdk != null && androidSdk.isOlderThanDefaultDownloadVersion());
+        final boolean sdkOldVersion = (sdkFound && androidSdk.isOlderThanDefaultDownloadVersion());
 
         if (!sdkFound && !descriptor.shouldInstallSdk) {
             // Couldn't find an SDK, don't want to install it, give up
