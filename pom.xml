@@ -24,6 +24,12 @@
             <email>chris@orr.me.uk</email>
             <timezone>1</timezone>
         </developer>
+        <developer>
+            <id>nfalco79</id>
+            <name>Nikolas Falco</name>
+            <email>nfalco79@hotmail.com</email>
+            <timezone>+1</timezone>
+        </developer>
     </developers>
 
     <licenses>
