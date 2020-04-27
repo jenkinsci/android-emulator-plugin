@@ -919,12 +919,12 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
 
         /** Used in config.jelly: Lists the screen densities available. */
         public ScreenDensity[] getDeviceDensities() {
-            return ScreenDensity.PRESETS;
+            return ScreenDensity.values();
         }
 
         /** Used in config.jelly: Lists the screen resolutions available. */
         public ScreenResolution[] getDeviceResolutions() {
-            return ScreenResolution.PRESETS;
+            return ScreenResolution.values();
         }
 
         /** Used in config.jelly: Lists the locales available. */

@@ -436,10 +436,10 @@ class EmulatorConfig implements Serializable {
         private static final long serialVersionUID = 1L;
         private final AndroidSdk androidSdk;
 
-        private final BuildListener listener;
+        private final TaskListener listener;
         private transient PrintStream logger;
 
-        public EmulatorCreationTask(AndroidSdk androidSdk, BuildListener listener) {
+        public EmulatorCreationTask(AndroidSdk androidSdk, TaskListener listener) {
             this.androidSdk = androidSdk;
             this.listener = listener;
         }

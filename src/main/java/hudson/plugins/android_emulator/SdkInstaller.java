@@ -288,21 +288,9 @@ public class SdkInstaller {
 
         // Check whether we are capable of installing individual components
         log(logger, Messages.PLATFORM_INSTALL_REQUIRED(androidPlatform.getName()));
-        if (!launcher.isUnix() && androidPlatform.isCustomPlatform() && sdk.getSdkToolsMajorVersion() < 16) {
-            // SDK add-ons can't be installed on Windows until r16 due to http://b.android.com/18868
-            log(logger, Messages.SDK_ADDON_INSTALLATION_UNSUPPORTED());
-            return;
-        }
         if (!sdk.supportsComponentInstallation()) {
             log(logger, Messages.SDK_COMPONENT_INSTALLATION_UNSUPPORTED());
             return;
-        }
-
-        // Automated installation of ABIs (required for android-14+) is not possible until r17, so
-        // we should warn the user that we can't automatically set up an AVD with older SDK Tools.
-        // See http://b.android.com/21880
-        if ((androidPlatform.getSdkLevel() == 14 || androidPlatform.getSdkLevel() == 15) && !sdk.supportsSystemImageInstallation()) {
-            log(logger, Messages.ABI_INSTALLATION_UNSUPPORTED(), true);
         }
 
         // Determine which individual component(s) need to be installed for this platform
