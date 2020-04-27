@@ -1,20 +1,20 @@
 package hudson.plugins.android_emulator.util;
 
-import java.io.BufferedReader;
 import java.io.File;
-import java.io.FileReader;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Properties;
 
+import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.plugins.android_emulator.Messages;
-
-import java.util.Map.Entry;
 
 public class ConfigFileUtils {
 
@@ -47,15 +47,13 @@ public class ConfigFileUtils {
      * @return The key-value pairs contained in the file, ignoring any comments or blank lines.
      * @throws IOException If the file could not be read.
      */
-    @SuppressFBWarnings("DM_DEFAULT_ENCODING")
     private static Map<String, String> parsePropertiesFile(File configFile) throws IOException {
-        final FileReader fileReader = new FileReader(configFile);
-        final BufferedReader reader = new BufferedReader(fileReader);
         final Properties properties = new Properties();
-        properties.load(reader);
-        reader.close();
+        try (FileInputStream fis = new FileInputStream(configFile)) {
+            properties.load(fis);
+        }
 
-        final Map<String, String> values = new HashMap<String, String>();
+        final Map<String, String> values = new HashMap<>();
         for (final Map.Entry<Object, Object> entry : properties.entrySet()) {
             values.put((String) entry.getKey(), (String) entry.getValue());
         }
@@ -70,15 +68,10 @@ public class ConfigFileUtils {
      * @return The key-value pairs contained in the file, ignoring any comments or blank lines.
      * @throws IOException If the file could not be read.
      */
-    @SuppressFBWarnings("DM_DEFAULT_ENCODING")
     private static Map<String, String> parseSimpleINIFormatFile(File configFile) throws IOException {
-        final Map<String, String> values = new HashMap<String, String>();
+        final Map<String, String> values = new HashMap<>();
 
-        final FileReader fileReader = new FileReader(configFile);
-        final BufferedReader reader = new BufferedReader(fileReader);
-
-        String line;
-        while ((line = reader.readLine()) != null) {
+        for (String line : FileUtils.readLines(configFile)) {
             // remove trailing space
             line = line.replaceFirst("^\\s++", "");
 
@@ -97,8 +90,6 @@ public class ConfigFileUtils {
             }
         }
 
-        reader.close();
-        fileReader.close();
         return values;
     }
 
@@ -129,18 +120,13 @@ public class ConfigFileUtils {
      * @param values configuration key-value-pairs to write.
      * @throws IOException If the file could not be written.
      */
-    @SuppressFBWarnings("DM_DEFAULT_ENCODING")
     private static void writeConfigFilePropertiesFormat(final File configFile, final Map<String,String> values) throws IOException {
         final Properties props = new Properties();
+        props.putAll(values);
 
-        for (final Entry<String, String> entry : values.entrySet()) {
-            props.put(entry.getKey(), entry.getValue());
+        try (FileOutputStream fos = new FileOutputStream(configFile)) {
+            props.store(fos, null);
         }
-
-        PrintWriter out = new PrintWriter(configFile);
-        props.store(out, null);
-        out.flush();
-        out.close();
     }
 
     /**
