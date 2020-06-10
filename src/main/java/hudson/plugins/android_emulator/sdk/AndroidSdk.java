@@ -145,14 +145,6 @@ public class AndroidSdk implements Serializable {
         return !useLegacySdkStructure();
     }
 
-    public boolean isOlderThanDefaultDownloadVersion() {
-        if (sdkToolsVersion == null) {
-            return true;
-        }
-        final VersionNumber sdk = new VersionNumber(sdkToolsVersion);
-        return sdk.isOlderThan(new VersionNumber(Constants.SDK_TOOLS_DEFAULT_VERSION));
-    }
-
     public boolean useLegacySdkStructure() {
         if (sdkToolsVersion == null) {
             return false;
