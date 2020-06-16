@@ -33,7 +33,7 @@ public class SdkToolsCommandsCurrentBase implements SdkToolsCommands {
             complist.append(' ');
         }
 
-        final String upgradeArgs = String.format("--include_obsolete %s", complist.toString().trim());
+        final String upgradeArgs = String.format("%s", complist.toString().trim());
         return new SdkCliCommand(Tool.SDKMANAGER, upgradeArgs);
     }
 

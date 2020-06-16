@@ -295,7 +295,7 @@ public class SdkInstaller {
 
         // Determine which individual component(s) need to be installed for this platform
         List<String> components = getSdkComponentsForPlatform(logger, sdk, androidPlatform, abi, skipSystemImageInstall);
-        if (components == null || components.size() == 0) {
+        if (components.isEmpty()) {
             return;
         }
 
