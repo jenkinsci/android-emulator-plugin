@@ -33,9 +33,8 @@ import hudson.util.FormValidation;
 import hudson.util.NullStream;
 import jenkins.model.ArtifactManager;
 import jenkins.model.Jenkins;
-import jenkins.security.MasterToSlaveCallable;
 import net.sf.json.JSONObject;
-import org.apache.commons.io.IOUtils;
+
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.QueryParameter;
 import org.kohsuke.stapler.StaplerRequest;
@@ -43,18 +42,15 @@ import org.kohsuke.stapler.export.Exported;
 import org.kohsuke.stapler.export.ExportedBean;
 
 import javax.annotation.Nullable;
-import java.io.BufferedReader;
+
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
-import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.PrintStream;
 import java.io.PrintWriter;
 import java.io.Serializable;
 import java.io.StringWriter;
-import java.net.ServerSocket;
-import java.net.Socket;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -1134,58 +1130,6 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
             return Utils.validateAndroidHome(value, true, true).getFormValidation();
         }
 
-    }
-
-    /**
-     * Task that will wait, up to a certain timeout, for an inbound connection from the emulator,
-     * informing us on which port it is running.
-     */
-    private static final class ReceiveEmulatorPortTask
-            extends MasterToSlaveCallable<Integer, InterruptedException> {
-
-        private static final long serialVersionUID = 1L;
-
-        private final int port;
-        private final int timeout;
-
-        /**
-         * @param port The local TCP port to listen on.
-         * @param timeout How many milliseconds to wait for an emulator connection before giving up.
-         */
-        public ReceiveEmulatorPortTask(int port, int timeout) {
-            this.port = port;
-            this.timeout = timeout;
-        }
-
-        @SuppressFBWarnings("DM_DEFAULT_ENCODING")
-        public Integer call() throws InterruptedException {
-            ServerSocket socket = null;
-            try {
-                // TODO: Find a better way to allow the build to be interrupted.
-                // ServerSocket#accept() blocks and cannot be interrupted, which means that any
-                // attempts to stop the build will fail.  The best we can do here is to set the
-                // SO_TIMEOUT, so at least if an emulator fails to start, we won't wait here forever
-                socket = new ServerSocket(port);
-                socket.setSoTimeout(timeout);
-
-                // Wait for the emulator to connect to us
-                Socket completed = socket.accept();
-
-                // Parse and return the port number the emulator sent us
-                BufferedReader reader = new BufferedReader(new InputStreamReader(completed.getInputStream()));
-                String port = reader.readLine();
-                reader.close();
-                completed.close();
-                return Integer.parseInt(port);
-            } catch (IOException ignore) {
-            } catch (NumberFormatException ignore) {
-            } finally {
-                IOUtils.closeQuietly(socket);
-            }
-
-            // Timed out
-            return -1;
-        }
     }
 
     @ExportedBean

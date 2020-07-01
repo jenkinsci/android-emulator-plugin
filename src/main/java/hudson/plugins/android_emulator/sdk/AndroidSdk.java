@@ -153,13 +153,4 @@ public class AndroidSdk implements Serializable {
         return sdk.isOlderThan(new VersionNumber(SDK_TOOLS_ANDROID_CMD_DEPRECATED));
     }
 
-    /** {@return true} if we should explicitly select a non-64-bit emulator executable for snapshot-related tasks. */
-    public boolean requiresAndroidBug34233Workaround() {
-        if (sdkToolsVersion == null) {
-            return true;
-        }
-        final VersionNumber sdk = new VersionNumber(sdkToolsVersion);
-        return sdk.isNewerThan(new VersionNumber("20.0.3")) && sdk.isOlderThan(new VersionNumber("22.6"));
-    }
-
 }
