@@ -146,9 +146,15 @@ public class AndroidEmulatorContext {
 			throws IOException, InterruptedException {
 		final EnvVars buildEnvironment = build.getEnvironment(TaskListener.NULL);
 		buildEnvironment.put(Constants.ENV_VAR_ANDROID_ADB_SERVER_PORT, Integer.toString(adbServerPort));
-		if (sdk.hasKnownHome()) {
-			buildEnvironment.put(Constants.ENV_VAR_ANDROID_SDK_HOME, sdk.getSdkHome());
-		}
+        if (sdk.hasKnownRoot()) {
+            buildEnvironment.putIfAbsent(Constants.ENV_VAR_ANDROID_SDK_ROOT, sdk.getSdkRoot());
+        }
+        if (sdk.hasKnownHome()) {
+            String sdkHome = sdk.getSdkHome();
+            buildEnvironment.putIfAbsent(Constants.ENV_VAR_ANDROID_SDK_HOME, sdkHome);
+            buildEnvironment.putIfAbsent("ANDROID_EMULATOR_HOME", sdkHome + "/.android/");
+            buildEnvironment.putIfAbsent("ANDROID_AVD_HOME", sdkHome + "/.android/avd/");
+        }
 		if (launcher.isUnix()) {
 			buildEnvironment.put(Constants.ENV_VAR_LD_LIBRARY_PATH, String.format("%s/tools/lib", sdk.getSdkRoot()));
 		}

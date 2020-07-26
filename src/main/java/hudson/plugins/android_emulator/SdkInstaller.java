@@ -1,31 +1,6 @@
 package hudson.plugins.android_emulator;
 
-import hudson.EnvVars;
-import hudson.FilePath;
-import hudson.Launcher;
-import hudson.Launcher.ProcStarter;
-import hudson.Proc;
-import hudson.model.BuildListener;
-import hudson.model.Computer;
-import hudson.model.Node;
-import hudson.plugins.android_emulator.SdkInstaller.AndroidInstaller.SdkUnavailableException;
-import hudson.plugins.android_emulator.sdk.AndroidSdk;
-import hudson.plugins.android_emulator.sdk.cli.SdkCliCommandFactory;
-import hudson.plugins.android_emulator.sdk.cli.SdkToolsCommands;
-import hudson.plugins.android_emulator.sdk.cli.SdkCliCommand;
-import hudson.plugins.android_emulator.util.Utils;
-import hudson.plugins.android_emulator.util.ConfigFileUtils;
-import hudson.plugins.android_emulator.util.ValidationResult;
-import hudson.remoting.Callable;
-import hudson.remoting.VirtualChannel;
-import hudson.util.ArgumentListBuilder;
-import jenkins.MasterToSlaveFileCallable;
-import jenkins.security.MasterToSlaveCallable;
-
-import org.apache.commons.io.IOUtils;
-import org.apache.commons.lang.StringUtils;
-
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import static hudson.plugins.android_emulator.AndroidEmulator.log;
 
 import java.io.BufferedReader;
 import java.io.ByteArrayOutputStream;
@@ -49,7 +24,30 @@ import java.util.Map;
 import java.util.WeakHashMap;
 import java.util.concurrent.Semaphore;
 
-import static hudson.plugins.android_emulator.AndroidEmulator.log;
+import org.apache.commons.lang.StringUtils;
+
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import hudson.EnvVars;
+import hudson.FilePath;
+import hudson.Launcher;
+import hudson.Launcher.ProcStarter;
+import hudson.Proc;
+import hudson.model.BuildListener;
+import hudson.model.Computer;
+import hudson.model.Node;
+import hudson.plugins.android_emulator.SdkInstaller.AndroidInstaller.SdkUnavailableException;
+import hudson.plugins.android_emulator.sdk.AndroidSdk;
+import hudson.plugins.android_emulator.sdk.cli.SdkCliCommand;
+import hudson.plugins.android_emulator.sdk.cli.SdkCliCommandFactory;
+import hudson.plugins.android_emulator.sdk.cli.SdkToolsCommands;
+import hudson.plugins.android_emulator.util.ConfigFileUtils;
+import hudson.plugins.android_emulator.util.Utils;
+import hudson.plugins.android_emulator.util.ValidationResult;
+import hudson.remoting.Callable;
+import hudson.remoting.VirtualChannel;
+import hudson.util.ArgumentListBuilder;
+import jenkins.MasterToSlaveFileCallable;
+import jenkins.security.MasterToSlaveCallable;
 
 public class SdkInstaller {
 
@@ -99,7 +97,7 @@ public class SdkInstaller {
             AndroidSdk sdk = getAndroidSdkForNode(node, androidHome, androidSdkHome);
 
             // Upgrade the tools if necessary and add the latest build-tools component
-            List<String> components = new ArrayList<String>(5);
+            List<String> components = new ArrayList<>(5);
 
             // do not update 'tools', as they were updated above to current compatible version
 
@@ -126,7 +124,7 @@ public class SdkInstaller {
         }
 
         // If we made it this far, confirm completion by writing our our metadata file
-        getInstallationInfoFilename(node).write(Constants.SDK_TOOLS_DEFAULT_VERSION, "UTF-8");
+        getInstallationInfoFilename(node).write(Constants.SDK_TOOLS_DEFAULT_BUILD_ID, "UTF-8");
 
         // Create an SDK object now that all the components exist
         return Utils.getAndroidSdk(launcher, androidHome, androidSdkHome);
@@ -184,6 +182,8 @@ public class SdkInstaller {
 
             // Success!
             log(listener.getLogger(), Messages.BASE_SDK_INSTALLED());
+        } else {
+            throw new IOException("Failed to donwload SDK archive");
         }
 
         return installDir;
@@ -353,7 +353,8 @@ public class SdkInstaller {
             final AndroidSdk sdk, final AndroidPlatform androidPlatform, final String abi,
             final boolean skipSystemImageInstall) {
         // Gather list of required components
-        List<String> components = new ArrayList<String>();
+        List<String> components = new ArrayList<>();
+        components.add("platform-tools");
 
         // Add dependent platform (eg: 'android-17')
         if (androidPlatform.getSdkLevel() > 0) {
@@ -626,10 +627,10 @@ public class SdkInstaller {
     enum AndroidInstaller {
 
         LINUX("linux", "zip"),
-        MAC_OS_X("darwin", "zip"),
-        WINDOWS("windows", "zip");
+        MAC_OS_X("mac", "zip"),
+        WINDOWS("win", "zip");
 
-        private static final String PATTERN = "https://dl.google.com/android/repository/sdk-tools-%s-%s.%s";
+        private static final String PATTERN = "https://dl.google.com/android/repository/commandlinetools-%s-%s_latest.%s";
         private final String platform;
         private final String extension;
 

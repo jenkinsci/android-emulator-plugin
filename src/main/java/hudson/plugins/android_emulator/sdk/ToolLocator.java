@@ -12,7 +12,7 @@ public interface ToolLocator {
 
     @SuppressFBWarnings("MS_MUTABLE_ARRAY")
     public static final String[] SDK_DIRECTORIES_LEGACY = {
-            TOOLS_DIR, PLATFORM_TOOLS_DIR
+            TOOLS_DIR
     };
 
     @SuppressFBWarnings("MS_MUTABLE_ARRAY")

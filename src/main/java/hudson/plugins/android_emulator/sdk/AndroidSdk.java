@@ -1,15 +1,15 @@
 package hudson.plugins.android_emulator.sdk;
 
-import com.google.common.annotations.VisibleForTesting;
-import hudson.Util;
-import hudson.plugins.android_emulator.Constants;
-import hudson.plugins.android_emulator.util.ConfigFileUtils;
-import hudson.util.VersionNumber;
-
 import java.io.File;
 import java.io.IOException;
 import java.io.Serializable;
 import java.util.Map;
+
+import com.google.common.annotations.VisibleForTesting;
+
+import hudson.Util;
+import hudson.plugins.android_emulator.util.ConfigFileUtils;
+import hudson.util.VersionNumber;
 
 public class AndroidSdk implements Serializable {
 
@@ -30,6 +30,8 @@ public class AndroidSdk implements Serializable {
     /** First version that ships the Android Emulator 2.0. */
     private static final int SDK_EMULATOR_V2 = 25;
 
+    private static final String CMDLINE_TOOLS = "cmdline-tools";
+
     /**
      * First version where the 'android' command is deprecated/removed
      * and fully replaced by 'avdmanager' and 'sdkmanager'
@@ -41,6 +43,7 @@ public class AndroidSdk implements Serializable {
 
     private final String sdkRoot;
     private final String sdkHome;
+    private String sdkToolsPackage;
     private String sdkToolsVersion;
 
     public AndroidSdk(String root, String home) throws IOException {
@@ -56,6 +59,13 @@ public class AndroidSdk implements Serializable {
         File toolsPropFile = new File(sdkRoot, "tools/source.properties");
         Map<String, String> toolsProperties;
         toolsProperties = ConfigFileUtils.parseConfigFile(toolsPropFile);
+        sdkToolsPackage = Util.fixEmptyAndTrim(toolsProperties.get("Pkg.Path"));
+        if (sdkToolsPackage != null) {
+            int indexOf = sdkToolsPackage.indexOf(';');
+            if (indexOf != -1) {
+                sdkToolsPackage = sdkToolsPackage.substring(0, indexOf);
+            }
+        }
         sdkToolsVersion = Util.fixEmptyAndTrim(toolsProperties.get("Pkg.Revision"));
     }
 
@@ -104,20 +114,20 @@ public class AndroidSdk implements Serializable {
     }
 
     public boolean supportsComponentInstallation() {
-        return getSdkToolsMajorVersion() >= SDK_AUTO_INSTALL;
+        return hasCommandLineTools() || getSdkToolsMajorVersion() >= SDK_AUTO_INSTALL;
     }
 
     public boolean supportsSystemImageInstallation() {
-        return getSdkToolsMajorVersion() >= SDK_SYSTEM_IMAGE_INSTALL;
+        return hasCommandLineTools() || getSdkToolsMajorVersion() >= SDK_SYSTEM_IMAGE_INSTALL;
     }
 
     public boolean supportsSystemImageNewFormat() {
-        return getSdkToolsMajorVersion() >= SDK_SYSTEM_IMAGE_NEW_FORMAT;
+        return hasCommandLineTools() || getSdkToolsMajorVersion() >= SDK_SYSTEM_IMAGE_NEW_FORMAT;
     }
 
     /** @return {@code true} if this SDK ships the Android Emulator 2.0. */
     public boolean supportsEmulatorV2() {
-        return getSdkToolsMajorVersion() >= SDK_EMULATOR_V2;
+        return hasCommandLineTools() || getSdkToolsMajorVersion() >= SDK_EMULATOR_V2;
     }
 
     /**
@@ -125,7 +135,7 @@ public class AndroidSdk implements Serializable {
      *  command line options used by the plugin.
      */
     public boolean supportsEmulatorV2Full() {
-        return getSdkToolsMajorVersion() >= SDK_EMULATOR_V2_USABLE;
+        return hasCommandLineTools() || getSdkToolsMajorVersion() >= SDK_EMULATOR_V2_USABLE;
     }
 
     /** @return {@code true} if this SDK has an emulator that supports the "-engine" flag. */
@@ -141,12 +151,16 @@ public class AndroidSdk implements Serializable {
         return supportsEmulatorEngineFlag() && !supportsEmulatorV2Full();
     }
 
+    public boolean hasCommandLineTools() {
+        return CMDLINE_TOOLS.equals(sdkToolsPackage);
+    }
+
     public boolean isAndroidCmdDeprecated() {
         return !useLegacySdkStructure();
     }
 
     public boolean useLegacySdkStructure() {
-        if (sdkToolsVersion == null) {
+        if (sdkToolsVersion == null || hasCommandLineTools()) {
             return false;
         }
         final VersionNumber sdk = new VersionNumber(sdkToolsVersion);

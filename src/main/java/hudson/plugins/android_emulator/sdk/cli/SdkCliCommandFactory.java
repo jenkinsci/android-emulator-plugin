@@ -39,6 +39,10 @@ public final class SdkCliCommandFactory {
      * the correct tools commands for the given SDK
      */
     public static SdkToolsCommands getCommandsForSdk(final AndroidSdk androidSdk) {
+        if (androidSdk != null && androidSdk.hasCommandLineTools()) {
+            return new SdkToolsCommandsCurrentBase();
+        }
+
         // if no androidSdk is given, simply assume the latest commands
         final String sdkToolsVersion = (androidSdk != null) ? androidSdk.getSdkToolsVersion() : String.valueOf(Integer.MAX_VALUE);
         return SdkCliCommandFactory.getCommandsForSdk(sdkToolsVersion);

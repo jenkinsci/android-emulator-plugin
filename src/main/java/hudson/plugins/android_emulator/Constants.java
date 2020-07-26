@@ -1,6 +1,7 @@
 package hudson.plugins.android_emulator;
 
 import hudson.Util;
+import hudson.plugins.android_emulator.sdk.AndroidSdk;
 import hudson.plugins.android_emulator.util.Utils;
 
 import java.io.Serializable;
@@ -51,7 +52,7 @@ public interface Constants {
      * a build id. So it's crucial to keep this version in sync
      * with the BUILD_ID variable beneath.
      */
-    static final String SDK_TOOLS_DEFAULT_VERSION = "28.0.3";
+    static final String SDK_TOOLS_DEFAULT_VERSION = "2.1";
 
     /**
      * Build ID? of the recent version of the Android SDK that will be installed.
@@ -60,7 +61,11 @@ public interface Constants {
      * a build id. So it's crucial to keep this build id in sync
      * with the VERSION variable above.
      */
-    static final String SDK_TOOLS_DEFAULT_BUILD_ID = "4333796";
+    static final String SDK_TOOLS_DEFAULT_BUILD_ID = "6609375";
+
+    static boolean isLatestVersion(AndroidSdk sdk) {
+        return sdk != null && sdk.hasCommandLineTools() && Constants.SDK_TOOLS_DEFAULT_VERSION.equals(sdk.getSdkToolsVersion());
+    }
 
     // From hudson.Util.VARIABLE
     static final String REGEX_VARIABLE = "\\$([A-Za-z0-9_]+|\\{[A-Za-z0-9_]+\\}|\\$)";

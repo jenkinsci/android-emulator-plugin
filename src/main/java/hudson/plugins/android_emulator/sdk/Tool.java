@@ -25,6 +25,10 @@ public enum Tool {
            EMULATOR64_ARM, EMULATOR64_MIPS, EMULATOR64_X86
     };
 
+    private static Tool[] CMD_LINE_TOOLS = new Tool[] {
+        AVDMANAGER, SDKMANAGER
+    };
+
     private static Tool[] REQUIRED = new Tool[] {
         ADB, EMULATOR, AVDMANAGER, SDKMANAGER
     };
@@ -72,7 +76,7 @@ public enum Tool {
      * @return a list of relative paths (including the executable name) expected to exist
      */
     private static String[] getRequiredToolsRelativePaths(final Tool[] tools, final boolean useLegacy, final boolean isUnix) {
-        final List<String> paths = new ArrayList<String>();
+        final List<String> paths = new ArrayList<>();
         for (final Tool tool : tools) {
             paths.add(tool.getPathInSdk(useLegacy, isUnix));
         }
@@ -89,6 +93,10 @@ public enum Tool {
      */
     public static String[] getRequiredToolsRelativePaths(final boolean isUnix) {
         return getRequiredToolsRelativePaths(Tool.REQUIRED, false, isUnix);
+    }
+
+    public static String[] getRequiredCmdLineToolsPaths(final boolean isUnix) {
+        return getRequiredToolsRelativePaths(Tool.CMD_LINE_TOOLS, false, isUnix);
     }
 
     /**

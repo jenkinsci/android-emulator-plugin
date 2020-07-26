@@ -90,7 +90,6 @@ public class SdkCommandsTest {
         assertEquals(Tool.ANDROID_LEGACY, installCmdV17.getTool());
         assertEquals(Tool.ANDROID_LEGACY, installCmdV04.getTool());
 
-        assertEquals("--include_obsolete " + expected, installCmdV25_3.getArgs());
         assertEquals("update sdk -u -a  -t " + exptecedLegacy, installCmdV25.getArgs());
         assertEquals("update sdk -u -a  -t " + exptecedLegacy, installCmdV17.getArgs());
         assertEquals("update sdk -u -o  -t " + exptecedLegacy, installCmdV04.getArgs());

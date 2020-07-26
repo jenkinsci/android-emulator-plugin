@@ -19,16 +19,6 @@ public class AndroidSdkTest extends TestCase {
     }
 
     @Test
-    public void testRequiresAndroidBug34233Workaround() {
-        assertTrue(createSdkWithTools(null).requiresAndroidBug34233Workaround());
-        assertFalse(createSdkWithTools("20").requiresAndroidBug34233Workaround());
-        assertTrue(createSdkWithTools("21").requiresAndroidBug34233Workaround());
-        assertTrue(createSdkWithTools("22.2.1").requiresAndroidBug34233Workaround());
-        assertTrue(createSdkWithTools("22.3").requiresAndroidBug34233Workaround());
-        assertFalse(createSdkWithTools("22.6").requiresAndroidBug34233Workaround());
-    }
-
-    @Test
     public void testEmulatorEngineV2Support() {
         assertEqualsHelperEmulatorEngineV2Support(null, false, false);
         assertEqualsHelperEmulatorEngineV2Support("24", false, false);

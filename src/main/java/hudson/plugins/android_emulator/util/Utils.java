@@ -1,5 +1,33 @@
 package hudson.plugins.android_emulator.util;
 
+import static hudson.plugins.android_emulator.AndroidEmulator.log;
+
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.OutputStream;
+import java.io.PrintStream;
+import java.io.PrintWriter;
+import java.net.Socket;
+import java.net.SocketException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Executors;
+import java.util.concurrent.FutureTask;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
+import java.util.logging.Logger;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+import org.apache.commons.lang.exception.ExceptionUtils;
+
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.EnvVars;
 import hudson.FilePath;
 import hudson.Functions;
@@ -25,38 +53,8 @@ import hudson.remoting.Future;
 import hudson.remoting.VirtualChannel;
 import hudson.util.ArgumentListBuilder;
 import hudson.util.VersionNumber;
-
-import org.apache.commons.lang.exception.ExceptionUtils;
-
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.OutputStream;
-import java.io.PrintStream;
-import java.io.PrintWriter;
-import java.net.Socket;
-import java.net.SocketException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Executors;
-import java.util.concurrent.FutureTask;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
-import java.util.logging.Logger;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-
 import jenkins.model.Jenkins;
 import jenkins.security.MasterToSlaveCallable;
-
-import static hudson.plugins.android_emulator.AndroidEmulator.log;
 
 public class Utils {
 
@@ -240,8 +238,10 @@ public class Utils {
         final boolean sdkDirOldLayoutExists = !sdkDirNewLayoutExists && allowLegacy
                 && (areAllFilesExistantInDir(sdkRoot, Tool.getRequiredToolsLegacyRelativePaths(true))
                         || areAllFilesExistantInDir(sdkRoot, Tool.getRequiredToolsLegacyRelativePaths(false)));
+        final boolean cmdLineToolsLayoutExists = areAllFilesExistantInDir(sdkRoot, Tool.getRequiredCmdLineToolsPaths(true))
+                || areAllFilesExistantInDir(sdkRoot, Tool.getRequiredCmdLineToolsPaths(false));
 
-        return (sdkDirNewLayoutExists || sdkDirOldLayoutExists);
+        return (sdkDirNewLayoutExists || sdkDirOldLayoutExists || cmdLineToolsLayoutExists);
     }
 
     /**
@@ -442,6 +442,9 @@ public class Utils {
         final ArgumentListBuilder builder = new ArgumentListBuilder(executable);
         final String args = sdkCmd.getArgs();
         if (args != null) {
+            if (Tool.SDKMANAGER == sdkCmd.getTool() && androidSdk.hasCommandLineTools() && androidSdk.hasKnownRoot()) {
+                builder.add("--sdk_root=" + androidSdk.getSdkRoot());
+            }
             builder.add(Util.tokenize(args));
         }
 
@@ -482,6 +485,9 @@ public class Utils {
             // Copy the old one, so we don't mutate the argument.
             env = new EnvVars((env == null ? new EnvVars() : env));
             env.put(Constants.ENV_VAR_ANDROID_SDK_HOME, androidSdk.getSdkHome());
+        }
+        if (androidSdk.hasKnownRoot() && Tool.AVDMANAGER == sdkCmd.getTool() && androidSdk.hasCommandLineTools()) {
+            env.put("AVDMANAGER_OPTS", "-Dcom.android.sdkmanager.toolsdir=" + androidSdk.getSdkRoot() + "/tools/bin");
         }
 
         if (env != null) {
@@ -887,7 +893,7 @@ public class Utils {
         }
 
         private List<String> getPotentialSdkDirs() {
-            final List<String> potentialSdkDirs = new ArrayList<String>();
+            final List<String> potentialSdkDirs = new ArrayList<>();
 
             // Add global config path first
             potentialSdkDirs.add(androidSdkRootPreferred);
@@ -999,4 +1005,5 @@ public class Utils {
         }
         return !exited;
     }
+
 }

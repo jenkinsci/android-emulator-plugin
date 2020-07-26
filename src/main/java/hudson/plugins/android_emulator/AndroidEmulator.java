@@ -233,7 +233,9 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
         // Build emulator config, ensuring that variables expand to valid SDK values
         EmulatorConfig emuConfig;
         boolean shouldKeepInWorkspace = descriptor.shouldKeepInWorkspace && Util.fixEmptyAndTrim(avdName) == null;
-        final String androidSdkHome = (envVars != null && shouldKeepInWorkspace ? envVars.get(Constants.ENV_VAR_JENKINS_WORKSPACE) : null);
+        final String androidSdkHome = (envVars != null && shouldKeepInWorkspace 
+                ? envVars.get(Constants.ENV_VAR_JENKINS_WORKSPACE)
+                : envVars.containsKey(Constants.ENV_VAR_ANDROID_SDK_HOME) ? envVars.get(Constants.ENV_VAR_ANDROID_SDK_HOME) : System.getProperty("user.home"));
         try {
             emuConfig = EmulatorConfig.create(avdName, osVersion, screenDensity,
                 screenResolution, deviceLocale, sdCardSize, wipeData, showWindow, useSnapshots,
@@ -261,15 +263,13 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
         }
 
         // SDK Tools not found, or does not match expected download version, if we should manage SDK
-        if (!sdkFound && descriptor.shouldInstallSdk) {
+        if ((!sdkFound || !Constants.isLatestVersion(androidSdk)) && descriptor.shouldInstallSdk) {
             // Ok, let's download and install the SDK Tools
             if (!sdkFound) {
                 log(logger, Messages.INSTALLING_SDK());
             } else {
-                final String currentVersion =
-                        (androidSdk != null) ? androidSdk.getSdkToolsVersion() : "UNKNOWN";
-                log(logger, Messages.SDK_INSTALL_UPDATE_TOOLS(currentVersion,
-                        Constants.SDK_TOOLS_DEFAULT_VERSION));
+                final String currentVersion = (androidSdk != null) ? androidSdk.getSdkToolsVersion() : "UNKNOWN";
+                log(logger, Messages.SDK_INSTALL_UPDATE_TOOLS(currentVersion, "build " + Constants.SDK_TOOLS_DEFAULT_BUILD_ID));
             }
 
             try {
@@ -378,7 +378,6 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
                 emu.userPort(), emu.adbPort(), emu.getEmulatorCallbackPort(),
                 ADB_CONNECT_TIMEOUT_MS / 1000);
 
-        // Workaround bug 64356053 and set QEMU environment if audio should be disabled
         final EnvVars additionalEnvVars = Utils.getEnvironmentVarsFromEmulatorArgs(emulatorArgs);
 
         // Start emulator process
@@ -560,12 +559,14 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
                     env.put(Constants.ENV_VAR_ANDROID_AVD_LOCALE, emuConfig.getDeviceLocale());
                 }
                 if (androidSdk.hasKnownRoot()) {
-                    env.put(Constants.ENV_VAR_JENKINS_ANDROID_HOME, androidSdk.getSdkRoot());
-                    env.put(Constants.ENV_VAR_ANDROID_HOME, androidSdk.getSdkRoot());
+                    String sdkRoot = androidSdk.getSdkRoot();
+                    env.put(Constants.ENV_VAR_JENKINS_ANDROID_HOME, sdkRoot);
+                    env.put(Constants.ENV_VAR_ANDROID_HOME, sdkRoot);
+                    env.put(Constants.ENV_VAR_ANDROID_SDK_ROOT, sdkRoot);
 
                     // Prepend the commonly-used Android tools to the start of the PATH for this build
-                    env.put(Constants.ENV_VAR_PATH_SDK_TOOLS, androidSdk.getSdkRoot() + "/tools/");
-                    env.put(Constants.ENV_VAR_PATH_SDK_PLATFORM_TOOLS, androidSdk.getSdkRoot() + "/platform-tools/");
+                    env.put(Constants.ENV_VAR_PATH_SDK_TOOLS, sdkRoot + "/tools/");
+                    env.put(Constants.ENV_VAR_PATH_SDK_PLATFORM_TOOLS, sdkRoot + "/platform-tools/");
                     // TODO: Export the newest build-tools folder as well, so aapt and friends can be used
                 }
             }
