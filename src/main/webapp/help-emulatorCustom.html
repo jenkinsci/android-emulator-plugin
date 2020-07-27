@@ -8,17 +8,17 @@
 </p>
 <p>
   You can also do environment variable substitution for any of these properties, in the format: 
-  <tt>${VARIABLE_NAME}</tt> or <tt>$VARIABLE_NAME</tt>.
+  <var>${VARIABLE_NAME}</var> or <var>$VARIABLE_NAME</var>.
 </p>
 <p>
   For example, if you have configured a
   <a href="http://wiki.hudson-ci.org/display/HUDSON/Building+a+matrix+project" target="_blank">
   matrix build</a> to include a &quot;density&quot; axis with values &quot;120 160 240&quot;, you
-  could enter <tt>${density}</tt> for the &quot;Screen density&quot; property below and the
+  could enter <var>${density}</var> for the &quot;Screen density&quot; property below and the
   appropriate substitution would be made when each individual build is executed.
 </p> 
-  Emulators are stored in the usual <tt>$HOME/.android/avd</tt> directory, named in the format:
-  <tt>hudson_[locale]_[density]_[resolution]_[target]</tt>.<br/>
-  For example: <tt>hudson_en-GB_160_HVGA_android-7</tt> for a British English, medium density, HVGA
+  Emulators are stored in the usual <var>$HOME/.android/avd</var> directory, named in the format:
+  <var>hudson_[locale]_[density]_[resolution]_[target]</var>.<br/>
+  For example: <var>hudson_en-GB_160_HVGA_android-7</var> for a British English, medium density, HVGA
   device running Android 2.1.
 </div>

@@ -2,7 +2,7 @@ With this option enabled, the Android SDK will be automatically downloaded, inst
 on any machine where builds occur with the &quot;Run an Android emulator during build&quot; option enabled.
 <p>
 The SDK will be downloaded on-demand, the first time a job is built which requires it.<br>
-The SDK will be installed to <tt>$JENKINS_HOME/tools/android-sdk</tt> on the build machine.<br>
+The SDK will be installed to <code>$JENKINS_HOME/tools/android-sdk</code> on the build machine.<br>
 If a working Android SDK is found on such a machine, the SDK will not be downloaded or installed.
 </p>
 <p>
@@ -11,5 +11,5 @@ Jenkins detects that they are required.  For example, if a job is configured to 
 with Android 3.2, but this is not yet installed, it will be automatically downloaded and installed
 when that job is built. This requires that you have Android SDK Tools r14 or later installed.
 </p>
-For each build, the path to the Android SDK being used is exposed via the <tt>ANDROID_HOME</tt>
+For each build, the path to the Android SDK being used is exposed via the <var>ANDROID_HOME</var>
 environment variable.
