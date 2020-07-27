@@ -9,10 +9,8 @@ import hudson.model.Node;
 import hudson.model.Queue;
 import hudson.model.Queue.BuildableItem;
 import hudson.model.Queue.Executable;
-import hudson.model.Queue.Task;
 import hudson.model.queue.CauseOfBlockage;
 import hudson.model.queue.QueueTaskDispatcher;
-import hudson.model.queue.SubTask;
 
 import hudson.plugins.android_emulator.AndroidEmulator.DescriptorImpl;
 import jenkins.model.Jenkins;
@@ -35,10 +33,10 @@ import jenkins.model.Jenkins;
 public class TaskDispatcher extends QueueTaskDispatcher {
 
     @Override
-    public CauseOfBlockage canTake(Node node, Task task) {
+    public CauseOfBlockage canTake(Node node, BuildableItem buildableItem) {
         // If the given task doesn't use the AndroidEmulator BuildWrapper, we don't care.
         // Or, if there is an emulator hash, but with unresolved environment variables, we shouldn't block the build
-        String desiredHash = getEmulatorConfigHashForTask(node, task);
+        String desiredHash = getEmulatorConfigHashForBuildableItem(node, buildableItem.task);
         if (desiredHash == null || desiredHash.contains("$")) {
             return null;
         }
@@ -52,14 +50,13 @@ public class TaskDispatcher extends QueueTaskDispatcher {
         // Check for builds in the queue which have the same emulator config as this task
         Queue queue = Jenkins.get().getQueue();
         for (BuildableItem item : queue.getBuildableItems()) {
-            Task queuedTask = item.task;
-            if (task == queuedTask) {
+            if (buildableItem == item) {
                 continue;
             }
 
             // If build with matching config is about to start (is "pending"), hold off for a moment
-            if (queue.isPending(queuedTask)) {
-                String queuedTaskHash = getEmulatorConfigHashForTask(node, queuedTask);
+            if (buildableItem.isPending()) {
+                String queuedTaskHash = getEmulatorConfigHashForBuildableItem(node, buildableItem.task);
                 if (desiredHash.equals(queuedTaskHash)) {
                     return CauseOfBlockage.fromMessage(Messages._WAITING_FOR_EMULATOR());
                 }
@@ -67,7 +64,7 @@ public class TaskDispatcher extends QueueTaskDispatcher {
         }
 
         // Check whether a build with this emulator config is already running on this machine
-        final Computer computer = node.toComputer();
+        final Computer computer = Computer.currentComputer();
         if (computer == null) {
             return CauseOfBlockage.fromMessage(Messages._NO_EXECUTORS_ON_NODE());
         }
@@ -78,7 +75,7 @@ public class TaskDispatcher extends QueueTaskDispatcher {
                 continue;
             }
 
-            String hash = getEmulatorConfigHashForTask(node, executable.getParent());
+            String hash = getEmulatorConfigHashForBuildableItem(node, (Queue.Task) executable.getParent());
             if (desiredHash.equals(hash)) {
                 return CauseOfBlockage.fromMessage(Messages._WAITING_FOR_EMULATOR());
             }
@@ -96,7 +93,7 @@ public class TaskDispatcher extends QueueTaskDispatcher {
      * @return A hash representing the Android emulator configuration for the task, or {@code null}
      *         if the given task is not configured to start an Android emulator.
      */
-    private static String getEmulatorConfigHashForTask(Node node, SubTask task) {
+    private static String getEmulatorConfigHashForBuildableItem(Node node, Queue.Task task) {
         // If the job doesn't use any BuildWrappers, we don't care
         if (!(task instanceof BuildableItemWithBuildWrappers)) {
             return null;

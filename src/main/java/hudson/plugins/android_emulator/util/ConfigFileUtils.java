@@ -18,8 +18,8 @@ import hudson.plugins.android_emulator.Messages;
 
 public class ConfigFileUtils {
 
-    private static String CONFIG_FILE_EXT_INI = "ini";
-    private static String CONFIG_FILE_EXT_PROPS = "properties";
+    private static final String CONFIG_FILE_EXT_INI = "ini";
+    private static final String CONFIG_FILE_EXT_PROPS = "properties";
 
     /**
      * Parses the contents of a .properties or .ini file into a map.

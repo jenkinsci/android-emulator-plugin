@@ -24,6 +24,7 @@ import java.util.Map;
 import java.util.WeakHashMap;
 import java.util.concurrent.Semaphore;
 
+import hudson.model.TaskListener;
 import org.apache.commons.lang.StringUtils;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -62,7 +63,7 @@ public class SdkInstaller {
      *
      * @return An {@code AndroidSdk} object for the newly-installed SDK.
      */
-    public static AndroidSdk install(Launcher launcher, BuildListener listener, String androidSdkHome)
+    public static AndroidSdk install(Launcher launcher, TaskListener listener, String androidSdkHome)
             throws SdkInstallationException, IOException, InterruptedException {
         Semaphore semaphore = acquireLock();
         try {
@@ -72,7 +73,7 @@ public class SdkInstaller {
         }
     }
 
-    private static AndroidSdk doInstall(Launcher launcher, BuildListener listener, String androidSdkHome)
+    private static AndroidSdk doInstall(Launcher launcher, TaskListener listener, String androidSdkHome)
             throws SdkInstallationException, IOException, InterruptedException {
         // We should install the SDK on the current build machine
         final Node node = Computer.currentComputer().getNode();
@@ -157,7 +158,7 @@ public class SdkInstaller {
      * @return Path where the SDK is installed, regardless of whether it was installed right now.
      * @throws SdkUnavailableException If the Android SDK is not available on this platform.
      */
-    private static FilePath installBasicSdk(final BuildListener listener, Node node)
+    private static FilePath installBasicSdk(final TaskListener listener, Node node)
             throws SdkUnavailableException, IOException, InterruptedException {
         // Locate where the SDK should be installed to on this node
         final FilePath installDir = Utils.getSdkInstallDirectory(node);
@@ -340,9 +341,7 @@ public class SdkInstaller {
             Utils.runAndroidTool(launcher, systemImagesList, logger, sdk, sdkListSystemImages, null);
             final boolean isAbiImageInstalled = sdkToolsCommand.isImageForPlatformAndABIInstalled(
                     systemImagesList.toString(), platform, abi);
-            if (!isAbiImageInstalled) {
-                return false;
-            }
+            return isAbiImageInstalled;
         }
 
         // Everything we wanted is installed
@@ -420,7 +419,7 @@ public class SdkInstaller {
      * @param launcher Used for running tasks on the remote node.
      * @param listener Used to access logger.
      */
-    public static void optOutOfSdkStatistics(Launcher launcher, BuildListener listener, String androidSdkHome) {
+    public static void optOutOfSdkStatistics(Launcher launcher, TaskListener listener, String androidSdkHome) {
         Callable<Void, Exception> optOutTask = new StatsOptOutTask(androidSdkHome, listener);
         try {
             VirtualChannel channel = launcher.getChannel();
@@ -513,11 +512,11 @@ public class SdkInstaller {
 
     private static final class DownloadSDKCallable extends MasterToSlaveFileCallable<Boolean> {
         private final FilePath toolsSubdir;
-        private final BuildListener listener;
+        private final TaskListener listener;
         private final URL downloadUrl;
         private static final long serialVersionUID = 1L;
 
-        private DownloadSDKCallable(FilePath toolsSubdir, BuildListener listener, URL downloadUrl) {
+        private DownloadSDKCallable(FilePath toolsSubdir, TaskListener listener, URL downloadUrl) {
             this.toolsSubdir = toolsSubdir;
             this.listener = listener;
             this.downloadUrl = downloadUrl;
@@ -588,10 +587,10 @@ public class SdkInstaller {
         private static final long serialVersionUID = 1L;
         private final String androidSdkHome;
 
-        private final BuildListener listener;
+        private final TaskListener listener;
         private transient PrintStream logger;
 
-        public StatsOptOutTask(String androidSdkHome, BuildListener listener) {
+        public StatsOptOutTask(String androidSdkHome, TaskListener listener) {
             this.androidSdkHome = androidSdkHome;
             this.listener = listener;
         }

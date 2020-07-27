@@ -57,7 +57,7 @@ public class SdkToolsCommandsCurrentBase implements SdkToolsCommands {
     public boolean isImageForPlatformAndABIInstalled(final String listSystemImagesOutput,
             final String platform, final String abi) {
         // split ABI into abi or tag/abi
-        final String abiSplit[] = StringUtils.split(abi, '/');
+        final String[] abiSplit = StringUtils.split(abi, '/');
         final boolean containsTag = (abiSplit.length > 1);
         final String abiString = (containsTag) ? abiSplit[1] : abiSplit[0];
         final String tagString = (containsTag) ? abiSplit[0] : "default";

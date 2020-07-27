@@ -56,6 +56,9 @@ import hudson.util.VersionNumber;
 import jenkins.model.Jenkins;
 import jenkins.security.MasterToSlaveCallable;
 
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+
 public class Utils {
 
     private static final Logger LOGGER = Logger.getLogger(Utils.class.getName());
@@ -80,6 +83,7 @@ public class Utils {
      * @param listener The listener used to get the environment variables.
      * @return Environment variables for the current computer, with the build variables taking precedence.
      */
+    @Nonnull
     public static EnvVars getEnvironment(AbstractBuild<?, ?> build, BuildListener listener) {
         final EnvVars envVars = new EnvVars();
         try {
@@ -127,6 +131,7 @@ public class Utils {
      * @return AndroidSdk object representing the properties of the installed SDK, or null if no valid
      * directory is found.
      */
+    @Nullable
     public static AndroidSdk getAndroidSdk(final Launcher launcher, final Node node,
             final EnvVars envVars,
             final String androidSdkRootPreferred, final String androidSdkHome) {
@@ -149,6 +154,7 @@ public class Utils {
      * @return AndroidSdk object representing the properties of the installed SDK, or null if no valid
      * directory is found.
      */
+    @Nullable
     public static AndroidSdk getAndroidSdk(final Launcher launcher, final Node node,
             final EnvVars envVars, final boolean checkPreferredOnly,
             final String androidSdkRootPreferred, final String androidSdkHome) {
@@ -357,12 +363,12 @@ public class Utils {
      * Retrieves a list of directories from the PATH-Environment-Variable, which could be an SDK installation.
      * Currently it is only checked, if the path points to an 'tools'-directory.
      *
-     * @param envVar the environment variables currently set for the node
+     * @param envVars the environment variables currently set for the node
      * @return A list of possible root directories of an Android SDK
      */
     private static List<String> getPossibleSdkRootDirectoriesFromPath(final EnvVars envVars) {
         // Get list of directories from the PATH environment variable
-        List<String> paths = Arrays.asList(envVars.get(Constants.ENV_VAR_SYSTEM_PATH).split(File.pathSeparator));
+        String[] paths = envVars.get(Constants.ENV_VAR_SYSTEM_PATH).split(File.pathSeparator);
         final List<String> possibleSdkRootsFromPath = new ArrayList<String>();
 
         // Examine each directory to see whether it contains the expected Android tools
@@ -516,6 +522,7 @@ public class Utils {
      * @param token  The token which may or may not contain variables in the format <tt>${foo}</tt>.
      * @return  The given token, with applicable variable expansions done.
      */
+    @Nullable
     public static String expandVariables(AbstractBuild<?,?> build, BuildListener listener, String token) {
         EnvVars envVars;
         Map<String, String> buildVars;
@@ -581,7 +588,9 @@ public class Utils {
             Executors.newSingleThreadExecutor().execute(task);
             result = task.get(timeoutMs, TimeUnit.MILLISECONDS);
         } catch (TimeoutException ex) {
+            // Ignore
         } catch (InterruptedException ex) {
+            // Ignore
         } catch (ExecutionException ex) {
             // Ignore
         } finally {
@@ -797,9 +806,8 @@ public class Utils {
         String result = null;
         String currentMaxVersion = "0";
 
-        final String lines[] = multiLine.split("(\r\n|\r|\n)");
-        for (int pos = 0; pos < lines.length; pos++) {
-            final String line = lines[pos];
+        final String[] lines = multiLine.split("(\r\n|\r|\n)");
+        for (final String line : lines) {
             final String patternAndVersionRegex = "(" + pattern + "[-;][0-9\\.]+(?:-rc[0-9])?)";
             final Matcher m = Pattern.compile(patternAndVersionRegex).matcher(line);
             if (m.find()) {
@@ -882,7 +890,11 @@ public class Utils {
                     // Create SDK instance with what we know so far
                     return new AndroidSdk(potentialSdkDir, androidSdkHome);
                 } else {
-                    determinationLog.append("['" + potentialSdkDir + "']: " + result.getMessage() + "\n");
+                    determinationLog.append("['")
+                                    .append(potentialSdkDir)
+                                    .append("']: ")
+                                    .append(result.getMessage())
+                                    .append("\n");
                 }
             }
 
@@ -929,7 +941,7 @@ public class Utils {
         }
 
         private static final long serialVersionUID = 1L;
-    };
+    }
 
     /** Task that will execute a command on the given emulator's console port, then quit. */
     private static final class EmulatorCommandTask extends MasterToSlaveCallable<Boolean, IOException> {

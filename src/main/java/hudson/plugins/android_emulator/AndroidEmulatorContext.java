@@ -1,5 +1,6 @@
 package hudson.plugins.android_emulator;
 
+import hudson.model.*;
 import org.jvnet.hudson.plugins.port_allocator.PortAllocationManager;
 
 import java.io.IOException;
@@ -9,10 +10,6 @@ import hudson.EnvVars;
 import hudson.Launcher;
 import hudson.Launcher.ProcStarter;
 import hudson.Proc;
-import hudson.model.AbstractBuild;
-import hudson.model.BuildListener;
-import hudson.model.Computer;
-import hudson.model.TaskListener;
 import hudson.plugins.android_emulator.sdk.AndroidSdk;
 import hudson.plugins.android_emulator.sdk.cli.SdkCliCommand;
 import hudson.plugins.android_emulator.util.Utils;
@@ -32,13 +29,12 @@ public class AndroidEmulatorContext {
 	private AndroidSdk sdk;
 
 	private AbstractBuild<?, ?> build;
-	private BuildListener listener;
+	private TaskListener listener;
 	private Launcher launcher;
 
-	public AndroidEmulatorContext(AbstractBuild<?, ?> build_,
-			Launcher launcher_, BuildListener listener_, AndroidSdk sdk_)
+	public AndroidEmulatorContext(Run<?, ?> build_, Launcher launcher_, TaskListener listener_, AndroidSdk sdk_)
 			throws InterruptedException, IOException {
-		build = build_;
+		build = (AbstractBuild<?, ?>) build_;
 		listener = listener_;
 		launcher = launcher_;
 		sdk = sdk_;
@@ -112,7 +108,7 @@ public class AndroidEmulatorContext {
 		return serial;
 	}
 
-	public BuildListener listener() {
+	public TaskListener listener() {
 		return listener;
 	}
 	public Launcher launcher() {

@@ -9,6 +9,8 @@ import java.io.Serializable;
 
 import org.kohsuke.stapler.DataBoundConstructor;
 
+import javax.annotation.Nonnull;
+
 public class SnapshotSaveBuilder extends AbstractSnapshotBuilder {
 
     @DataBoundConstructor
@@ -42,6 +44,7 @@ public class SnapshotSaveBuilder extends AbstractSnapshotBuilder {
         }
 
         @Override
+        @Nonnull
         public String getDisplayName() {
             return Messages.SAVE_EMULATOR_SNAPSHOT();
         }

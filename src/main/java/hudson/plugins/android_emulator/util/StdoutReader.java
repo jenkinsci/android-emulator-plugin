@@ -4,6 +4,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -127,8 +128,8 @@ public final class StdoutReader
      * @return true if a newline character ('\r' or '\n') was found, false otherwise
      */
     private boolean containsNewline(final byte[] buffer) {
-        for (int pos = 0; pos < buffer.length; pos++) {
-            if (buffer[pos] == '\r' || buffer[pos] == '\n') {
+        for (byte b : buffer) {
+            if (b == '\r' || b == '\n') {
                 return true;
             }
         }
@@ -145,10 +146,7 @@ public final class StdoutReader
         }
 
         String streamcontent = "<OUTPUT GARBLED: UNSUPPORTED ENCODING>";
-        try {
-            streamcontent = new String(buffer.toByteArray(), "UTF-8");
-        } catch (UnsupportedEncodingException e) {
-        }
+        streamcontent = new String(buffer.toByteArray(), StandardCharsets.UTF_8);
         buffer.reset();
         lineStore.addAll(Arrays.asList(streamcontent.split("[\r\n]+")));
     }

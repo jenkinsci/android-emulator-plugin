@@ -21,10 +21,8 @@ import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.StaplerRequest;
 import org.kohsuke.stapler.export.Exported;
 
-import java.io.IOException;
-import java.io.OutputStream;
-import java.io.PrintStream;
-import java.io.Serializable;
+import javax.annotation.Nonnull;
+import java.io.*;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
@@ -95,11 +93,11 @@ public class MonkeyBuilder extends AbstractBuilder {
 
         // Build list of arguments for monkey
         StringBuilder cmdArgs = new StringBuilder();
-        List<String> packageNamesLog = new ArrayList<String>();
+        List<String> packageNamesLog = new ArrayList<>();
         final String expandedPackageId = Utils.expandVariables(build, listener, packageId);
         addArguments(expandedPackageId, "-p", cmdArgs, packageNamesLog);
 
-        List<String> categoryNamesLog = new ArrayList<String>();
+        List<String> categoryNamesLog = new ArrayList<>();
         final String expandedCategory = Utils.expandVariables(build, listener, categories);
         addArguments(expandedCategory, "-c", cmdArgs, categoryNamesLog);
 
@@ -123,15 +121,13 @@ public class MonkeyBuilder extends AbstractBuilder {
         if (workspace == null) {
             throw new BuildNodeUnavailableException();
         }
-        final OutputStream monkeyOutput = workspace.child(outputFile).write();
-        try {
+        if (outputFile == null) {
+            throw new FileNotFoundException();
+        }
+        try (OutputStream monkeyOutput = workspace.child(outputFile).write()) {
             log(logger, Messages.STARTING_MONKEY(packageNamesLog, eventCount, seedValue, categoryNamesLog));
             Utils.runAndroidTool(launcher, build.getEnvironment(TaskListener.NULL), monkeyOutput,
-                    logger, androidSdk, adbMonkeyCmd, null);
-        } finally {
-            if (monkeyOutput != null) {
-                monkeyOutput.close();
-            }
+                logger, androidSdk, adbMonkeyCmd, null);
         }
 
         return true;
@@ -214,6 +210,7 @@ public class MonkeyBuilder extends AbstractBuilder {
         }
 
         @Override
+        @Nonnull
         public String getDisplayName() {
             return Messages.RUN_MONKEY();
         }

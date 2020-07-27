@@ -248,7 +248,7 @@ class EmulatorConfig implements Serializable {
      * @return A Callable that will handle the detection/creation of an appropriate AVD.
      */
     public Callable<Boolean, AndroidEmulatorException> getEmulatorCreationTask(AndroidSdk androidSdk,
-                                                                               BuildListener listener) {
+                                                                               TaskListener listener) {
         return new EmulatorCreationTask(androidSdk, listener);
     }
 
@@ -261,7 +261,7 @@ class EmulatorConfig implements Serializable {
      * @return A Callable that will update the config of the current AVD.
      */
     public Callable<Void, IOException> getEmulatorConfigTask(HardwareProperty[] hardwareProperties,
-                                                             BuildListener listener) {
+                                                             TaskListener listener) {
         return new EmulatorConfigTask(hardwareProperties, listener);
     }
 
@@ -683,10 +683,10 @@ class EmulatorConfig implements Serializable {
         private static final long serialVersionUID = 1L;
 
         private final HardwareProperty[] hardwareProperties;
-        private final BuildListener listener;
+        private final TaskListener listener;
         private transient PrintStream logger;
 
-        public EmulatorConfigTask(HardwareProperty[] hardwareProperties, BuildListener listener) {
+        public EmulatorConfigTask(HardwareProperty[] hardwareProperties, TaskListener listener) {
             this.hardwareProperties = hardwareProperties;
             this.listener = listener;
         }

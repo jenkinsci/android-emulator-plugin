@@ -30,6 +30,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 
+import javax.annotation.Nonnull;
 import javax.xml.xpath.XPath;
 import javax.xml.xpath.XPathConstants;
 import javax.xml.xpath.XPathExpressionException;
@@ -229,7 +230,7 @@ public class UpdateProjectBuilder extends AbstractBuilder {
             scanner.scan();
 
             // Extract platform from each config file
-            Collection<Project> projects = new HashSet<Project>();
+            Collection<Project> projects = new HashSet<>();
             String[] files = scanner.getIncludedFiles();
             if (files != null) {
                 for (String filename : files) {
@@ -240,7 +241,7 @@ public class UpdateProjectBuilder extends AbstractBuilder {
                 }
             }
 
-            return new ArrayList<Project>(projects);
+            return new ArrayList<>(projects);
         }
 
         /** Determines the type of an Android project from its directory. */
@@ -252,7 +253,7 @@ public class UpdateProjectBuilder extends AbstractBuilder {
                 dir = projectFile.getParentFile().getCanonicalPath();
 
                 Map<String, String> config = ConfigFileUtils.parseConfigFile(projectFile);
-                boolean isLibrary = Boolean.valueOf(config.get("android.library"));
+                boolean isLibrary = Boolean.parseBoolean(config.get("android.library"));
                 if (isLibrary) {
                     type = ProjectType.LIBRARY;
                 } else if (isTestProject(logger, new File(dir))) {
@@ -309,6 +310,7 @@ public class UpdateProjectBuilder extends AbstractBuilder {
         }
 
         @Override
+        @Nonnull
         public String getDisplayName() {
             return Messages.CREATE_PROJECT_BUILD_FILES();
         }

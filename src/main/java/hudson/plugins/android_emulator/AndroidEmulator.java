@@ -10,12 +10,7 @@ import hudson.Launcher;
 import hudson.Proc;
 import hudson.Util;
 import hudson.matrix.Combination;
-import hudson.model.AbstractBuild;
-import hudson.model.AbstractProject;
-import hudson.model.BuildListener;
-import hudson.model.Computer;
-import hudson.model.Node;
-import hudson.model.Result;
+import hudson.model.*;
 import hudson.plugins.android_emulator.sdk.AndroidSdk;
 import hudson.plugins.android_emulator.sdk.Tool;
 import hudson.plugins.android_emulator.sdk.cli.AdbShellCommands;
@@ -33,6 +28,7 @@ import hudson.util.FormValidation;
 import hudson.util.NullStream;
 import jenkins.model.ArtifactManager;
 import jenkins.model.Jenkins;
+import jenkins.tasks.SimpleBuildWrapper;
 import net.sf.json.JSONObject;
 
 import org.kohsuke.stapler.DataBoundConstructor;
@@ -41,6 +37,7 @@ import org.kohsuke.stapler.StaplerRequest;
 import org.kohsuke.stapler.export.Exported;
 import org.kohsuke.stapler.export.ExportedBean;
 
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 import java.io.ByteArrayOutputStream;
@@ -51,15 +48,12 @@ import java.io.PrintStream;
 import java.io.PrintWriter;
 import java.io.Serializable;
 import java.io.StringWriter;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-public class AndroidEmulator extends BuildWrapper implements Serializable {
+public class AndroidEmulator extends SimpleBuildWrapper implements Serializable {
 
     private static final long serialVersionUID = 1L;
 
@@ -99,6 +93,8 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
     @Exported public final int startupTimeout;
     @Exported public final String commandLineOptions;
     @Exported public final String executable;
+
+    private Run<?, ?> run;
 
 
     @DataBoundConstructor
@@ -180,17 +176,15 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
     }
 
     @Override
-    @SuppressWarnings({"unchecked", "rawtypes"})
-    public Environment setUp(AbstractBuild build, final Launcher launcher, BuildListener listener)
-            throws IOException, InterruptedException {
-        final PrintStream logger = listener.getLogger();
+    public void setUp(Context context, Run<?, ?> run, FilePath filePath, Launcher launcher, TaskListener taskListener, EnvVars envVars) throws IOException, InterruptedException {
+        final PrintStream logger = taskListener.getLogger();
         if (descriptor == null) {
             descriptor = Jenkins.get().getDescriptorByType(DescriptorImpl.class);
         }
+        this.run = run;
 
         // Substitute environment and build variables into config
-        final EnvVars envVars = Utils.getEnvironment(build, listener);
-        final Map<String, String> buildVars = build.getBuildVariables();
+        final Map<String, String> buildVars = new HashMap<>();
 
         // Device properties
         String avdName = Utils.expandVariables(envVars, buildVars, this.avdName);
@@ -226,8 +220,8 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
                 deviceLocale, sdCardSize);
         if (configError != null) {
             log(logger, Messages.ERROR_MISCONFIGURED(configError));
-            build.setResult(Result.NOT_BUILT);
-            return null;
+            run.setResult(Result.NOT_BUILT);
+            return;
         }
 
         // Build emulator config, ensuring that variables expand to valid SDK values
@@ -242,8 +236,8 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
                 commandLineOptions, targetAbi, deviceDefinition, androidSdkHome, executable, avdNameSuffix);
         } catch (IllegalArgumentException e) {
             log(logger, Messages.EMULATOR_CONFIGURATION_BAD(e.getLocalizedMessage()));
-            build.setResult(Result.NOT_BUILT);
-            return null;
+            run.setResult(Result.NOT_BUILT);
+            return;
         }
 
         // SDK location
@@ -258,8 +252,8 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
         if (!sdkFound && !descriptor.shouldInstallSdk) {
             // Couldn't find an SDK, don't want to install it, give up
             log(logger, Messages.SDK_TOOLS_NOT_FOUND());
-            build.setResult(Result.NOT_BUILT);
-            return null;
+            run.setResult(Result.NOT_BUILT);
+            return;
         }
 
         // SDK Tools not found, or does not match expected download version, if we should manage SDK
@@ -268,21 +262,21 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
             if (!sdkFound) {
                 log(logger, Messages.INSTALLING_SDK());
             } else {
-                final String currentVersion = (androidSdk != null) ? androidSdk.getSdkToolsVersion() : "UNKNOWN";
+                final String currentVersion = androidSdk.getSdkToolsVersion();
                 log(logger, Messages.SDK_INSTALL_UPDATE_TOOLS(currentVersion, "build " + Constants.SDK_TOOLS_DEFAULT_BUILD_ID));
             }
 
             try {
-                androidSdk = SdkInstaller.install(launcher, listener, androidSdkHome);
+                androidSdk = SdkInstaller.install(launcher, taskListener, androidSdkHome);
             } catch (SdkInstallationException e) {
                 log(logger, Messages.SDK_INSTALLATION_FAILED(), e);
-                build.setResult(Result.NOT_BUILT);
-                return null;
+                run.setResult(Result.NOT_BUILT);
+                return;
             }
         }
 
         if (descriptor.shouldKeepInWorkspace) {
-            SdkInstaller.optOutOfSdkStatistics(launcher, listener, androidSdkHome);
+            SdkInstaller.optOutOfSdkStatistics(launcher, taskListener, androidSdkHome);
         }
 
         // Install the required SDK components for the desired platform, if necessary
@@ -294,13 +288,17 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
         String displayHome = androidSdk.hasKnownRoot() ? androidSdk.getSdkRoot() : Messages.USING_PATH();
         log(logger, Messages.USING_SDK(displayHome));
 
-        return doSetUp(build, launcher, listener, androidSdk, emuConfig, expandedProperties);
+        Environment newEnv = doSetUp(launcher, taskListener, androidSdk, emuConfig, expandedProperties, filePath);
     }
 
+    @Nullable
     @SuppressFBWarnings("DM_DEFAULT_ENCODING")
-    private Environment doSetUp(final AbstractBuild<?, ?> build, final Launcher launcher,
-            final BuildListener listener, final AndroidSdk androidSdk,
-            final EmulatorConfig emuConfig, final HardwareProperty[] hardwareProperties)
+    private Environment doSetUp(final Launcher launcher,
+                                final TaskListener listener,
+                                final AndroidSdk androidSdk,
+                                final EmulatorConfig emuConfig,
+                                final HardwareProperty[] hardwareProperties,
+                                final FilePath workspace)
                 throws IOException, InterruptedException {
         final PrintStream logger = listener.getLogger();
 
@@ -315,11 +313,11 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
             emulatorAlreadyExists = channel.call(task);
         } catch (EmulatorDiscoveryException ex) {
             log(logger, Messages.CANNOT_START_EMULATOR(ex.getMessage()));
-            build.setResult(Result.FAILURE);
+            run.setResult(Result.FAILURE);
             return null;
         } catch (AndroidEmulatorException ex) {
             log(logger, Messages.COULD_NOT_CREATE_EMULATOR(ex.getMessage()));
-            build.setResult(Result.NOT_BUILT);
+            run.setResult(Result.NOT_BUILT);
             return null;
         }
 
@@ -340,7 +338,7 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
             Thread.sleep(delaySecs * 1000);
         }
 
-        final AndroidEmulatorContext emu = new AndroidEmulatorContext(build, launcher, listener, androidSdk);
+        final AndroidEmulatorContext emu = new AndroidEmulatorContext(run, launcher, listener, androidSdk);
 
         // We manually start the adb-server so that later commands will not have to start it,
         // allowing them to complete faster.
@@ -420,7 +418,7 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
         int socket = waitForSocket(launcher, emu.getEmulatorCallbackPort(), ADB_CONNECT_TIMEOUT_MS);
         if (socket < 0) {
             log(logger, Messages.EMULATOR_DID_NOT_START());
-            build.setResult(Result.NOT_BUILT);
+            run.setResult(Result.NOT_BUILT);
             cleanUp(emuConfig, emu, androidSdk);
             return null;
         }
@@ -450,7 +448,7 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
             } else {
                 log(logger, Messages.BOOT_COMPLETION_TIMED_OUT(bootTimeout / 1000));
             }
-            build.setResult(Result.NOT_BUILT);
+            run.setResult(Result.NOT_BUILT);
             cleanUp(emuConfig, emu, androidSdk);
             return null;
         }
@@ -459,11 +457,10 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
         final AdbShellCommands adbShellCmds = SdkCliCommandFactory.getAdbShellCommandForAPILevel(emulatorAPILevel);
 
         // Start dumping logcat to temporary file
-        final FilePath workspace = build.getWorkspace();
         if (workspace == null) {
             throw new BuildNodeUnavailableException();
         }
-        final ArtifactManager artifactManager = build.getArtifactManager();
+        final ArtifactManager artifactManager = run.getArtifactManager();
         final FilePath logcatFile = workspace.createTextTempFile("logcat_", ".log", "", false);
         final OutputStream logcatStream = logcatFile.write();
         final SdkCliCommand adbSetLogCatFormatCmd = adbShellCmds.getSetLogCatFormatToTimeCommand(emu.serial());
@@ -572,7 +569,6 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
             }
 
             @Override
-            @SuppressWarnings("rawtypes")
             public boolean tearDown(AbstractBuild build, BuildListener listener)
                     throws IOException, InterruptedException {
                 cleanUp(emuConfig, emu, androidSdk, logWriter, logcatFile, logcatStream, artifactManager, launcher, listener);
@@ -626,9 +622,15 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
      * @param launcher a launcher used by artifactManager to archive the logcatFile.
      * @param listener a listener used by artifactManager to archive the logcatFile.
      */
-    private void cleanUp(EmulatorConfig emulatorConfig, AndroidEmulatorContext emu, AndroidSdk androidSdk,
-                         @Nullable Proc logcatProcess, @Nullable FilePath logcatFile, @Nullable OutputStream logcatStream,
-                         @Nullable ArtifactManager artifactManager, @Nullable Launcher launcher, @Nullable BuildListener listener)
+    private void cleanUp(EmulatorConfig emulatorConfig,
+                         AndroidEmulatorContext emu,
+                         AndroidSdk androidSdk,
+                         @Nullable Proc logcatProcess,
+                         @Nullable FilePath logcatFile,
+                         @Nullable OutputStream logcatStream,
+                         @Nullable ArtifactManager artifactManager,
+                         @Nullable Launcher launcher,
+                         @Nullable TaskListener listener)
            throws IOException, InterruptedException {
 
         // FIXME: Sometimes on Windows neither the emulator.exe nor the adb.exe processes die.
@@ -668,7 +670,10 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
                 log(emu.logger(), Messages.ARCHIVING_LOG());
                 final FilePath workspace = logcatFile.getParent();
                 final Map<String, String> artifacts = Collections.singletonMap("logcat.txt", logcatFile.getName());
-                artifactManager.archive(workspace, launcher, listener, artifacts);
+
+                if (Functions.isArtifactsPermissionEnabled() && listener instanceof BuildListener) {
+                    artifactManager.archive(workspace, launcher, (BuildListener) listener, artifacts);
+                }
             }
             logcatFile.delete();
         }
@@ -829,6 +834,7 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
         }
 
         @Override
+        @Nonnull
         public String getDisplayName() {
             return Messages.JOB_DESCRIPTION();
         }
@@ -852,7 +858,7 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
             String sdCardSize = null;
             String targetAbi = null;
             String deviceDefinition = null;
-            List<HardwareProperty> hardware = new ArrayList<HardwareProperty>();
+            List<HardwareProperty> hardware = new ArrayList<>();
             boolean wipeData = false;
             boolean showWindow = true;
             boolean useSnapshots = true;

@@ -18,6 +18,7 @@ import hudson.tasks.BuildStepMonitor;
 import hudson.tasks.Publisher;
 import hudson.tasks.Recorder;
 
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.util.regex.Matcher;
@@ -25,6 +26,8 @@ import java.util.regex.Pattern;
 
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.export.Exported;
+
+import javax.annotation.Nonnull;
 
 public class MonkeyRecorder extends Recorder {
 
@@ -66,6 +69,9 @@ public class MonkeyRecorder extends Recorder {
         final FilePath workspace = build.getWorkspace();
         if (workspace == null) {
             throw new BuildNodeUnavailableException();
+        }
+        if (inputFile == null) {
+            throw new FileNotFoundException();
         }
         final FilePath monkeyFile = workspace.child(inputFile);
         String monkeyOutput = null;
@@ -144,6 +150,7 @@ public class MonkeyRecorder extends Recorder {
     public static class DescriptorImpl extends BuildStepDescriptor<Publisher> {
 
         @Override
+        @Nonnull
         public String getDisplayName() {
             return Messages.PUBLISH_MONKEY_OUTPUT();
         }
@@ -154,7 +161,7 @@ public class MonkeyRecorder extends Recorder {
         }
 
         @Override
-        public boolean isApplicable(@SuppressWarnings("rawtypes") Class<? extends AbstractProject> jobType) {
+        public boolean isApplicable(Class<? extends AbstractProject> jobType) {
             return true;
         }
 

@@ -10,7 +10,7 @@ public enum BuildOutcome {
 
     private final String displayName;
 
-    private BuildOutcome(String displayName) {
+    BuildOutcome(String displayName) {
         this.displayName = displayName;
     }
 

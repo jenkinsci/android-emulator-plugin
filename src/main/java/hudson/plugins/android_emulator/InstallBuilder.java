@@ -22,10 +22,8 @@ import org.kohsuke.stapler.StaplerRequest;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.PrintStream;
-import java.io.Serializable;
+import javax.annotation.Nonnull;
+import java.io.*;
 import java.util.regex.Pattern;
 
 public class InstallBuilder extends AbstractBuilder {
@@ -87,6 +85,9 @@ public class InstallBuilder extends AbstractBuilder {
         if (workspace == null) {
             throw new BuildNodeUnavailableException();
         }
+        if (apkFileExpanded == null) {
+            throw new FileNotFoundException();
+        }
         final FilePath apkPath = workspace.child(apkFileExpanded);
 
         // Check whether the file exists
@@ -108,7 +109,10 @@ public class InstallBuilder extends AbstractBuilder {
 
         // Uninstall APK first, if requested
         if (shouldUninstallFirst()) {
-            uninstallApk(build, launcher, logger, androidSdk, deviceIdentifier, apkPath);
+            boolean didUninstall = uninstallApk(build, launcher, logger, androidSdk, deviceIdentifier, apkPath);
+            if (!didUninstall) {
+                AndroidEmulator.log(logger, "Failed to uninstall APK!");
+            }
         }
 
         // Execute installation
@@ -122,10 +126,7 @@ public class InstallBuilder extends AbstractBuilder {
 
         Pattern p = Pattern.compile("^Success$", Pattern.MULTILINE);
         boolean success = p.matcher(stdout.toString()).find();
-        if (!success && failOnInstallFailure) {
-            return false;
-        }
-        return true;
+        return success || !failOnInstallFailure;
     }
 
     @Extension
@@ -150,6 +151,7 @@ public class InstallBuilder extends AbstractBuilder {
         }
 
         @Override
+        @Nonnull
         public String getDisplayName() {
             return Messages.INSTALL_ANDROID_PACKAGE();
         }

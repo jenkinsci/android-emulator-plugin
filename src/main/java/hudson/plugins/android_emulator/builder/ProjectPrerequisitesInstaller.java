@@ -27,6 +27,8 @@ import java.util.HashSet;
 import org.apache.tools.ant.DirectoryScanner;
 import org.kohsuke.stapler.DataBoundConstructor;
 
+import javax.annotation.Nonnull;
+
 public class ProjectPrerequisitesInstaller extends AbstractBuilder {
 
     @DataBoundConstructor
@@ -92,7 +94,7 @@ public class ProjectPrerequisitesInstaller extends AbstractBuilder {
             scanner.scan();
 
             // Extract platform from each config file
-            Collection<String> platforms = new HashSet<String>();
+            Collection<String> platforms = new HashSet<>();
             String[] files = scanner.getIncludedFiles();
             if (files != null) {
                 for (String filename : files) {
@@ -140,6 +142,7 @@ public class ProjectPrerequisitesInstaller extends AbstractBuilder {
         }
 
         @Override
+        @Nonnull
         public String getDisplayName() {
             return Messages.INSTALL_PREREQUISITES();
         }

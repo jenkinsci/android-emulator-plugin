@@ -3,12 +3,7 @@ package hudson.plugins.android_emulator.builder;
 import hudson.EnvVars;
 import hudson.FilePath;
 import hudson.Launcher;
-import hudson.model.AbstractBuild;
-import hudson.model.BuildListener;
-import hudson.model.Computer;
-import hudson.model.EnvironmentContributingAction;
-import hudson.model.Node;
-import hudson.model.TaskListener;
+import hudson.model.*;
 import hudson.plugins.android_emulator.AndroidEmulator;
 import hudson.plugins.android_emulator.AndroidEmulator.DescriptorImpl;
 import hudson.plugins.android_emulator.Constants;
@@ -31,8 +26,11 @@ import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintStream;
+import java.util.Objects;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
+import javax.annotation.Nonnull;
 
 import static hudson.plugins.android_emulator.AndroidEmulator.log;
 
@@ -68,10 +66,8 @@ public abstract class AbstractBuilder extends Builder {
         Node node = Computer.currentComputer().getNode();
 
         // Get Android SDK object from the given root (or locate on PATH)
-        final String androidSdkHome = (envVars != null && keepInWorkspace ? envVars
-                .get(Constants.ENV_VAR_JENKINS_WORKSPACE) : null);
-        AndroidSdk androidSdk = Utils
-                .getAndroidSdk(launcher, node, envVars, configuredAndroidSdkRoot, androidSdkHome);
+        final String androidSdkHome = (keepInWorkspace ? envVars.get(Constants.ENV_VAR_JENKINS_WORKSPACE) : null);
+        AndroidSdk androidSdk = Utils.getAndroidSdk(launcher, node, envVars, configuredAndroidSdkRoot, androidSdkHome);
 
         // Check whether we should install the SDK
         if (androidSdk == null) {
@@ -102,10 +98,8 @@ public abstract class AbstractBuilder extends Builder {
         final String sdkRoot = androidSdk.getSdkRoot();
         build.addAction(new EnvironmentContributingAction() {
 
-            public void buildEnvVars(AbstractBuild<?, ?> build, EnvVars envVars) {
-                if (envVars != null) {
-                    envVars.put(Constants.ENV_VAR_ANDROID_HOME, sdkRoot);
-                }
+            public void buildEnvironment(@Nonnull Run<?, ?> build, @Nonnull EnvVars envVars) {
+                envVars.put(Constants.ENV_VAR_ANDROID_HOME, sdkRoot);
             }
 
             public String getUrlName() {
@@ -172,7 +166,7 @@ public abstract class AbstractBuilder extends Builder {
             String variable) {
         String varFormat = String.format("$%s", variable);
         String value = Utils.expandVariables(build, listener, varFormat);
-        if (value.equals(varFormat)) {
+        if (Objects.equals(value, varFormat)) {
             // Variable did not expand to anything
             return null;
         }

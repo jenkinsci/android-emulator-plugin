@@ -18,6 +18,7 @@ import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.QueryParameter;
 import org.kohsuke.stapler.StaplerRequest;
 
+import javax.annotation.Nonnull;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.io.Serializable;
@@ -76,10 +77,7 @@ public class UninstallBuilder extends AbstractBuilder {
 
         // Execute uninstallation
         boolean success = uninstallApk(build, launcher, logger, androidSdk, deviceIdentifier, expandedPackageId);
-        if (!success && failOnUninstallFailure) {
-            return false;
-        }
-        return true;
+        return success || !failOnUninstallFailure;
     }
 
     @Extension
@@ -104,6 +102,7 @@ public class UninstallBuilder extends AbstractBuilder {
         }
 
         @Override
+        @Nonnull
         public String getDisplayName() {
             return Messages.UNINSTALL_ANDROID_PACKAGE();
         }
