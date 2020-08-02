@@ -60,6 +60,9 @@ public class SdkInstaller {
     /**
      * Downloads and installs the Android SDK on the machine we're executing on.
      *
+     * @param launcher
+     * @param listener
+     * @param androidSdkHome
      * @return An {@code AndroidSdk} object for the newly-installed SDK.
      */
     public static AndroidSdk install(Launcher launcher, BuildListener listener, String androidSdkHome)
@@ -271,6 +274,8 @@ public class SdkInstaller {
      * @param platform Specifies the platform to be installed.
      * @param abi Specifies the ABI to be installed; may be {@code null}.
      * @param skipSystemImageInstall Specifies that the system image does not need to be installed (useful for named emulator)
+     * @throws IOException
+     * @throws InterruptedException
      */
     public static void installPlatform(PrintStream logger, Launcher launcher, AndroidSdk sdk,
             String platform, String abi, final boolean skipSystemImageInstall) throws IOException, InterruptedException {
@@ -419,6 +424,7 @@ public class SdkInstaller {
      *
      * @param launcher Used for running tasks on the remote node.
      * @param listener Used to access logger.
+     * @param androidSdkHome
      */
     public static void optOutOfSdkStatistics(Launcher launcher, BuildListener listener, String androidSdkHome) {
         Callable<Void, Exception> optOutTask = new StatsOptOutTask(androidSdkHome, listener);

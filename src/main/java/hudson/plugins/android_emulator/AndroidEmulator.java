@@ -581,12 +581,12 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
         };
     }
 
-    /** Helper method for writing to the build log in a consistent manner. */
+    /* Helper method for writing to the build log in a consistent manner. */
     public synchronized static void log(final PrintStream logger, final String message) {
         log(logger, message, false);
     }
 
-    /** Helper method for writing to the build log in a consistent manner. */
+    /* Helper method for writing to the build log in a consistent manner. */
     public synchronized static void log(final PrintStream logger, final String message, final Throwable t) {
         log(logger, message, false);
         StringWriter s = new StringWriter();
@@ -594,7 +594,7 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
         log(logger, s.toString(), false);
     }
 
-    /** Helper method for writing to the build log in a consistent manner. */
+    /* Helper method for writing to the build log in a consistent manner. */
     public synchronized static void log(final PrintStream logger, String message, boolean indent) {
         if (indent) {
             message = '\t' + message.replace("\n", "\n\t");
@@ -917,32 +917,32 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
             return true;
         }
 
-        /** Used in config.jelly: Lists the OS versions available. */
+        /* Used in config.jelly: Lists the OS versions available. */
         public String[] getAndroidVersions() {
             return AndroidPlatform.getAllPossibleVersionNames();
         }
 
-        /** Used in config.jelly: Lists the screen densities available. */
+        /* Used in config.jelly: Lists the screen densities available. */
         public ScreenDensity[] getDeviceDensities() {
             return ScreenDensity.values();
         }
 
-        /** Used in config.jelly: Lists the screen resolutions available. */
+        /* Used in config.jelly: Lists the screen resolutions available. */
         public ScreenResolution[] getDeviceResolutions() {
             return ScreenResolution.values();
         }
 
-        /** Used in config.jelly: Lists the locales available. */
+        /* Used in config.jelly: Lists the locales available. */
         public String[] getEmulatorLocales() {
             return Constants.EMULATOR_LOCALES;
         }
 
-        /** Used in config.jelly: Lists common hardware properties that can be set. */
+        /* Used in config.jelly: Lists common hardware properties that can be set. */
         public String[] getHardwareProperties() {
             return Constants.HARDWARE_PROPERTIES;
         }
 
-        /** Used in config.jelly: Lists common ABIs that can be set. */
+        /* Used in config.jelly: Lists common ABIs that can be set. */
         public String[] getTargetAbis() {
             return Constants.TARGET_ABIS;
         }

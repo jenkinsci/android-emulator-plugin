@@ -42,9 +42,11 @@ public final class StdoutReader
     }
 
     /**
-     * Creates a new StdoutReader starting to read the data
-     * immediately of the given InputStream in an own thread.
+     * Creates a new StdoutReader starting to read the data immediately of the
+     * given InputStream in an own thread.
+     * 
      * @param inputStream InputStream to read the data from
+     * @return a reader for the given input stream
      */
     public static StdoutReader createAndRunAsyncReader(final InputStream inputStream) {
         final StdoutReader instance = new StdoutReader(inputStream);

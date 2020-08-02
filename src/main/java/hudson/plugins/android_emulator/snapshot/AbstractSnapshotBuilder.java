@@ -41,15 +41,15 @@ public abstract class AbstractSnapshotBuilder extends AbstractBuilder {
         return Utils.sendEmulatorCommand(launcher, logger, port, command, getCommandTimeout());
     }
 
-    /** Retrieves the time in which the snapshot command should complete, in milliseconds. */
+    /* Retrieves the time in which the snapshot command should complete, in milliseconds. */
     protected int getCommandTimeout() {
         return DEFAULT_TIMEOUT_MS;
     }
 
-    /** Retrieves the snapshot action to execute (i.e. "load" or "save"). */
+    /* Retrieves the snapshot action to execute (i.e. "load" or "save"). */
     protected abstract String getSnapshotAction();
 
-    /** Retrieves the log message to print when performing the snapshot action. */
+    /* Retrieves the log message to print when performing the snapshot action. */
     protected abstract String getLogMessage(String snapshotName, int avdPort);
 
 }

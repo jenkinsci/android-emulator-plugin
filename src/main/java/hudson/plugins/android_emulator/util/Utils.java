@@ -296,6 +296,7 @@ public class Utils {
     /**
      * Locates the Android SDK home directory using the same scheme as the Android SDK does.
      *
+     * @param androidSdkHome
      * @return A {@link File} representing the directory in which the ".android" subdirectory should go.
      */
     public static File getAndroidSdkHomeDirectory(String androidSdkHome) {
@@ -378,6 +379,7 @@ public class Utils {
     /**
      * Retrieves the path at which the Android SDK should be installed on the current node.
      *
+     * @param node
      * @return Path within the tools folder where the SDK should live.
      */
     public static final FilePath getSdkInstallDirectory(Node node) {
@@ -714,7 +716,7 @@ public class Utils {
 
     /**
      * Determines the number of steps required to get between two paths.
-     * <p/>
+     * <p>
      * e.g. To get from "/foo/bar/baz" to "/foo/blah" requires making three steps:
      * <ul>
      * <li>"/foo/bar"</li>
@@ -822,8 +824,8 @@ public class Utils {
      *
      * @param strVersionA version number to compare against {@code strVersionB}
      * @param strVersionB version number to compare against {@code strVersionA}
-     * @param partsToCompare if > 0 then the number of parts for that version number are compared,
-     * if <= 0 the complete version number is compared
+     * @param partsToCompare if &gt; 0 then the number of parts for that version number are compared,
+     * if &lt;= 0 the complete version number is compared
      * @return {@code true} if the versions number (or if requested parts of the version numbers) are identical,
      * {@code false} otherwise
      */

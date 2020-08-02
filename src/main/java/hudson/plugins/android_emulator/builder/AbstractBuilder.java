@@ -48,6 +48,8 @@ public abstract class AbstractBuilder extends Builder {
      * @param launcher The launcher for the remote node.
      * @param listener The listener used to get the environment variables.
      * @return An Android SDK instance, or {@code null} if none could be found or installed.
+     * @throws IOException
+     * @throws InterruptedException
      */
     protected static AndroidSdk getAndroidSdk(AbstractBuild<?, ?> build, Launcher launcher,
             BuildListener listener) throws IOException, InterruptedException {
@@ -184,6 +186,10 @@ public abstract class AbstractBuilder extends Builder {
     /**
      * Waits for the "android.process.acore" process to start, as this is a prerequisite for using the package manager.
      *
+     * @param build
+     * @param launcher
+     * @param androidSdk
+     * @param deviceIdentifier
      * @return {@code true} if the process has started; {@code false} if it did not start within a reasonable timeout.
      */
     @SuppressFBWarnings("DM_DEFAULT_ENCODING")
