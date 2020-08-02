@@ -8,7 +8,7 @@
 
     <artifactId>android-emulator</artifactId>
     <packaging>hpi</packaging>
-    <version>3.1</version>
+    <version>3.2-SNAPSHOT</version>
     <name>Android Emulator Plugin</name>
     <url>http://wiki.jenkins-ci.org/display/JENKINS/Android+Emulator+Plugin</url>
 
@@ -66,7 +66,7 @@
     <scm>
         <connection>scm:git:git://github.com/jenkinsci/android-emulator-plugin.git</connection>
         <developerConnection>scm:git:git@github.com:jenkinsci/android-emulator-plugin.git</developerConnection>
-        <tag>android-emulator-3.1</tag>
+        <tag>HEAD</tag>
     </scm>
 
     <repositories>
