@@ -5,10 +5,8 @@
       title="${%Run existing emulator}" checked="${instance.useNamedEmulator}"
       help="/plugin/android-emulator/help-emulatorNamed.html">
     <f:nested>
-        <f:entry title="${%AVD name}">
-          <f:textbox name="android-emulator.avdName" value="${instance.avdName}"
-              checkUrl="'descriptorByName/AndroidEmulator/checkAvdName?value='+escape(this.value)"/>
-          <f:description>${%Enter the name of an existing Android emulator configuration}</f:description>
+        <f:entry title="${%AVD name}" field="avdName" description="${%Enter the name of an existing Android emulator configuration}">
+          <f:textbox checkUrl="'descriptorByName/AndroidEmulator/checkAvdName?value='+escape(this.value)"/>
         </f:entry>
     </f:nested>
   </f:radioBlock>
@@ -81,37 +79,40 @@
     </f:nested>
   </f:radioBlock>
 
-  <f:section title="${%Common emulator options}">
-    <f:entry title="${%Reset emulator state at start-up}" field="wipeData">
-      <f:checkbox />
-    </f:entry>
-    <f:entry title="${%Show emulator window}" field="showWindow">
-      <f:checkbox />
-    </f:entry>
-    <f:entry title="${%Use emulator snapshots}" field="useSnapshots">
-      <f:checkbox />
-    </f:entry>
-
-    <f:advanced>
-      <f:entry title="${%Delete emulator after build}" field="deleteAfterBuild">
-        <f:checkbox />
-      </f:entry>
-      <f:entry title="${%Startup delay}" field="startupDelay" description="${%Wait this many seconds before attempting to start the emulator}">
-        <f:number default="0" />
-      </f:entry>
-      <f:entry title="${%Startup timeout}" field="startupTimeout" description="${%Wait this many seconds before aborting the startup of the emulator}">
-        <f:number />
-      </f:entry>
-      <f:entry title="${%ADB timeout}" field="adbTimeout" description="${%Wait this many seconds for ADB to be available}">
-        <f:number default="60" />
-      </f:entry>
-      <f:entry title="${%Emulator options}" field="commandLineOptions" description="${%Will be given when starting the Android &lt;tt>emulator&lt;/tt> executable}">
-        <f:textbox />
-      </f:entry>
-      <f:entry title="${%Emulator executable}" field="executable">
-          <f:editableComboBox items="${descriptor.executables}" checkUrl="'descriptorByName/AndroidEmulator/checkExecutable?value='+escape(this.value)" />
-      </f:entry>
-    </f:advanced>
-  </f:section>
-
+<f:block>
+  <table width="100%">
+      <f:section title="${%Common emulator options}">
+        <f:entry title="${%Reset emulator state at start-up}" field="wipeData">
+          <f:checkbox />
+        </f:entry>
+        <f:entry title="${%Show emulator window}" field="showWindow">
+          <f:checkbox />
+        </f:entry>
+        <f:entry title="${%Use emulator snapshots}" field="useSnapshots">
+          <f:checkbox />
+        </f:entry>
+    
+        <f:advanced>
+          <f:entry title="${%Delete emulator after build}" field="deleteAfterBuild">
+            <f:checkbox />
+          </f:entry>
+          <f:entry title="${%Startup delay}" field="startupDelay" description="${%Wait this many seconds before attempting to start the emulator}">
+            <f:number default="0" />
+          </f:entry>
+          <f:entry title="${%Startup timeout}" field="startupTimeout" description="${%Wait this many seconds before aborting the startup of the emulator}">
+            <f:number />
+          </f:entry>
+          <f:entry title="${%ADB timeout}" field="adbTimeout" description="${%Wait this many seconds for ADB to be available}">
+            <f:number default="60" />
+          </f:entry>
+          <f:entry title="${%Emulator options}" field="commandLineOptions" description="${%Will be given when starting the Android &lt;tt>emulator&lt;/tt> executable}">
+            <f:textbox />
+          </f:entry>
+          <f:entry title="${%Emulator executable}" field="executable">
+              <f:editableComboBox items="${descriptor.executables}" checkUrl="'descriptorByName/AndroidEmulator/checkExecutable?value='+escape(this.value)" />
+          </f:entry>
+        </f:advanced>
+      </f:section>
+  </table>
+  </f:block>
 </j:jelly>

@@ -100,7 +100,7 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
     @Exported public final int startupTimeout;
     @Exported public final String commandLineOptions;
     @Exported public final String executable;
-    private int adbTimeout = ADB_CONNECT_TIMEOUT;
+    private int adbTimeout;
 
 
     @DataBoundConstructor
@@ -815,6 +815,23 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
         this.adbTimeout = adbTimeout;
     }
 
+    /**
+     * Migrate old data.
+     *
+     * @see <a href=
+     *      "https://wiki.jenkins-ci.org/display/JENKINS/Hint+on+retaining+backward+compatibility">
+     *      Jenkins wiki entry on the subject</a>
+     *
+     * @return must be always 'this'
+     */
+    private Object readResolve() {
+        // When these values would be missing in the xml config their values are defaults. Otherwise it equals the value from xml-config.
+        if (adbTimeout == 0) {
+            adbTimeout = ADB_CONNECT_TIMEOUT;
+        }
+        return this;
+    }
+
     @Extension(ordinal=-100) // Negative ordinal makes us execute after other wrappers (i.e. Xvnc)
     public static final class DescriptorImpl extends BuildWrapperDescriptor implements Serializable {
 
@@ -868,6 +885,7 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
             boolean deleteAfterBuild = false;
             int startupDelay = 0;
             int startupTimeout = 0;
+            int adbTimeout = ADB_CONNECT_TIMEOUT;
             String commandLineOptions = null;
             String executable = null;
             String avdNameSuffix = null;
@@ -900,11 +918,16 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
             try {
                 startupTimeout = Integer.parseInt(formData.getString("startupTimeout"));
             } catch (NumberFormatException e) {}
+            try {
+                adbTimeout = Integer.parseInt(formData.getString("adbTimeout"));
+            } catch (NumberFormatException e) {}
 
-            return new AndroidEmulator(avdName, osVersion, screenDensity, screenResolution,
+            AndroidEmulator androidEmulator = new AndroidEmulator(avdName, osVersion, screenDensity, screenResolution,
                     deviceLocale, sdCardSize, hardware.toArray(new HardwareProperty[0]), wipeData,
                     showWindow, useSnapshots, deleteAfterBuild, startupDelay, startupTimeout, commandLineOptions,
                     targetAbi, deviceDefinition, executable, avdNameSuffix);
+            androidEmulator.setAdbTimeout(adbTimeout);
+            return androidEmulator;
         }
 
         @Override
