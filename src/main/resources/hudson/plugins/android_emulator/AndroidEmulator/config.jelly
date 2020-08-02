@@ -1,144 +1,117 @@
 <?jelly escape-by-default=true?>
 <j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define" xmlns:l="/lib/layout" xmlns:t="/lib/hudson" xmlns:f="/lib/form">
 
-  <f:block>
-    <table style="margin-left:2em">
-
-      <f:radioBlock name="android-emulator.useNamed" value="true"
-          title="${%Run existing emulator}" checked="${instance.useNamedEmulator}"
-          help="/plugin/android-emulator/help-emulatorNamed.html">
-        <f:block>
-          <table style="margin-left:2em">
-            <f:entry title="${%AVD name}" help="/plugin/android-emulator/help-avdName.html">
-              <f:textbox name="android-emulator.avdName" value="${instance.avdName}"
-                  checkUrl="'descriptorByName/AndroidEmulator/checkAvdName?value='+escape(this.value)"/>
-              <f:description>${%Enter the name of an existing Android emulator configuration}</f:description>
-            </f:entry>
-          </table>
-        </f:block>
-      </f:radioBlock>
-
-      <f:radioBlock name="android-emulator.useNamed" value="false"
-          title="${%Run emulator with properties}" checked="${!instance.useNamedEmulator}"
-          help="/plugin/android-emulator/help-emulatorCustom.html">
-        <f:block>
-          <table style="margin-left:2em">
-            <f:entry title="${%Android OS version}" help="/plugin/android-emulator/help-osVersion.html">
-              <f:editableComboBox id="android-emulator.osVersion" field="osVersion"
-                  items="${descriptor.androidVersions}"
-                  checkUrl="'descriptorByName/AndroidEmulator/checkOsVersion?value='+escape(this.value)" />
-            </f:entry>
-            <f:entry title="${%Screen density}" help="/plugin/android-emulator/help-screenDensity.html">
-              <f:editableComboBox name="android-emulator.screenDensity" field="screenDensity"
-                  items="${descriptor.deviceDensities}"
-                  checkUrl="'descriptorByName/AndroidEmulator/checkScreenDensity?value='+escape(this.value)" />
-            </f:entry>
-            <f:entry title="${%Screen resolution}" help="/plugin/android-emulator/help-screenResolution.html">
-              <f:editableComboBox id="android-emulator.screenResolution" field="screenResolution"
-                  items="${descriptor.deviceResolutions}"
-                  checkUrl="'descriptorByName/AndroidEmulator/checkScreenResolution?value='+ escape(this.value)
-                      +'&amp;density='+ escape(Form.findMatchingInput(this,'android-emulator.screenDensity').value)
-                      +'&amp;osVersion='+ escape(document.getElementById('android-emulator.osVersion').value)" />
-            </f:entry>
-            <f:entry title="${%Device Definition}" help="/plugin/android-emulator/help-deviceDefinition.html">
-              <f:textbox name="android-emulator.deviceDefinition" value="${instance.deviceDefinition}" style="width:6em"
-                  checkUrl="'descriptorByName/AndroidEmulator/checkDeviceDefinition?value='+escape(this.value)" />
-            </f:entry>
-            <f:entry title="${%Device locale}" help="/plugin/android-emulator/help-deviceLocale.html">
-              <f:editableComboBox id="android-emulator.deviceLocale" field="deviceLocale"
-                  items="${descriptor.emulatorLocales}"
-                  checkUrl="'descriptorByName/AndroidEmulator/checkDeviceLocale?value='+escape(this.value)" />
-            </f:entry>
-            <f:entry title="${%SD card size}" help="/plugin/android-emulator/help-sdCard.html">
-              <f:textbox name="android-emulator.sdCardSize" value="${instance.sdCardSize}" style="width:6em"
-                  checkUrl="'descriptorByName/AndroidEmulator/checkSdCardSize?value='+escape(this.value)" />
-            </f:entry>
-            <f:entry title="${%Target ABI}" help="/plugin/android-emulator/help-targetAbi.html">
-                <f:editableComboBox id="android-emulator.targetAbi" field="targetAbi"
-                                    items="${descriptor.targetAbis}"
-                                    checkUrl="'descriptorByName/AndroidEmulator/checkTargetAbi?value='+escape(this.value)" />
-            </f:entry>
-            <f:entry title="${%Emulator name suffix}" help="/plugin/android-emulator/help-avdNameSuffix.html">
-              <f:textbox name="android-emulator.avdNameSuffix" value="${instance.avdNameSuffix}" style="width:12em" />
-            </f:entry>
-
-            <f:entry title="${%Hardware}" help="/plugin/android-emulator/help-hardware.html">
-              <f:repeatable var="hw" name="hardwareProperties" items="${instance.hardwareProperties}"
-                  add="${%Add custom hardware property...}" minimum="0">
-                <table width="100%">
-                  <tr>
-                    <td>${%Property}</td>
-                    <td><f:editableComboBox name="key" value="${hw.key}" items="${descriptor.hardwareProperties}" />
-                    </td>
-                  </tr>
-                  <tr>
-                    <td>${%Value}</td>
-                    <td><f:textbox name="value" value="${hw.value}" style="width:13em" /></td>
-                  </tr>
-
-                  <f:entry title="">
-                    <div align="right">
-                      <f:repeatableDeleteButton value="${%Remove}" />
-                    </div>
-                  </f:entry>
-                </table>
-              </f:repeatable>
-            </f:entry>
-
-          </table>
-        </f:block>
-      </f:radioBlock>
-
-      <f:section title="${%Common emulator options}">
-        <f:entry help="/plugin/android-emulator/help-wipeData.html">
-          <f:checkbox id="android-emulator.wipeData" name="android-emulator.wipeData"
-              checked="${instance.wipeData}" />
-          <label class="attach-previous">${%Reset emulator state at start-up}</label>
+  <f:radioBlock name="android-emulator.useNamed" value="true"
+      title="${%Run existing emulator}" checked="${instance.useNamedEmulator}"
+      help="/plugin/android-emulator/help-emulatorNamed.html">
+    <f:nested>
+        <f:entry title="${%AVD name}">
+          <f:textbox name="android-emulator.avdName" value="${instance.avdName}"
+              checkUrl="'descriptorByName/AndroidEmulator/checkAvdName?value='+escape(this.value)"/>
+          <f:description>${%Enter the name of an existing Android emulator configuration}</f:description>
         </f:entry>
-        <f:entry help="/plugin/android-emulator/help-showWindow.html">
-          <f:checkbox id="android-emulator.showWindow" name="android-emulator.showWindow"
-              checked="${instance.showWindow}" />
-          <label class="attach-previous">${%Show emulator window}</label>
-        </f:entry>
-        <f:entry help="/plugin/android-emulator/help-useSnapshots.html">
-          <f:checkbox id="android-emulator.useSnapshots" name="android-emulator.useSnapshots"
-              checked="${instance.useSnapshots}" />
-          <label class="attach-previous">${%Use emulator snapshots}</label>
-        </f:entry>
-      </f:section>
+    </f:nested>
+  </f:radioBlock>
 
-    </table>
-  </f:block>
+  <f:radioBlock name="android-emulator.useNamed" value="false"
+      title="${%Run emulator with properties}" checked="${!instance.useNamedEmulator}"
+      help="/plugin/android-emulator/help-emulatorCustom.html">
+    <f:nested>
+        <f:entry title="${%Android OS version}" help="/plugin/android-emulator/help-osVersion.html">
+          <f:editableComboBox id="android-emulator.osVersion" field="osVersion"
+              items="${descriptor.androidVersions}"
+              checkUrl="'descriptorByName/AndroidEmulator/checkOsVersion?value='+escape(this.value)" />
+        </f:entry>
+        <f:entry title="${%Screen density}" help="/plugin/android-emulator/help-screenDensity.html">
+          <f:editableComboBox name="android-emulator.screenDensity" field="screenDensity"
+              items="${descriptor.deviceDensities}"
+              checkUrl="'descriptorByName/AndroidEmulator/checkScreenDensity?value='+escape(this.value)" />
+        </f:entry>
+        <f:entry title="${%Screen resolution}" help="/plugin/android-emulator/help-screenResolution.html">
+          <f:editableComboBox id="android-emulator.screenResolution" field="screenResolution"
+              items="${descriptor.deviceResolutions}"
+              checkUrl="'descriptorByName/AndroidEmulator/checkScreenResolution?value='+ escape(this.value)
+                  +'&amp;density='+ escape(Form.findMatchingInput(this,'android-emulator.screenDensity').value)
+                  +'&amp;osVersion='+ escape(document.getElementById('android-emulator.osVersion').value)" />
+        </f:entry>
+        <f:entry title="${%Device Definition}" help="/plugin/android-emulator/help-deviceDefinition.html">
+          <f:textbox name="android-emulator.deviceDefinition" value="${instance.deviceDefinition}" style="width:6em"
+              checkUrl="'descriptorByName/AndroidEmulator/checkDeviceDefinition?value='+escape(this.value)" />
+        </f:entry>
+        <f:entry title="${%Device locale}" help="/plugin/android-emulator/help-deviceLocale.html">
+          <f:editableComboBox id="android-emulator.deviceLocale" field="deviceLocale"
+              items="${descriptor.emulatorLocales}"
+              checkUrl="'descriptorByName/AndroidEmulator/checkDeviceLocale?value='+escape(this.value)" />
+        </f:entry>
+        <f:entry title="${%SD card size}" help="/plugin/android-emulator/help-sdCard.html">
+          <f:textbox name="android-emulator.sdCardSize" value="${instance.sdCardSize}" style="width:6em"
+              checkUrl="'descriptorByName/AndroidEmulator/checkSdCardSize?value='+escape(this.value)" />
+        </f:entry>
+        <f:entry title="${%Target ABI}" help="/plugin/android-emulator/help-targetAbi.html">
+            <f:editableComboBox id="android-emulator.targetAbi" field="targetAbi"
+                                items="${descriptor.targetAbis}"
+                                checkUrl="'descriptorByName/AndroidEmulator/checkTargetAbi?value='+escape(this.value)" />
+        </f:entry>
+        <f:entry title="${%Emulator name suffix}" help="/plugin/android-emulator/help-avdNameSuffix.html">
+          <f:textbox name="android-emulator.avdNameSuffix" value="${instance.avdNameSuffix}" style="width:12em" />
+        </f:entry>
 
-  <f:block>
-    <table style="margin-left:2em">
-      <f:advanced>
-        <f:entry title="${%Post-build}" help="/plugin/android-emulator/help-deleteAfterBuild.html">
-          <f:checkbox id="android-emulator.deleteAfterBuild" name="android-emulator.deleteAfterBuild"
-              checked="${instance.deleteAfterBuild}" />
-          <label class="attach-previous">${%Delete emulator after build}</label>
-        </f:entry>
-        <f:entry title="${%Startup delay}" help="/plugin/android-emulator/help-startupDelay.html">
-          <f:textbox name="android-emulator.startupDelay" value="${instance.startupDelay}" style="width:3em"
-              default="0" />
-          <f:description>${%Wait this many seconds before attempting to start the emulator}</f:description>
-        </f:entry>
-        <f:entry title="${%Startup timeout}" help="/plugin/android-emulator/help-startupTimeout.html">
-          <f:textbox name="android-emulator.startupTimeout" value="${instance.startupTimeout}" style="width:4em"/>
-          <f:description>${%Wait this many seconds before aborting the startup of the emulator}</f:description>
-        </f:entry>
-        <f:entry title="${%Emulator options}" help="/plugin/android-emulator/help-commandLineOptions.html">
-          <f:textbox name="android-emulator.commandLineOptions" value="${instance.commandLineOptions}" />
-          <f:description>${%Will be given when starting the Android &lt;tt>emulator&lt;/tt> executable}</f:description>
-        </f:entry>
-        <f:entry title="${%Emulator executable}" help="/plugin/android-emulator/help-executable.html">
+        <f:entry title="${%Hardware}" help="/plugin/android-emulator/help-hardware.html">
+          <f:repeatable var="hw" name="hardwareProperties" items="${instance.hardwareProperties}"
+              add="${%Add custom hardware property...}" minimum="0">
+            <table width="100%">
+              <tr>
+                <td>${%Property}</td>
+                <td><f:editableComboBox name="key" value="${hw.key}" items="${descriptor.hardwareProperties}" />
+                </td>
+              </tr>
+              <tr>
+                <td>${%Value}</td>
+                <td><f:textbox name="value" value="${hw.value}" style="width:13em" /></td>
+              </tr>
 
-            <f:editableComboBox id="android-emulator.executable" field="executable"
-                                items="${descriptor.executables}"
-                                checkUrl="'descriptorByName/AndroidEmulator/checkExecutable?value='+escape(this.value)" />
+              <f:entry title="">
+                <div align="right">
+                  <f:repeatableDeleteButton value="${%Remove}" />
+                </div>
+              </f:entry>
+            </table>
+          </f:repeatable>
         </f:entry>
-       </f:advanced>
-    </table>
-  </f:block>
+    </f:nested>
+  </f:radioBlock>
+
+  <f:section title="${%Common emulator options}">
+    <f:entry title="${%Reset emulator state at start-up}" field="wipeData">
+      <f:checkbox />
+    </f:entry>
+    <f:entry title="${%Show emulator window}" field="showWindow">
+      <f:checkbox />
+    </f:entry>
+    <f:entry title="${%Use emulator snapshots}" field="useSnapshots">
+      <f:checkbox />
+    </f:entry>
+
+    <f:advanced>
+      <f:entry title="${%Delete emulator after build}" field="deleteAfterBuild">
+        <f:checkbox />
+      </f:entry>
+      <f:entry title="${%Startup delay}" field="startupDelay" description="${%Wait this many seconds before attempting to start the emulator}">
+        <f:number default="0" />
+      </f:entry>
+      <f:entry title="${%Startup timeout}" field="startupTimeout" description="${%Wait this many seconds before aborting the startup of the emulator}">
+        <f:number />
+      </f:entry>
+      <f:entry title="${%ADB timeout}" field="adbTimeout" description="${%Wait this many seconds for ADB to be available}">
+        <f:number default="60" />
+      </f:entry>
+      <f:entry title="${%Emulator options}" field="commandLineOptions" description="${%Will be given when starting the Android &lt;tt>emulator&lt;/tt> executable}">
+        <f:textbox />
+      </f:entry>
+      <f:entry title="${%Emulator executable}" field="executable">
+          <f:editableComboBox items="${descriptor.executables}" checkUrl="'descriptorByName/AndroidEmulator/checkExecutable?value='+escape(this.value)" />
+      </f:entry>
+    </f:advanced>
+  </f:section>
 
 </j:jelly>

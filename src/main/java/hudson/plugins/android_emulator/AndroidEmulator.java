@@ -36,6 +36,7 @@ import jenkins.model.Jenkins;
 import net.sf.json.JSONObject;
 
 import org.kohsuke.stapler.DataBoundConstructor;
+import org.kohsuke.stapler.DataBoundSetter;
 import org.kohsuke.stapler.QueryParameter;
 import org.kohsuke.stapler.StaplerRequest;
 import org.kohsuke.stapler.export.Exported;
@@ -64,7 +65,7 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
     private static final long serialVersionUID = 1L;
 
     /** Duration by which the emulator should start being available via adb. */
-    private static final int ADB_CONNECT_TIMEOUT_MS = 60 * 1000;
+    private static final int ADB_CONNECT_TIMEOUT= 60;
 
     /** Duration by which emulator booting should normally complete. */
     private static final int BOOT_COMPLETE_TIMEOUT_MS = 360 * 1000;
@@ -99,6 +100,7 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
     @Exported public final int startupTimeout;
     @Exported public final String commandLineOptions;
     @Exported public final String executable;
+    private int adbTimeout = ADB_CONNECT_TIMEOUT;
 
 
     @DataBoundConstructor
@@ -375,8 +377,7 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
 
         // Compile complete command for starting emulator
         final String emulatorArgs = emuConfig.getCommandArguments(snapshotState, androidSdk,
-                emu.userPort(), emu.adbPort(), emu.getEmulatorCallbackPort(),
-                ADB_CONNECT_TIMEOUT_MS / 1000);
+                emu.userPort(), emu.adbPort(), emu.getEmulatorCallbackPort(), adbTimeout);
 
         final EnvVars additionalEnvVars = Utils.getEnvironmentVarsFromEmulatorArgs(emulatorArgs);
 
@@ -417,7 +418,7 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
         // cope without this.
 
         // Wait for TCP socket to become available
-        int socket = waitForSocket(launcher, emu.getEmulatorCallbackPort(), ADB_CONNECT_TIMEOUT_MS);
+        int socket = waitForSocket(launcher, emu.getEmulatorCallbackPort(), adbTimeout * 1000);
         if (socket < 0) {
             log(logger, Messages.EMULATOR_DID_NOT_START());
             build.setResult(Result.NOT_BUILT);
@@ -480,7 +481,6 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
             Thread.sleep(bootDuration / 4);
 
             log(logger, Messages.UNLOCKING_SCREEN());
-            final long adbTimeout = BOOT_COMPLETE_TIMEOUT_MS / 16;
 
             final SdkCliCommand adbUnlockCmd = adbShellCmds.getDismissKeyguardCommand(emu.serial());
             ArgumentListBuilder unlockCmd = emu.getToolCommand(adbUnlockCmd);
@@ -804,6 +804,15 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
         }
 
         return false;
+    }
+
+    public int getAdbTimeout() {
+        return adbTimeout;
+    }
+
+    @DataBoundSetter
+    public void setAdbTimeout(int adbTimeout) {
+        this.adbTimeout = adbTimeout;
     }
 
     @Extension(ordinal=-100) // Negative ordinal makes us execute after other wrappers (i.e. Xvnc)
