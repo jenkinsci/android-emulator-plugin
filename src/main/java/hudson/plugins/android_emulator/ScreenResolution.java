@@ -1,8 +1,12 @@
 package hudson.plugins.android_emulator;
 
+import java.io.Serializable;
+
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.Util;
 
-public class ScreenResolution {
+@SuppressWarnings("serial")
+public class ScreenResolution implements Serializable {
     public static final ScreenResolution QVGA = new ScreenResolution(240, 320, "QVGA", "QVGA");
     public static final ScreenResolution WQVGA = new ScreenResolution(240, 400, "WQVGA", "WQVGA400");
     public static final ScreenResolution FWQVGA = new ScreenResolution(240, 432, "FWQVGA", "WQVGA432");
@@ -17,6 +21,7 @@ public class ScreenResolution {
                                                                        WVGA, FWVGA, WSVGA,
                                                                        WXGA_720, WXGA_800, WXGA };
 
+    @SuppressFBWarnings("MS_EXPOSE_REP")
     public static ScreenResolution[] values() {
         return PRESETS;
     }

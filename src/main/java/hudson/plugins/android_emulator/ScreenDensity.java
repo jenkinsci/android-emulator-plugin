@@ -1,8 +1,12 @@
 package hudson.plugins.android_emulator;
 
+import java.io.Serializable;
+
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.Util;
 
-public class ScreenDensity {
+@SuppressWarnings("serial")
+public class ScreenDensity implements Serializable {
 
     public static final ScreenDensity LOW = new ScreenDensity(120, "ldpi");
     public static final ScreenDensity MEDIUM = new ScreenDensity(160, "mdpi");
@@ -18,6 +22,7 @@ public class ScreenDensity {
             EXTRA_HIGH, EXTRA_HIGH_400, EXTRA_HIGH_420, EXTRA_EXTRA_HIGH, EXTRA_EXTRA_HIGH_560,
             EXTRA_EXTRA_EXTRA_HIGH };
 
+    @SuppressFBWarnings("MS_EXPOSE_REP")
     public static ScreenDensity[] values() {
         return PRESETS;
     }
