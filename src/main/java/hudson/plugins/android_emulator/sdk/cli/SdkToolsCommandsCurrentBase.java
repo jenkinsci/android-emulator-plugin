@@ -1,5 +1,6 @@
 package hudson.plugins.android_emulator.sdk.cli;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Pattern;
 
@@ -15,7 +16,7 @@ public class SdkToolsCommandsCurrentBase implements SdkToolsCommands {
 
     @Override
     public SdkCliCommand getSdkInstallAndUpdateCommand(final String proxySettings, final List<String> components) {
-        final StringBuilder complist = new StringBuilder();
+        List<String> complist = new ArrayList<>(components.size());
 
         for (final String component : components) {
             final String modifiedComponent = component
@@ -29,12 +30,10 @@ public class SdkToolsCommandsCurrentBase implements SdkToolsCommands {
                     .replaceAll("^sys-img-(.*)-android-([0-9]*)", "system-images;android-$2;default;$1")
                     .replaceAll("^sys-img-(.*)-(.*)-([0-9]*)", "system-images;android-$3;$2;$1");
 
-            complist.append(modifiedComponent);
-            complist.append(' ');
+            complist.add(quote(modifiedComponent));
         }
 
-        final String upgradeArgs = String.format("%s", complist.toString().trim());
-        return new SdkCliCommand(Tool.SDKMANAGER, upgradeArgs);
+        return new SdkCliCommand(Tool.SDKMANAGER, StringUtils.join(complist, " "));
     }
 
     @Override
@@ -100,7 +99,7 @@ public class SdkToolsCommandsCurrentBase implements SdkToolsCommands {
         args.append(avdName);
 
         args.append(" -k ");
-        args.append(systemImagePackagePath);
+        args.append(quote(systemImagePackagePath));
 
         if (tag != null && !tag.isEmpty()) {
             args.append(" --tag ");
@@ -168,5 +167,12 @@ public class SdkToolsCommandsCurrentBase implements SdkToolsCommands {
     @Override
     public SdkCliCommand getUpdateLibProjectCommand(final String projectPath) {
         return SdkCliCommand.createNoopCommand();
+    }
+
+    private String quote(String s) {
+        if (!StringUtils.isEmpty(s) && !s.startsWith("\"")) {
+            return '"' + s + '"';
+        }
+        return s;
     }
 }

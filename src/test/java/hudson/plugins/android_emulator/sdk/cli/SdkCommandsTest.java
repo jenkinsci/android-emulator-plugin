@@ -12,6 +12,7 @@ import java.util.List;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
 import org.junit.Test;
+import org.jvnet.hudson.test.Issue;
 
 import hudson.plugins.android_emulator.sdk.Tool;
 
@@ -183,6 +184,7 @@ public class SdkCommandsTest {
                 .isImageForPlatformAndABIInstalled("", "android-24", "x86_64"));
     }
 
+    @Issue("JENKINS-63508")
     @Test
     public void testCreateAvdCommand() {
         // no snapshot, no sdcard
@@ -204,7 +206,7 @@ public class SdkCommandsTest {
         assertEquals(Tool.ANDROID_LEGACY, createAvdBasicCmdV17.getTool());
         assertEquals(Tool.ANDROID_LEGACY, createAvdBasicCmdV04.getTool());
 
-        assertEquals("create avd -f -d 9 -n test25 -k system-images;android-24;default;x86_64", createAvdBasicCmdV25_3.getArgs());
+        assertEquals("create avd -f -d 9 -n test25 -k \"system-images;android-24;default;x86_64\"", createAvdBasicCmdV25_3.getArgs());
         assertEquals("create avd -f -s dummy -n test25 -t android-23", createAvdBasicCmdV25.getArgs());
         assertEquals("create avd -f -s 768x1024 -n test17 -t android-23", createAvdBasicCmdV17.getArgs());
         assertEquals("create avd -f -s 1080x1920 -n test04 -t android-23", createAvdBasicCmdV04.getArgs());
@@ -227,7 +229,7 @@ public class SdkCommandsTest {
         assertEquals(Tool.ANDROID_LEGACY, createAvdWithSnapshotCmdV17.getTool());
         assertEquals(Tool.ANDROID_LEGACY, createAvdWithSnapshotCmdV04.getTool());
 
-        assertEquals("create avd -f -a -d 4 -n test25 -k system-images;android-24;google_apis;x86_64 --tag google_apis", createAvdWithSnapshotCmdV25_3.getArgs());
+        assertEquals("create avd -f -a -d 4 -n test25 -k \"system-images;android-24;google_apis;x86_64\" --tag google_apis", createAvdWithSnapshotCmdV25_3.getArgs());
         assertEquals("create avd -f -a -s null -n test25 -t android-23", createAvdWithSnapshotCmdV25.getArgs());
         assertEquals("create avd -f -a -s 1x1 -n test17 -t android-23", createAvdWithSnapshotCmdV17.getArgs());
         assertEquals("create avd -f -a -s test -n test04 -t android-23", createAvdWithSnapshotCmdV04.getArgs());
@@ -250,7 +252,7 @@ public class SdkCommandsTest {
         assertEquals(Tool.ANDROID_LEGACY, createAvdWithSdCardCmdV17.getTool());
         assertEquals(Tool.ANDROID_LEGACY, createAvdWithSdCardCmdV04.getTool());
 
-        assertEquals("create avd -f -c 100M -d 4 -n test25 -k system-images;android-24;default;x86_64", createAvdWithSdCardCmdV25_3.getArgs());
+        assertEquals("create avd -f -c 100M -d 4 -n test25 -k \"system-images;android-24;default;x86_64\"", createAvdWithSdCardCmdV25_3.getArgs());
         assertEquals("create avd -f -c 100M -s null -n test25 -t android-23 --tag test", createAvdWithSdCardCmdV25.getArgs());
         assertEquals("create avd -f -a -c 1G -s 1x1 -n test17 -t android-23", createAvdWithSdCardCmdV17.getArgs());
         assertEquals("create avd -f -c 200M -s test -n test04 -t android-23 --tag default", createAvdWithSdCardCmdV04.getArgs());
@@ -274,7 +276,7 @@ public class SdkCommandsTest {
         assertEquals(Tool.ANDROID_LEGACY, createAvdGoogleApiCmdV17.getTool());
         assertEquals(Tool.ANDROID_LEGACY, createAvdGoogleApiCmdV04.getTool());
 
-        assertEquals("create avd -f -d 9 -n test25 -k system-images;android-24;google_apis;x86_64 --tag google_apis", createAvdGoogleApiCmdV25_3.getArgs());
+        assertEquals("create avd -f -d 9 -n test25 -k \"system-images;android-24;google_apis;x86_64\" --tag google_apis", createAvdGoogleApiCmdV25_3.getArgs());
         assertEquals("create avd -f -s dummy -n test25 -t Google Inc.:Google APIs:23 --tag google_apis", createAvdGoogleApiCmdV25.getArgs());
         assertEquals("create avd -f -s 768x1024 -n test17 -t Google Inc.:Google APIs:23 --tag google_apis", createAvdGoogleApiCmdV17.getArgs());
         assertEquals("create avd -f -s 1080x1920 -n test04 -t Google Inc.:Google APIs:23 --tag google_apis", createAvdGoogleApiCmdV04.getArgs());
