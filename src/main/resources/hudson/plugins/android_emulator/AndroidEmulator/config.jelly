@@ -1,5 +1,5 @@
 <?jelly escape-by-default=true?>
-<j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define" xmlns:l="/lib/layout" xmlns:t="/lib/hudson" xmlns:f="/lib/form">
+<j:jelly xmlns:j="jelly:core" xmlns:f="/lib/form" xmlns:rh="/com/redhat/jenkins/plugins/ci/form">
 
   <f:radioBlock name="android-emulator.useNamed" value="true"
       title="${%Run existing emulator}" checked="${instance.useNamedEmulator}"
@@ -57,7 +57,7 @@
         <f:entry title="${%Hardware}" help="/plugin/android-emulator/help-hardware.html">
           <f:repeatable var="hw" name="hardwareProperties" items="${instance.hardwareProperties}"
               add="${%Add custom hardware property...}" minimum="0">
-            <table width="100%">
+            <rh:blockWrapper width="100%">
               <tr>
                 <td>${%Property}</td>
                 <td><f:editableComboBox name="key" value="${hw.key}" items="${descriptor.hardwareProperties}" />
@@ -73,14 +73,14 @@
                   <f:repeatableDeleteButton value="${%Remove}" />
                 </div>
               </f:entry>
-            </table>
+            </rh:blockWrapper>
           </f:repeatable>
         </f:entry>
     </f:nested>
   </f:radioBlock>
 
 <f:block>
-  <table width="100%">
+  <rh:blockWrapper width="100%">
       <f:section title="${%Common emulator options}">
         <f:entry title="${%Reset emulator state at start-up}" field="wipeData">
           <f:checkbox />
@@ -113,6 +113,6 @@
           </f:entry>
         </f:advanced>
       </f:section>
-  </table>
+  </rh:blockWrapper>
   </f:block>
 </j:jelly>
