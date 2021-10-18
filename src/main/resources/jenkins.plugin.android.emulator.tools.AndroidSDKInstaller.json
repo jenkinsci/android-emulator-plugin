@@ -1,0 +1,24 @@
+{
+  "list": [
+    {
+      "id": "cmdline-tools:4.0",
+      "url": "https://dl.google.com/android/repository/commandlinetools-{os}-7302050_latest.zip",
+      "name": "Command-line Tools 4.0"
+    },
+    {
+      "id": "cmdline-tools:3.0",
+      "url": "https://dl.google.com/android/repository/commandlinetools-{os}-6858069_latest.zip",
+      "name": "Command-line Tools 3.0"
+    },
+    {
+      "id": "cmdline-tools:2.1",
+      "url": "https://dl.google.com/android/repository/commandlinetools-{os}-6609375_latest.zip",
+      "name": "Command-line Tools 2.1"
+    },
+    {
+      "id": "cmdline-tools:1.0",
+      "url": "https://dl.google.com/android/repository/commandlinetools-{os}-6200805_latest.zip",
+      "name": "Command-line Tools 1.0"
+    }
+  ]
+}

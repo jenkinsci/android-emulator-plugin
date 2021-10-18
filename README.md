@@ -13,3 +13,8 @@ Provides numerous features for [Android development](http://developer.android.co
 
 For more information, visit the wiki page:  
 <https://wiki.jenkins-ci.org/display/JENKINS/Android+Emulator+Plugin>
+
+## Seeking New Maintainer
+Due to time constraints, other commitments, and the values of the Jenkins project not aligning to my own, I am seeking 
+a new maintainer. Create a ticket on https://issues.jenkins-ci.org/ if interested and/or follow guidance in 
+https://www.jenkins.io/doc/developer/plugin-governance/adopt-a-plugin/ if you're interested in becoming the maintainer of the plugin.

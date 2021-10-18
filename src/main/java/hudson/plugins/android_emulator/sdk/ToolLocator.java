@@ -9,6 +9,7 @@ public interface ToolLocator {
     public static final String PLATFORMS_DIR = "platforms";
     public static final String TOOLS_DIR = "tools";
     public static final String TOOLS_BIN_DIR = "tools/bin";
+    public static final String CMD_TOOLS_BIN_DIR = "cmdline-tools/bin";
 
     @SuppressFBWarnings("MS_MUTABLE_ARRAY")
     public static final String[] SDK_DIRECTORIES_LEGACY = {

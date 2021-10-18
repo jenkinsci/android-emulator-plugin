@@ -1,0 +1,85 @@
+<!--
+The MIT License
+
+Copyright (c) 2020, Nikolas Falco
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+THE SOFTWARE.
+-->
+<?jelly escape-by-default='true'?>
+<j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define" xmlns:l="/lib/layout" xmlns:t="/lib/hudson" xmlns:f="/lib/form">
+
+    <j:invokeStatic var="installations" className="jenkins.plugin.android.emulator.AndroidSDKUtil" method="getInstallations" />
+    <f:entry title="${%buildTools.title}" description="${%buildTools.description}">
+        <select class="setting-input" name="_.emulatorTool">
+            <j:forEach var="tool" items="${installations}">
+                <f:option selected="${tool.name==instance.emulatorTool}">${tool.name}</f:option>
+            </j:forEach>
+        </select>
+    </f:entry>
+
+    <f:dropdownDescriptorSelector title="${%sdk.homeLocation}" field="homeLocationStrategy" />
+
+    <f:entry title="${%osVersion.title}">
+        <f:textbox field="osVersion" />
+    </f:entry>
+
+    <f:entry title="${%screenDensity.title}">
+        <f:combobox field="screenDensity" />
+    </f:entry>
+
+    <f:entry title="${%screenResolution.title}">
+        <f:combobox field="screenResolution" />
+    </f:entry>
+
+    <f:entry title="${%avdName.title}">
+        <f:textbox field="avdName" />
+    </f:entry>
+
+    <f:entry title="${%deviceLocale.title}">
+        <f:combobox field="deviceLocale" />
+    </f:entry>
+
+    <f:entry title="${%deviceDefinition.title}">
+        <f:textbox field="deviceDefinition" />
+    </f:entry>
+
+    <f:entry title="${%sdCardSize.title}" description="${%sdCardSize.description}">
+        <f:textbox field="sdCardSize" />
+    </f:entry>
+
+    <f:entry title="${%targetABI.title}">
+        <f:textbox field="targetABI" />
+    </f:entry>
+
+    <f:entry title="${%hardwareProperties.title}" description="${%hardwareProperties.description}" field="hardwareProperties">
+        <f:repetableProperty field="hardwareProperties" add="${%Add custom hardware property...}">
+            <div align="right">
+                <f:repeatableDeleteButton />
+            </div>
+        </f:repetableProperty>
+    </f:entry>
+
+    <f:advanced title="${%options.title}">
+        <f:advanced>
+            <f:entry title="${%advanced.adbTimeout.title}" field="adbTimeout" description="${%advanced.adbTimeout.description}">
+                <f:number default="60" />
+            </f:entry>
+        </f:advanced>
+    </f:advanced>
+</j:jelly>
