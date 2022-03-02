@@ -31,6 +31,7 @@ import java.util.Map;
 import java.util.regex.Pattern;
 import jenkins.security.MasterToSlaveCallable;
 
+import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang.exception.ExceptionUtils;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -509,7 +510,7 @@ class EmulatorConfig implements Serializable {
                 // Copy the snapshots file into place
                 File snapshotDir = new File(sdkRoot, "tools/lib/emulator");
                 try {
-                    Files.copy(new File(snapshotDir, "snapshots.img").toPath(), snapshotsFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
+                    FileUtils.copyFile(new File(snapshotDir, "snapshots.img"), snapshotsFile);
                 } catch (IOException e) {
                     log(logger, e.getMessage());
                 }
