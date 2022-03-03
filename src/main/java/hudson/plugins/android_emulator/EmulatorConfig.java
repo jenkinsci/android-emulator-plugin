@@ -25,10 +25,13 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.io.PrintStream;
 import java.io.Serializable;
+import java.nio.file.Files;
+import java.nio.file.StandardCopyOption;
 import java.util.Map;
 import java.util.regex.Pattern;
 import jenkins.security.MasterToSlaveCallable;
 
+import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang.exception.ExceptionUtils;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -506,7 +509,11 @@ class EmulatorConfig implements Serializable {
             if (createSnapshot) {
                 // Copy the snapshots file into place
                 File snapshotDir = new File(sdkRoot, "tools/lib/emulator");
-                Util.copyFile(new File(snapshotDir, "snapshots.img"), snapshotsFile);
+                try {
+                    FileUtils.copyFile(new File(snapshotDir, "snapshots.img"), snapshotsFile);
+                } catch (IOException e) {
+                    log(logger, e.getMessage());
+                }
 
                 // Update the AVD config file mark snapshots as enabled
                 setAvdConfigValue(homeDir, "snapshot.present", "true");
@@ -663,9 +670,7 @@ class EmulatorConfig implements Serializable {
                     procBuilder.environment().put(Constants.ENV_VAR_ANDROID_SDK_HOME, androidSdkHome);
                 }
                 procBuilder.start().waitFor();
-            } catch (InterruptedException ex) {
-                return false;
-            } catch (IOException ex) {
+            } catch (InterruptedException | IOException ex) {
                 return false;
             }
 
