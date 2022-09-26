@@ -5,6 +5,7 @@ import java.util.List;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
+@SuppressFBWarnings("SE_BAD_FIELD")
 public enum Tool {
     ADB("adb", ".exe", new PlatformToolLocator()),
     ANDROID_LEGACY("android", ".bat"),

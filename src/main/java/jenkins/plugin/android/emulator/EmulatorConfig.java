@@ -30,6 +30,7 @@ import java.util.Locale;
 
 import org.apache.commons.lang.LocaleUtils;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.Util;
 import hudson.plugins.android_emulator.ScreenDensity;
 import hudson.plugins.android_emulator.ScreenResolution;
@@ -132,6 +133,7 @@ public class EmulatorConfig {
         this.targetABI = Util.fixEmptyAndTrim(targetABI);
     }
 
+    @SuppressFBWarnings(value = "EI_EXPOSE_REP")
     public List<HardwareProperty> getHardwareProperties() {
         return hardwareProperties;
     }

@@ -21,6 +21,8 @@ import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.StaplerRequest;
 import org.kohsuke.stapler.export.Exported;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.PrintStream;
@@ -185,7 +187,8 @@ public class MonkeyBuilder extends AbstractBuilder {
         return seedValue;
     }
 
-    private synchronized static long getNextLongFromRandom() {
+    @SuppressFBWarnings(value = "DMI_RANDOM_USED_ONLY_ONCE")
+    private static synchronized long getNextLongFromRandom() {
         if (random == null) {
             random = new Random();
         }

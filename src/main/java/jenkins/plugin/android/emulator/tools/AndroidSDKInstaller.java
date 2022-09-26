@@ -39,6 +39,7 @@ import org.apache.commons.lang.StringUtils;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.QueryParameter;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.Extension;
 import hudson.FilePath;
 import hudson.model.Node;
@@ -66,6 +67,7 @@ public class AndroidSDKInstaller extends DownloadFromUrlInstaller {
 
     public class AndroidSDKInstallable extends NodeSpecificInstallable {
 
+        @SuppressFBWarnings(value = "EI_EXPOSE_REP2")
         public AndroidSDKInstallable(Installable inst) {
             super(inst);
         }

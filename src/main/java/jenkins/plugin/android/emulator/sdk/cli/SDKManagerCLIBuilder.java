@@ -41,6 +41,7 @@ import javax.annotation.Nonnull;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.EnvVars;
 import hudson.FilePath;
 import hudson.ProxyConfiguration;
@@ -183,6 +184,7 @@ public class SDKManagerCLIBuilder {
 
     private final FilePath executable;
     private ProxyConfiguration proxy;
+    @SuppressFBWarnings(value = "NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE")
     private String sdkRoot;
     private Channel channel;
     private boolean verbose;
@@ -199,6 +201,7 @@ public class SDKManagerCLIBuilder {
         return new SDKManagerCLIBuilder(sdkmanager);
     }
 
+    @SuppressFBWarnings(value = "EI_EXPOSE_REP2")
     public SDKManagerCLIBuilder proxy(ProxyConfiguration proxy) {
         this.proxy = proxy;
         return this;
@@ -279,7 +282,7 @@ public class SDKManagerCLIBuilder {
         ArgumentListBuilder arguments = new ArgumentListBuilder();
 
         if (sdkRoot == null) {
-            sdkRoot = executable.getParent().getParent().getParent().getRemote();
+            sdkRoot = getSDKRoot();
         }
         // required
         arguments.addKeyValuePair(NO_PREFIX, ARG_SDK_ROOT, quote(sdkRoot), false);
@@ -300,6 +303,11 @@ public class SDKManagerCLIBuilder {
         return arguments;
     }
 
+    @SuppressFBWarnings(value = "NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE")
+    private String getSDKRoot() {
+        return executable.getParent().getParent().getParent().getRemote();
+    }
+
     private void buildProxyEnvVars(EnvVars env) throws URISyntaxException {
         if (proxy == null) {
             // no proxy configured
@@ -315,8 +323,8 @@ public class SDKManagerCLIBuilder {
 
         String userInfo = Util.fixEmptyAndTrim(proxy.getUserName());
         // append password only if userName is defined
-        if (userInfo != null && StringUtils.isNotBlank(proxy.getEncryptedPassword())) {
-            Secret secret = Secret.decrypt(proxy.getEncryptedPassword());
+        if (userInfo != null && StringUtils.isNotBlank(proxy.getSecretPassword().getEncryptedValue())) {
+            Secret secret = Secret.decrypt(proxy.getSecretPassword().getEncryptedValue());
             if (secret != null) {
                 userInfo += ":" + Util.fixEmptyAndTrim(secret.getPlainText());
             }

@@ -40,6 +40,7 @@ import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.DataBoundSetter;
 import org.kohsuke.stapler.QueryParameter;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.AbortException;
 import hudson.EnvVars;
 import hudson.Extension;
@@ -253,10 +254,12 @@ public class AndroidEmulatorBuild extends SimpleBuildWrapper {
         this.targetABI = targetABI;
     }
 
+    @SuppressFBWarnings(value = "EI_EXPOSE_REP")
     public List<HardwareProperty> getHardwareProperties() {
         return hardwareProperties;
     }
 
+    @SuppressFBWarnings(value = "EI_EXPOSE_REP")
     @DataBoundSetter
     public void setHardwareProperties(List<HardwareProperty> hardwareProperties) {
         this.hardwareProperties = hardwareProperties;

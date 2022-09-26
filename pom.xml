@@ -132,4 +132,15 @@
         </pluginRepository>
     </pluginRepositories>
 
+	<build>
+		<pluginManagement>
+			<plugins>
+				<plugin>
+					<groupId>com.github.spotbugs</groupId>
+					<artifactId>spotbugs-maven-plugin</artifactId>
+					<version>4.7.2.0</version>
+				</plugin>
+			</plugins>
+		</pluginManagement>
+	</build>
 </project>

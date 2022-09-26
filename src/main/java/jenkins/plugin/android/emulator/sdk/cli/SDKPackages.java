@@ -2,7 +2,11 @@ package jenkins.plugin.android.emulator.sdk.cli;
 
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Objects;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
+@SuppressFBWarnings(value = "EI_EXPOSE_REP")
 public class SDKPackages {
     public static class SDKPackage implements Comparable<SDKPackage> {
         private String id;
@@ -61,6 +65,25 @@ public class SDKPackages {
                 result = version.compareTo(o.getVersion());
             }
             return result;
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(id, version);
+        }
+
+        @Override
+        public boolean equals(Object obj) {
+            if (this == obj) {
+                return true;
+            }
+            if (obj == null) {
+                return false;
+            }
+            if (getClass() != obj.getClass())
+                return false;
+            SDKPackage other = (SDKPackage) obj;
+            return Objects.equals(id, other.id) && Objects.equals(version, other.version);
         }
 
         @Override

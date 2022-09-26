@@ -34,6 +34,7 @@ import javax.annotation.Nullable;
 
 import org.apache.commons.lang.StringUtils;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.AbortException;
 import hudson.EnvVars;
 import hudson.FilePath;
@@ -59,6 +60,7 @@ public class EmulatorRunner {
     private final EmulatorConfig config;
     private final ToolLocator locator;
 
+    @SuppressFBWarnings(value = "EI_EXPOSE_REP2")
     public EmulatorRunner(@Nonnull EmulatorConfig config, @Nonnull ToolLocator locator) {
         this.config = config;
         this.locator = locator;
@@ -176,6 +178,7 @@ public class EmulatorRunner {
         }
     }
 
+    @SuppressFBWarnings(value = "NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE")
     private void writeConfigFile(FilePath avdHome) throws IOException, InterruptedException {
         FilePath advPath = avdHome.child(config.getAVDName() + ".avd");
         FilePath advConfig = avdHome.child(config.getAVDName() + ".ini");

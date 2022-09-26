@@ -34,6 +34,7 @@ import javax.annotation.Nullable;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.EnvVars;
 import hudson.FilePath;
 import hudson.Util;
@@ -300,6 +301,7 @@ public class AVDManagerCLIBuilder {
                 .withInput("\r\n");
     }
 
+    @SuppressFBWarnings(value = "NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE")
     private void additionalEnv(EnvVars env) {
         // fix a bug in windows script where calculates wrong the
         // SDK root because raising up two parent instead of one

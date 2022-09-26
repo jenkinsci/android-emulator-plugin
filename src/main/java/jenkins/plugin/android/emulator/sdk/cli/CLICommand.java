@@ -36,6 +36,7 @@ import javax.annotation.Nullable;
 import org.apache.commons.io.input.NullInputStream;
 import org.apache.tools.ant.filters.StringInputStream;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.EnvVars;
 import hudson.FilePath;
 import hudson.Launcher.ProcStarter;
@@ -65,6 +66,7 @@ public class CLICommand<R> {
         this.env = env;
     }
 
+    @SuppressFBWarnings(value = "EI_EXPOSE_REP")
     public ArgumentListBuilder arguments() {
         return arguments;
     }

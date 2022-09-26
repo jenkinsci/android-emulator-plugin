@@ -1,10 +1,11 @@
 package hudson.plugins.android_emulator;
 
-import org.jvnet.hudson.plugins.port_allocator.PortAllocationManager;
-
 import java.io.IOException;
 import java.io.PrintStream;
 
+import org.jvnet.hudson.plugins.port_allocator.PortAllocationManager;
+
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.EnvVars;
 import hudson.Launcher;
 import hudson.Launcher.ProcStarter;
@@ -35,6 +36,7 @@ public class AndroidEmulatorContext {
 	private BuildListener listener;
 	private Launcher launcher;
 
+	@SuppressFBWarnings(value = "EI_EXPOSE_REP2")
 	public AndroidEmulatorContext(AbstractBuild<?, ?> build_,
 			Launcher launcher_, BuildListener listener_, AndroidSdk sdk_)
 			throws InterruptedException, IOException {
@@ -115,9 +117,13 @@ public class AndroidEmulatorContext {
 	public BuildListener listener() {
 		return listener;
 	}
+
+	@SuppressFBWarnings(value = "EI_EXPOSE_REP")
 	public Launcher launcher() {
 		return launcher;
 	}
+
+	@SuppressFBWarnings(value = "EI_EXPOSE_REP")
 	public AndroidSdk sdk() {
 		return sdk;
 	}

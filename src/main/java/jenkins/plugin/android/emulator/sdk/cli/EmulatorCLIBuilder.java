@@ -9,6 +9,7 @@ import javax.annotation.Nullable;
 
 import org.apache.commons.lang.StringUtils;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.EnvVars;
 import hudson.FilePath;
 import hudson.ProxyConfiguration;
@@ -81,6 +82,7 @@ public class EmulatorCLIBuilder {
         return this;
     }
 
+    @SuppressFBWarnings(value = "EI_EXPOSE_REP2")
     public EmulatorCLIBuilder proxy(ProxyConfiguration proxy) {
         this.proxy = proxy;
         return this;
