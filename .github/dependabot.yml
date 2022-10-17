@@ -1,0 +1,12 @@
+version: 2
+updates:
+- package-ecosystem: maven
+  directory: "/"
+  schedule:
+    interval: weekly
+  open-pull-requests-limit: 10
+  target-branch: master
+  reviewers:
+  - <insert-maintainers-here-one-per-line-use-github-handle>
+  labels:
+  - skip-changelog
