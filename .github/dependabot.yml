@@ -7,6 +7,7 @@ updates:
   open-pull-requests-limit: 10
   target-branch: master
   reviewers:
-  - <insert-maintainers-here-one-per-line-use-github-handle>
+  - orrc
+  - nfalco79
   labels:
   - skip-changelog
