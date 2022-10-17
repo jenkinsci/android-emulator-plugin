@@ -14,7 +14,7 @@
 
     <properties>
         <java.level>8</java.level>
-        <jenkins.version>2.346.3</jenkins.version>
+        <jenkins.version>2.346.1</jenkins.version>
     </properties>
 
     <developers>
