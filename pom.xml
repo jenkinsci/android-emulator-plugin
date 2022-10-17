@@ -113,7 +113,7 @@
     </dependencies>
 
     <scm>
-        <connection>scm:git:git://github.com/jenkinsci/android-emulator-plugin.git</connection>
+        <connection>scm:git:https://github.com/jenkinsci/android-emulator-plugin.git</connection>
         <developerConnection>scm:git:git@github.com:jenkinsci/android-emulator-plugin.git</developerConnection>
         <tag>HEAD</tag>
     </scm>
