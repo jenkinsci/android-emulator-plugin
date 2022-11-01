@@ -13,7 +13,7 @@
     <url>http://wiki.jenkins-ci.org/display/JENKINS/Android+Emulator+Plugin</url>
 
     <properties>
-        <jenkins.version>2.346.1</jenkins.version>
+        <jenkins.version>2.346.3</jenkins.version>
     </properties>
 
     <developers>
