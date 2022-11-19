@@ -11,6 +11,7 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.nio.file.Files;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -106,7 +107,7 @@ public class UtilsTest {
 
     @Test
     public void testReadUnsupportedConfigFile() throws Exception {
-        final File temp = File.createTempFile("temp", ".txt");
+        final File temp = Files.createTempFile("temp", ".txt").toFile();
         temp.deleteOnExit();
 
         try {
@@ -121,7 +122,7 @@ public class UtilsTest {
 
     @Test
     public void testReadConfigFileInPropertiesFormat() throws Exception {
-        final File temp = File.createTempFile("temp", ".properties");
+        final File temp = Files.createTempFile("temp", ".properties").toFile();
         temp.deleteOnExit();
 
         // test multiline props
@@ -138,7 +139,7 @@ public class UtilsTest {
 
     @Test
     public void testReadConfigFileInINIFormat() throws Exception {
-        final File temp = File.createTempFile("temp", ".ini");
+        final File temp = Files.createTempFile("temp", ".ini").toFile();
         temp.deleteOnExit();
 
         // value should be returned 'as-is' without removal of '\'
@@ -169,7 +170,7 @@ public class UtilsTest {
 
     @Test
     public void testWriteUnsupportedConfigFile() throws Exception {
-        final File temp = File.createTempFile("temp", ".txt");
+        final File temp = Files.createTempFile("temp", ".txt").toFile();
         temp.deleteOnExit();
 
         try {
@@ -184,10 +185,10 @@ public class UtilsTest {
 
     @Test
     public void testWriteConfigFileInPropertiesFormat() throws Exception {
-        final File expected = File.createTempFile("temp", ".properties");
+        final File expected = Files.createTempFile("temp", ".properties").toFile();
         expected.deleteOnExit();
 
-        final File actual = File.createTempFile("temp", ".properties");
+        final File actual = Files.createTempFile("temp", ".properties").toFile();
         actual.deleteOnExit();
 
         final String newLine = (SystemUtils.IS_OS_WINDOWS) ? "\r\n" : "\n";
@@ -225,10 +226,10 @@ public class UtilsTest {
 
     @Test
     public void testWriteConfigFileInINIFormat() throws Exception {
-        final File expected = File.createTempFile("temp", ".ini");
+        final File expected = Files.createTempFile("temp", ".ini").toFile();
         expected.deleteOnExit();
 
-        final File actual = File.createTempFile("temp", ".ini");
+        final File actual = Files.createTempFile("temp", ".ini").toFile();
         actual.deleteOnExit();
 
         // Setup test data
