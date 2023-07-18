@@ -29,7 +29,7 @@
           <f:editableComboBox id="android-emulator.screenResolution" field="screenResolution"
               items="${descriptor.deviceResolutions}"
               checkUrl="'descriptorByName/AndroidEmulator/checkScreenResolution?value='+ escape(this.value)
-                  +'&amp;density='+ escape(Form.findMatchingInput(this,'android-emulator.screenDensity').value)
+                  +'&amp;density='+ escape(findMatchingFormInput(this,'android-emulator.screenDensity').value)
                   +'&amp;osVersion='+ escape(document.getElementById('android-emulator.osVersion').value)" />
         </f:entry>
         <f:entry title="${%Device Definition}" help="/plugin/android-emulator/help-deviceDefinition.html">
