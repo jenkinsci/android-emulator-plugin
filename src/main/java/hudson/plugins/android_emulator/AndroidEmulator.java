@@ -838,7 +838,7 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
         private static final long serialVersionUID = 1L;
 
         /**
-         * The Android SDK home directory.  Can include variables, e.g. <tt>${ANDROID_HOME}</tt>.
+         * The Android SDK home directory.  Can include variables, e.g. {@code ${ANDROID_HOME}}.
          * <p>If <code>null</code>, we will just assume the required commands are on the PATH.</p>
          */
         public String androidHome;

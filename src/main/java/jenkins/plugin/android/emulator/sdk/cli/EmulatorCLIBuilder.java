@@ -21,7 +21,7 @@ import hudson.util.Secret;
 /**
  * Build a command line argument for emulator command.
  * 
- * @see https://developer.android.com/studio/run/emulator-commandline
+ * @see <a href="https://developer.android.com/studio/run/emulator-commandline">Start the emulator from the command line</a>
  * @author Nikolas Falco
  */
 public class EmulatorCLIBuilder {

@@ -78,7 +78,6 @@ public class AndroidSDKInstallation extends ToolInstallation implements Environm
     /**
      * Gets a locator for CLI executables installed by this tool.
      *
-     * @param launcher a way to start processes
      * @return a locator for CLI executables for this tool
      * @throws IOException if something goes wrong
      */
@@ -167,9 +166,8 @@ public class AndroidSDKInstallation extends ToolInstallation implements Environm
             return Collections.singletonList(new AndroidSDKInstaller(null, Channel.STABLE));
         }
 
-        /*
-         * (non-Javadoc)
-         * @see hudson.tools.Descriptor#configure(org.kohsuke.stapler.StaplerRequest, net.sf.json.JSONObject)
+        /**
+         * see {@link hudson.model.Descriptor#configure(org.kohsuke.stapler.StaplerRequest, net.sf.json.JSONObject)}
          */
         @Override
         public boolean configure(StaplerRequest req, JSONObject json) throws hudson.model.Descriptor.FormException {

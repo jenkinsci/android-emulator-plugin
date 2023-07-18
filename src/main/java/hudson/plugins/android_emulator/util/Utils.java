@@ -515,7 +515,7 @@ public class Utils {
      *
      * @param build  The build from which to get the build-specific and environment variables.
      * @param listener  The listener used to get the environment variables.
-     * @param token  The token which may or may not contain variables in the format <tt>${foo}</tt>.
+     * @param token  The token which may or may not contain variables in the format {@code ${foo}}.
      * @return  The given token, with applicable variable expansions done.
      */
     public static String expandVariables(AbstractBuild<?,?> build, BuildListener listener, String token) {
@@ -542,7 +542,7 @@ public class Utils {
      *
      * @param envVars  Map of the environment variables.
      * @param buildVars  Map of the build-specific variables.
-     * @param token  The token which may or may not contain variables in the format <tt>${foo}</tt>.
+     * @param token  The token which may or may not contain variables in the format {@code ${foo}}.
      * @return  The given token, with applicable variable expansions done.
      */
     public static String expandVariables(EnvVars envVars, Map<String,String> buildVars,
