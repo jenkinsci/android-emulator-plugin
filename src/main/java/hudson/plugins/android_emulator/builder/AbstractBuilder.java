@@ -131,7 +131,7 @@ public abstract class AbstractBuilder extends Builder {
      *
      * @param build The build for which we should retrieve the SDK instance.
      * @param listener The listener used to get the environment variables.
-     * @return The device identifier (defaulting to the value of "<tt>$ANDROID_AVD_DEVICE</tt>").
+     * @return The device identifier (defaulting to the value of "{@code $ANDROID_AVD_DEVICE}").
      */
     protected static String getDeviceIdentifier(AbstractBuild<?, ?> build, BuildListener listener) {
         String deviceSerial = expandVariable(build, listener, Constants.ENV_VAR_ANDROID_AVD_DEVICE);
@@ -149,7 +149,7 @@ public abstract class AbstractBuilder extends Builder {
      *
      * @param build The build for which we should retrieve the SDK instance.
      * @param listener The listener used to get the environment variables.
-     * @return The device identifier (defaulting to the value of "<tt>-s $ANDROID_AVD_DEVICE</tt>").
+     * @return The device identifier (defaulting to the value of "{@code -s $ANDROID_AVD_DEVICE}").
      */
     protected static int getDeviceTelnetPort(AbstractBuild<?, ?> build, BuildListener listener) {
         String devicePort = expandVariable(build, listener, Constants.ENV_VAR_ANDROID_AVD_USER_PORT);
