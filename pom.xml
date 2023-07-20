@@ -10,12 +10,12 @@
 
     <artifactId>android-emulator</artifactId>
     <packaging>hpi</packaging>
-    <version>3.1.4</version>
+    <version>${revision}${changelist}</version>
     <name>Android Emulator Plugin</name>
     <url>http://wiki.jenkins-ci.org/display/JENKINS/Android+Emulator+Plugin</url>
 
     <properties>
-        <revision>3.1.4</revision>
+        <revision>3.1.5</revision>
         <changelist>-SNAPSHOT</changelist>
         <jenkins.version>2.410</jenkins.version>
         <gitHubRepo>jenkinsci/${project.artifactId}-plugin</gitHubRepo>
