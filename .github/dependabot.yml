@@ -11,3 +11,8 @@ updates:
   - nfalco79
   labels:
   - skip-changelog
+- package-ecosystem: github-actions
+  directory: /
+  schedule:
+    interval: monthly
+    
