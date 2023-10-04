@@ -94,11 +94,6 @@
             <classifier>tests</classifier>
             <scope>test</scope>
         </dependency>
-        <dependency>
-            <groupId>org.jenkins-ci.plugins</groupId>
-            <artifactId>pipeline-stage-step</artifactId>
-            <scope>test</scope>
-        </dependency>
     </dependencies>
 
     <scm>
