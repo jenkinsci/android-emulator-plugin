@@ -17,7 +17,7 @@
     <properties>
         <revision>3.1.5</revision>
         <changelist>999999-SNAPSHOT</changelist>
-        <jenkins.version>2.410</jenkins.version>
+        <jenkins.version>2.401.3</jenkins.version>
         <gitHubRepo>jenkinsci/${project.artifactId}-plugin</gitHubRepo>
     </properties>
 
@@ -107,11 +107,6 @@
         <dependency>
             <groupId>org.jenkins-ci.plugins.workflow</groupId>
             <artifactId>workflow-durable-task-step</artifactId>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.jenkins-ci.plugins.workflow</groupId>
-            <artifactId>workflow-basic-steps</artifactId>
             <scope>test</scope>
         </dependency>
     </dependencies>
