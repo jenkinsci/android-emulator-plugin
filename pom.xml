@@ -59,7 +59,9 @@
     <dependencies>
         <dependency>
             <groupId>org.jenkins-ci.plugins</groupId>
-            <artifactId>matrix-project</artifactId>
+            <artifactId>port-allocator</artifactId>
+            <version>1.10</version>
+            <scope>compile</scope>
         </dependency>
         <dependency>
             <groupId>net.dongliu</groupId>
