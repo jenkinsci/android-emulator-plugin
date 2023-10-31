@@ -32,13 +32,12 @@ import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import javax.annotation.Nonnull;
-
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.QueryParameter;
 
+import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.Extension;
 import hudson.FilePath;
@@ -245,7 +244,7 @@ public class AndroidSDKInstaller extends DownloadFromUrlInstaller {
             return Messages.AndroidSDKInstaller_displayName();
         }
 
-        @Nonnull
+        @NonNull
         @Override
         public List<? extends Installable> getInstallables() throws IOException {
             List<Installable> installables = Collections.emptyList();

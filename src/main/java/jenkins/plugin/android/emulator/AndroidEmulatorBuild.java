@@ -31,8 +31,7 @@ import java.util.Locale;
 import java.util.MissingResourceException;
 import java.util.stream.Collectors;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
+import edu.umd.cs.findbugs.annotations.CheckForNull;
 
 import org.apache.commons.lang.StringUtils;
 import org.jenkinsci.Symbol;
@@ -40,6 +39,7 @@ import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.DataBoundSetter;
 import org.kohsuke.stapler.QueryParameter;
 
+import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.AbortException;
 import hudson.EnvVars;
@@ -71,7 +71,7 @@ public class AndroidEmulatorBuild extends SimpleBuildWrapper {
 
         private final transient Context context; // NOSONAR
 
-        public EnvVarsAdapter(@Nonnull Context context) {
+        public EnvVarsAdapter(@NonNull Context context) {
             this.context = context;
         }
 

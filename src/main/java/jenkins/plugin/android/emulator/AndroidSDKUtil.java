@@ -23,10 +23,11 @@
  */
 package jenkins.plugin.android.emulator;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
+import edu.umd.cs.findbugs.annotations.Nullable;
 
 import jenkins.model.Jenkins;
+
+import edu.umd.cs.findbugs.annotations.NonNull;
 import jenkins.plugin.android.emulator.tools.AndroidSDKInstallation;
 import jenkins.plugin.android.emulator.tools.AndroidSDKInstallation.DescriptorImpl;
 
@@ -58,7 +59,7 @@ public final class AndroidSDKUtil {
      *
      * @return an array of AndroidSDK tool installation
      */
-    @Nonnull
+    @NonNull
     public static AndroidSDKInstallation[] getInstallations() {
         DescriptorImpl descriptor = (DescriptorImpl) Jenkins.get().getDescriptorOrDie(AndroidSDKInstallation.class);
         return descriptor.getInstallations();

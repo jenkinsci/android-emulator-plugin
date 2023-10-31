@@ -26,10 +26,11 @@ package jenkins.plugin.android.emulator.tools;
 import java.io.File;
 import java.io.IOException;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
+import edu.umd.cs.findbugs.annotations.CheckForNull;
 
 import hudson.FilePath;
+
+import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.Launcher;
 import hudson.plugins.android_emulator.sdk.Tool;
 import hudson.remoting.VirtualChannel;
@@ -64,7 +65,7 @@ public class ToolLocator {
     private final Platform platform;
     private final String home;
 
-    public ToolLocator(@Nonnull Platform platform, @CheckForNull String home) {
+    public ToolLocator(@NonNull Platform platform, @CheckForNull String home) {
         this.platform = platform;
         this.home = home;
     }

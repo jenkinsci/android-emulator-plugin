@@ -25,12 +25,12 @@ package jenkins.plugin.android.emulator.sdk.home;
 
 import java.io.IOException;
 
-import javax.annotation.Nonnull;
-
 import org.jenkinsci.Symbol;
 import org.kohsuke.stapler.DataBoundConstructor;
 
 import hudson.Extension;
+
+import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.FilePath;
 import jenkins.model.Jenkins;
 import jenkins.plugin.android.emulator.Messages;
@@ -49,7 +49,7 @@ public class DefaultHomeLocator extends HomeLocator {
     }
 
     @Override
-    public FilePath locate(@Nonnull FilePath workspace) {
+    public FilePath locate(@NonNull FilePath workspace) {
         try {
             return FilePath.getHomeDirectory(workspace.getChannel());
         } catch (InterruptedException | IOException e) {
