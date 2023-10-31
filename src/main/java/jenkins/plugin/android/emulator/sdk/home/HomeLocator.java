@@ -26,10 +26,11 @@ package jenkins.plugin.android.emulator.sdk.home;
 import java.io.IOException;
 import java.io.Serializable;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
+import edu.umd.cs.findbugs.annotations.CheckForNull;
 
 import hudson.AbortException;
+
+import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.EnvVars;
 import hudson.ExtensionPoint;
 import hudson.FilePath;
@@ -54,14 +55,14 @@ public abstract class HomeLocator extends AbstractDescribableImpl<HomeLocator> i
      * @return null to let SDK build tool uses its default location. Otherwise
      *         this must be located on the same node as described by this path.
      */
-    public abstract FilePath locate(@Nonnull FilePath workspace);
+    public abstract FilePath locate(@NonNull FilePath workspace);
 
     @Override
     public HomeLocatorDescriptor getDescriptor() {
         return (HomeLocatorDescriptor) super.getDescriptor();
     }
 
-    public static void buildEnvVars(@Nonnull FilePath homeLocation, @CheckForNull EnvVars env) throws IOException, InterruptedException {
+    public static void buildEnvVars(@NonNull FilePath homeLocation, @CheckForNull EnvVars env) throws IOException, InterruptedException {
         if (env == null) {
             env = new EnvVars();
         }

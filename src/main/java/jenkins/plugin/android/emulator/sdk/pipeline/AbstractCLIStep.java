@@ -2,12 +2,12 @@ package jenkins.plugin.android.emulator.sdk.pipeline;
 
 import java.io.Serializable;
 
-import javax.annotation.Nonnull;
-
 import org.jenkinsci.plugins.workflow.steps.Step;
 import org.kohsuke.stapler.DataBoundSetter;
 
 import hudson.Util;
+
+import edu.umd.cs.findbugs.annotations.NonNull;
 import jenkins.plugin.android.emulator.sdk.home.HomeLocator;
 
 public abstract class AbstractCLIStep extends Step implements Serializable {
@@ -19,7 +19,7 @@ public abstract class AbstractCLIStep extends Step implements Serializable {
     protected final String arguments;
     protected boolean quiet = false;
 
-    public AbstractCLIStep(@Nonnull String emulatorTool, @Nonnull HomeLocator homeLocationStrategy, @Nonnull String arguments) {
+    public AbstractCLIStep(@NonNull String emulatorTool, @NonNull HomeLocator homeLocationStrategy, @NonNull String arguments) {
         this.emulatorTool = Util.fixEmptyAndTrim(emulatorTool);
         this.homeLocationStrategy = homeLocationStrategy;
         this.arguments = Util.fixEmptyAndTrim(arguments);

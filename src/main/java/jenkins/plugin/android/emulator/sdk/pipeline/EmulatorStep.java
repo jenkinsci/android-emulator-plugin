@@ -2,14 +2,14 @@ package jenkins.plugin.android.emulator.sdk.pipeline;
 
 import java.util.Set;
 
-import javax.annotation.Nonnull;
-
 import org.jenkinsci.plugins.workflow.steps.StepContext;
 import org.jenkinsci.plugins.workflow.steps.StepDescriptor;
 import org.jenkinsci.plugins.workflow.steps.StepExecution;
 import org.kohsuke.stapler.DataBoundConstructor;
 
 import com.google.common.collect.ImmutableSet;
+
+import edu.umd.cs.findbugs.annotations.NonNull;
 
 import hudson.EnvVars;
 import hudson.Extension;
@@ -47,7 +47,7 @@ public class EmulatorStep extends AbstractCLIStep {
     private static final long serialVersionUID = -1557453962312014910L;
 
     @DataBoundConstructor
-    public EmulatorStep(@Nonnull String emulatorTool, @Nonnull HomeLocator homeLocationStrategy, @Nonnull String arguments) {
+    public EmulatorStep(@NonNull String emulatorTool, @NonNull HomeLocator homeLocationStrategy, @NonNull String arguments) {
         super(emulatorTool, homeLocationStrategy, arguments);
     }
 

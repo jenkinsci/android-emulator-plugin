@@ -23,8 +23,8 @@
  */
 package jenkins.plugin.android.emulator.sdk.cli;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nullable;
+import edu.umd.cs.findbugs.annotations.CheckForNull;
+import edu.umd.cs.findbugs.annotations.Nullable;
 
 import hudson.EnvVars;
 import hudson.FilePath;

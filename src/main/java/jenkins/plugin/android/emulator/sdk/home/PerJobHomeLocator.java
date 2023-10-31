@@ -23,12 +23,12 @@
  */
 package jenkins.plugin.android.emulator.sdk.home;
 
-import javax.annotation.Nonnull;
-
 import org.jenkinsci.Symbol;
 import org.kohsuke.stapler.DataBoundConstructor;
 
 import hudson.Extension;
+
+import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.FilePath;
 import jenkins.plugin.android.emulator.Messages;
 
@@ -46,7 +46,7 @@ public class PerJobHomeLocator extends HomeLocator {
     }
 
     @Override
-    public FilePath locate(@Nonnull FilePath workspace) {
+    public FilePath locate(@NonNull FilePath workspace) {
         return workspace;
     }
 

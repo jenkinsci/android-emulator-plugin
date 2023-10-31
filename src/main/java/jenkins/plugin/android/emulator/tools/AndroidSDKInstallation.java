@@ -27,13 +27,13 @@ import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
 
-import javax.annotation.Nonnull;
-
 import org.apache.commons.lang.StringUtils;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.StaplerRequest;
 
 import hudson.EnvVars;
+
+import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.Extension;
 import hudson.model.Computer;
 import hudson.model.EnvironmentSpecific;
@@ -124,7 +124,7 @@ public class AndroidSDKInstallation extends ToolInstallation implements Environm
         return bin;
     }
 
-    @Nonnull
+    @NonNull
     private Platform getPlatform() throws DetectionFailedException {
         Platform currentPlatform = platform;
 

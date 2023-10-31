@@ -35,12 +35,12 @@ import java.util.Set;
 import java.util.StringTokenizer;
 import java.util.regex.Pattern;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
+import edu.umd.cs.findbugs.annotations.CheckForNull;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
 
+import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.EnvVars;
 import hudson.FilePath;
@@ -197,7 +197,7 @@ public class SDKManagerCLIBuilder {
         this.executable = sdkmanager;
     }
 
-    public static SDKManagerCLIBuilder with(@Nonnull FilePath sdkmanager) {
+    public static SDKManagerCLIBuilder with(@NonNull FilePath sdkmanager) {
         return new SDKManagerCLIBuilder(sdkmanager);
     }
 
