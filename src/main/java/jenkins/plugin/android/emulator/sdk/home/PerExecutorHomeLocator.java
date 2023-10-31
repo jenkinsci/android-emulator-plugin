@@ -23,12 +23,12 @@
  */
 package jenkins.plugin.android.emulator.sdk.home;
 
-import javax.annotation.Nonnull;
-
 import org.jenkinsci.Symbol;
 import org.kohsuke.stapler.DataBoundConstructor;
 
 import hudson.Extension;
+
+import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.FilePath;
 import hudson.model.Computer;
 import hudson.model.Executor;
@@ -49,7 +49,7 @@ public class PerExecutorHomeLocator extends HomeLocator {
     }
 
     @Override
-    public FilePath locate(@Nonnull FilePath workspace) {
+    public FilePath locate(@NonNull FilePath workspace) {
         final Computer computer = workspace.toComputer();
         if (computer == null) {
             throw new IllegalStateException(Messages.nodeNotAvailable());

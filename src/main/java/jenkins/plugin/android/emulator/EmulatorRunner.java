@@ -29,11 +29,11 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
+import edu.umd.cs.findbugs.annotations.Nullable;
 
 import org.apache.commons.lang.StringUtils;
 
+import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.AbortException;
 import hudson.EnvVars;
@@ -61,13 +61,13 @@ public class EmulatorRunner {
     private final ToolLocator locator;
 
     @SuppressFBWarnings(value = "EI_EXPOSE_REP2")
-    public EmulatorRunner(@Nonnull EmulatorConfig config, @Nonnull ToolLocator locator) {
+    public EmulatorRunner(@NonNull EmulatorConfig config, @NonNull ToolLocator locator) {
         this.config = config;
         this.locator = locator;
     }
 
-    public void run(@Nonnull FilePath workspace,
-                    @Nonnull TaskListener listener,
+    public void run(@NonNull FilePath workspace,
+                    @NonNull TaskListener listener,
                     @Nullable EnvVars env) throws IOException, InterruptedException {
         Launcher launcher = workspace.createLauncher(listener);
         if (env == null) {

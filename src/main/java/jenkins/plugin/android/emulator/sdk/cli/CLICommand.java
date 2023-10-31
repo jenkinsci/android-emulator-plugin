@@ -30,12 +30,12 @@ import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
+import edu.umd.cs.findbugs.annotations.Nullable;
 
 import org.apache.commons.io.input.NullInputStream;
 import org.apache.tools.ant.filters.StringInputStream;
 
+import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.EnvVars;
 import hudson.FilePath;
@@ -85,7 +85,7 @@ public class CLICommand<R> {
         return execute(new StreamTaskListener(new NullStream()));
     }
 
-    public R execute(@Nonnull TaskListener output) throws IOException, InterruptedException {
+    public R execute(@NonNull TaskListener output) throws IOException, InterruptedException {
         List<String> args = getArguments();
 
         // command.createLauncher(output)
