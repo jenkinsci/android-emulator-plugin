@@ -10,5 +10,7 @@ enum MonkeyResult {
     /** No monkey output was found to parse */
     NothingToParse,
     /** Monkey output was given, but outcome couldn't be determined */
-    UnrecognisedFormat
+    UnrecognisedFormat,
+    /** ** No activities found to run, monkey aborted. Package name is wrong or package not installed */
+    NoActivityFound
 }
