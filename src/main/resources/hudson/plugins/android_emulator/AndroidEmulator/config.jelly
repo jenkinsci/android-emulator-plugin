@@ -1,4 +1,4 @@
-<?jelly escape-by-default=true?>
+<?jelly escape-by-default='true'?>
 <j:jelly xmlns:j="jelly:core" xmlns:f="/lib/form" xmlns:rh="/com/redhat/jenkins/plugins/ci/form">
 
   <f:radioBlock name="android-emulator.useNamed" value="true"
