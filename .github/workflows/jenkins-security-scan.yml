@@ -3,7 +3,6 @@ name: Jenkins Security Scan
 on:
   push:
     branches:
-      - main
       - master
   pull_request:
     types: [ opened, synchronize, reopened ]
