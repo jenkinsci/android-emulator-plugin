@@ -17,7 +17,8 @@
     <properties>
         <revision>3.1.5</revision>
         <changelist>999999-SNAPSHOT</changelist>
-        <jenkins.version>2.479</jenkins.version>
+        <jenkins.baseline>2.479</jenkins.baseline>
+        <jenkins.version>${jenkins.baseline}.1</jenkins.version>
         <gitHubRepo>jenkinsci/${project.artifactId}-plugin</gitHubRepo>
     </properties>
 
