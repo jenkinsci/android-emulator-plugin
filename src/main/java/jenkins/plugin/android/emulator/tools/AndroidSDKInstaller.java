@@ -166,7 +166,7 @@ public class AndroidSDKInstaller extends DownloadFromUrlInstaller {
         }
     }
 
-    private void installBasePackages(FilePath sdkRoot, TaskListener log) throws IOException, InterruptedException {
+    private void installBasePackages(FilePath sdkRoot, @NonNull TaskListener log) throws IOException, InterruptedException {
         FilePath sdkmanager = sdkRoot.child("tools").child("bin").child("sdkmanager" + platform.extension);
         if (!sdkmanager.exists()) {
             sdkmanager = sdkRoot.child("cmdline-tools").child("bin").child("sdkmanager" + platform.extension);
@@ -193,7 +193,7 @@ public class AndroidSDKInstaller extends DownloadFromUrlInstaller {
                     }
                     return defaultPackage.equals(i.getId());
                 })) //
-                .collect(Collectors.toList());
+                .toList();
 
         if (!defaultPackages.isEmpty()) {
             // get component with the available latest version
@@ -210,7 +210,9 @@ public class AndroidSDKInstaller extends DownloadFromUrlInstaller {
                     // remove release candidate versions for stable channel
                     .filter(p -> channel != Channel.STABLE || p.getVersion().getQualifier() == null) //
                     .sorted(Collections.reverseOrder()) // in case of wildcards we takes latest version
-                    .findFirst().get().getId()));
+                    .findFirst()
+                    .get()
+                    .getId()));
 
             SDKManagerCLIBuilder.with(sdkmanager) //
                     .proxy(Jenkins.get().proxy) //

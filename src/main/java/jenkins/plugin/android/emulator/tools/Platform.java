@@ -35,7 +35,7 @@ import jenkins.plugin.android.emulator.Messages;
  * Supported platform.
  */
 public enum Platform {
-    LINUX(".sh", "bin"), WINDOWS(".bat", "bin"), OSX(".sh", "bin");
+    LINUX("", "bin"), WINDOWS(".bat", "bin"), OSX(".sh", "bin");
 
     /**
      * Choose the extension file name suitable to run cli commands.
