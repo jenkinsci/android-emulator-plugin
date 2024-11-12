@@ -46,13 +46,13 @@
 
     <dependencyManagement>
         <dependencies>
-            <dependency>
-                <groupId>io.jenkins.tools.bom</groupId>
-                <artifactId>bom-2.401.x</artifactId>
-                <version>2745.vc7b_fe4c876fa_</version>
-                <scope>import</scope>
-                <type>pom</type>
-            </dependency>
+          <dependency>
+            <groupId>io.jenkins.tools.bom</groupId>
+            <artifactId>bom-${jenkins.baseline}.x</artifactId>
+            <version>3654.v237e4a_f2d8da_</version>
+            <type>pom</type>
+            <scope>import</scope>
+          </dependency>
         </dependencies>
     </dependencyManagement>
 
