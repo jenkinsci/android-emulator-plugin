@@ -246,7 +246,7 @@ public class SDKManagerCLIBuilder {
 
         arguments.add(ARG_INSTALL);
         for (String p : packages) {
-            arguments.addQuoted(p);
+            arguments.add(p);
         }
 
         EnvVars env = new EnvVars();

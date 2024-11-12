@@ -27,6 +27,8 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -44,7 +46,6 @@ import hudson.Proc;
 import hudson.model.TaskListener;
 import hudson.util.ArgumentListBuilder;
 import hudson.util.ForkOutputStream;
-import hudson.util.NullStream;
 import hudson.util.StreamTaskListener;
 
 public class CLICommand<R> {
@@ -82,7 +83,7 @@ public class CLICommand<R> {
     }
 
     public R execute() throws IOException, InterruptedException {
-        return execute(new StreamTaskListener(new NullStream()));
+        return execute(new StreamTaskListener(OutputStream.nullOutputStream(), StandardCharsets.UTF_8));
     }
 
     public R execute(@NonNull TaskListener output) throws IOException, InterruptedException {
@@ -97,15 +98,11 @@ public class CLICommand<R> {
                 .masks(getMasks(args.size()));
 
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        if (output != null) {
-            if (parser != null) {
-                // clone output to make content available to the parser
-                starter.stdout(new ForkOutputStream(output.getLogger(), baos));
-            } else {
-                starter.stdout(output);
-            }
-        } else if (parser != null) {
-            starter.stdout(baos);
+        if (parser != null) {
+            // clone output to make content available to the parser
+            starter.stdout(new ForkOutputStream(output.getLogger(), baos));
+        } else {
+            starter.stdout(output);
         }
 
         int exitCode = starter.join();

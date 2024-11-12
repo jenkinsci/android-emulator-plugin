@@ -15,7 +15,6 @@
     <url>http://wiki.jenkins-ci.org/display/JENKINS/Android+Emulator+Plugin</url>
 
     <properties>
-        <revision>3.1.5</revision>
         <changelist>999999-SNAPSHOT</changelist>
         <jenkins.baseline>2.479</jenkins.baseline>
         <jenkins.version>${jenkins.baseline}.1</jenkins.version>
