@@ -592,3 +592,6 @@ die.
     -   [View existing
         requests](https://issues.jenkins-ci.org/secure/IssueNavigator.jspa?reset=true&jqlQuery=project+%3D+JENKINS+AND+issuetype+in+%28%22New+Feature%22%2C+Improvement%29+AND+component+%3D+android-emulator-plugin+AND+status+in+%28Open%2C+%22In+Progress%22%2C+Reopened%29)
 
+## Changelog
+
+Please have a look at [CHANGELOG.md](CHANGELOG.md).
