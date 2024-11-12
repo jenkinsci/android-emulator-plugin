@@ -117,7 +117,7 @@ where each build node can locate a copy of the Android SDK.
 This can either be an absolute path, or can contain environment
 variables in the format `$``VARIABLE_NAME`. This will be replaced at
 build time from the node's environment variables (see the "Node
-Properties" settings for each slave), or from the build's environment.
+Properties" settings for each agent), or from the build's environment.
 
 If no value is entered, or the plugin cannot find a valid SDK under the
 configured path, it will search under the following environment
@@ -137,7 +137,7 @@ disabled, the build will be marked as "not built" and will stop.
 
 ##### Running on headless build machines
 
-If you have build slaves which are headless (e.g. Linux servers that
+If you have build agents which are headless (e.g. Linux servers that
 don't have a graphical user interface), you can still run an Android
 Emulator even although, by default, the emulator does require a
 graphical environment.
@@ -149,14 +149,14 @@ configuration. This is the equivalent of using the emulator's
 Using an artificial graphical environment...
 
 It is also possible to run the Android emulator UI on a headless build
-slave by making use of an artificial X server, such as
+agent by making use of an artificial X server, such as
 [Xvnc](http://www.realvnc.com/products/free/4.1/man/Xvnc.html).
 
 In this case, a recommended setup is to install both Xvnc and the [Xvnc
 Plugin](https://wiki.jenkins.io/display/JENKINS/Xvnc+Plugin) for Jenkins.
 With this plugin enabled in your job — and Xvnc configured to run
 without requesting a password — you can run multiple Android emulators
-in parallel on a headless slave, while keeping the "Show emulator
+in parallel on a headless agent, while keeping the "Show emulator
 window" option enabled.
 
 Although the Android Emulator plugin has been designed to ensure it
@@ -544,7 +544,7 @@ This is due to something called Session 0 Isolation, which prevents
 services from starting UIs for security reasons.
 
 If you really need to see the emulator UI, you can either run Jenkins
-not as a service, or add a slave node to Jenkins (e.g. launch slave via
+not as a service, or add an agent node to Jenkins (e.g. launch agent via
 JNLP on the same machine) which will bypass this isolation.
 
 ### Unexpected timeouts or hanging during build
@@ -573,7 +573,7 @@ die.
 -   This issue will be fixed once
     [JENKINS-11995](https://issues.jenkins-ci.org/browse/JENKINS-11995)
     is implemented.
--   If your slave is running Linux, you may be running into [Android
+-   If your agent is running Linux, you may be running into [Android
     issue \#17294](http://b.android.com/17294)  
     In this case, there is a workaround assuming your build doesn't need
     to use the emulator's audio input:
