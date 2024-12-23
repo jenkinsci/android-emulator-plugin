@@ -65,7 +65,7 @@
         <dependency>
             <groupId>org.jenkins-ci.plugins</groupId>
             <artifactId>port-allocator</artifactId>
-            <version>1.10</version>
+            <version>1.11</version>
             <scope>compile</scope>
         </dependency>
         <dependency>
