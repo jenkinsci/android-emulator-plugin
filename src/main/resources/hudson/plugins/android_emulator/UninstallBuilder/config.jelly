@@ -3,7 +3,7 @@
 
     <f:entry title="${%Package ID}">
         <f:textbox name="android-emulator.packageId" value="${instance.packageId}"
-        checkUrl="'descriptorByName/UninstallBuilder/checkPackageId?value='+escape(this.value)"/>
+        checkUrl="descriptorByName/UninstallBuilder/checkPackageId" checkDependsOn=""/>
         <f:description>${%ID of the Android package to be uninstalled}</f:description>
     </f:entry>
 
