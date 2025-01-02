@@ -1029,8 +1029,8 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
         }
 
         public FormValidation doCheckScreenResolution(@QueryParameter String value,
-                @QueryParameter String density, @QueryParameter String osVersion) {
-            return doCheckScreenResolution(value, density, osVersion, true).getFormValidation();
+                @QueryParameter String screenDensity, @QueryParameter String osVersion) {
+            return doCheckScreenResolution(value, screenDensity, osVersion, true).getFormValidation();
         }
 
         private ValidationResult doCheckScreenResolution(String resolution, String density,

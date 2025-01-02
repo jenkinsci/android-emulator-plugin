@@ -6,9 +6,8 @@
     <f:entry title="${%Android SDK root}"
         description="${%Enter the path to the root of an Android SDK installation}"
         help="/plugin/android-emulator/help-sdkRoot.html">
-      <input class="setting-input validated" name="android-emulator.androidHome"
-          type="text" value="${descriptor.androidHome}"
-          checkUrl="'buildWrapper/AndroidEmulator/checkAndroidHome?value='+escape(this.value)" />
+      <f:textbox name="android-emulator.androidHome" value="${descriptor.androidHome}"
+          checkUrl="buildWrapper/AndroidEmulator/checkAndroidHome" checkDependsOn=""/>
     </f:entry>
 
     <f:entry help="/plugin/android-emulator/help-installSdk.html">
