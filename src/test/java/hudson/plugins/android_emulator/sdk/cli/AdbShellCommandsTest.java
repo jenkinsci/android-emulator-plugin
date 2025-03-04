@@ -1,18 +1,15 @@
 package hudson.plugins.android_emulator.sdk.cli;
 
-import static org.junit.Assert.*;
-
-import org.junit.Test;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import hudson.plugins.android_emulator.constants.AndroidKeyEvent;
 import hudson.plugins.android_emulator.sdk.Tool;
-import hudson.plugins.android_emulator.sdk.cli.SdkCliCommand;
-import hudson.plugins.android_emulator.sdk.cli.SdkCliCommandFactory;
+import org.junit.jupiter.api.Test;
 
-public class AdbShellCommandsTest {
+class AdbShellCommandsTest {
 
     @Test
-    public void testAdbShellListProcesses() {
+    void testAdbShellListProcesses() {
         assertAdbShellCommand("-s dummyId shell ps",
                 SdkCliCommandFactory.getAdbShellCommandForAPILevel(25).getListProcessesCommand("dummyId"));
         assertAdbShellCommand("-s android-23920 shell ps",
@@ -22,7 +19,7 @@ public class AdbShellCommandsTest {
     }
 
     @Test
-    public void testAdbWaitForDeviceStartCommand() {
+    void testAdbWaitForDeviceStartCommand() {
         assertAdbShellCommand("-s dummyId wait-for-device shell getprop init.svc.bootanim",
                 SdkCliCommandFactory.getAdbShellCommandForAPILevel(25).getWaitForDeviceStartupCommand("dummyId"));
         assertAdbShellCommand("-s android-23920 wait-for-device shell getprop init.svc.bootanim",
@@ -36,7 +33,7 @@ public class AdbShellCommandsTest {
     }
 
     @Test
-    public void testAdbWaitForDeviceStartExpectedAnswer() {
+    void testAdbWaitForDeviceStartExpectedAnswer() {
         assertEquals("stopped", SdkCliCommandFactory.getAdbShellCommandForAPILevel(25).getWaitForDeviceStartupExpectedAnswer());
         assertEquals("stopped", SdkCliCommandFactory.getAdbShellCommandForAPILevel(22).getWaitForDeviceStartupExpectedAnswer());
         assertEquals("stopped", SdkCliCommandFactory.getAdbShellCommandForAPILevel(4).getWaitForDeviceStartupExpectedAnswer());
@@ -44,7 +41,7 @@ public class AdbShellCommandsTest {
     }
 
     @Test
-    public void testAdbClearMainLogCommand() {
+    void testAdbClearMainLogCommand() {
         assertAdbShellCommand("-s dummyId shell logcat -c",
                 SdkCliCommandFactory.getAdbShellCommandForAPILevel(25).getClearMainLogCommand("dummyId"));
         assertAdbShellCommand("-s android-23920 shell logcat -c",
@@ -54,7 +51,7 @@ public class AdbShellCommandsTest {
     }
 
     @Test
-    public void testSetLogCatFormatToTimeCommand() {
+    void testSetLogCatFormatToTimeCommand() {
         assertAdbShellCommand("-s dummyId shell logcat -v time",
                 SdkCliCommandFactory.getAdbShellCommandForAPILevel(25).getSetLogCatFormatToTimeCommand("dummyId"));
         assertAdbShellCommand("-s android-23920 shell logcat -v time",
@@ -64,7 +61,7 @@ public class AdbShellCommandsTest {
     }
 
     @Test
-    public void testAdbLogMessage() {
+    void testAdbLogMessage() {
         assertAdbShellCommand("-s dummyId shell log -p v -t Jenkins 'I'm a testcase!'",
                 SdkCliCommandFactory.getAdbShellCommandForAPILevel(25).getLogMessageCommand("dummyId", "I'm a testcase!"));
         assertAdbShellCommand("-s android-23920 shell log -p v -t Jenkins 'Hello'",
@@ -74,7 +71,7 @@ public class AdbShellCommandsTest {
     }
 
     @Test
-    public void testAdbSendKeyEventCommand() {
+    void testAdbSendKeyEventCommand() {
         assertAdbShellCommand("-s dummyId shell input keyevent 3",
                 SdkCliCommandFactory.getAdbShellCommandForAPILevel(25).getSendKeyEventCommand("dummyId", AndroidKeyEvent.KEYCODE_HOME));
         assertAdbShellCommand("-s android-23920 shell input keyevent 4",
@@ -84,7 +81,7 @@ public class AdbShellCommandsTest {
     }
 
     @Test
-    public void testAdbSendBackKeyEventCommand() {
+    void testAdbSendBackKeyEventCommand() {
         assertAdbShellCommand("-s dummyId shell input keyevent 4",
                 SdkCliCommandFactory.getAdbShellCommandForAPILevel(25).getSendBackKeyEventCommand("dummyId"));
         assertAdbShellCommand("-s android-23920 shell input keyevent 4",
@@ -94,7 +91,7 @@ public class AdbShellCommandsTest {
     }
 
     @Test
-    public void testAdbDismissKeyguardCommand() {
+    void testAdbDismissKeyguardCommand() {
         assertAdbShellCommand("-s dummyId shell wm dismiss-keyguard",
                 SdkCliCommandFactory.getAdbShellCommandForAPILevel(25).getDismissKeyguardCommand("dummyId"));
         assertAdbShellCommand("shell wm dismiss-keyguard",
@@ -106,7 +103,7 @@ public class AdbShellCommandsTest {
     }
 
     @Test
-    public void testAdbMonkeyCommand() {
+    void testAdbMonkeyCommand() {
         assertAdbShellCommand("-s dummyId shell monkey -v -v -s 28640 --throttle 0 --dbg-no-events --ignore-crashes 1",
                 SdkCliCommandFactory.getAdbShellCommandForAPILevel(25).getMonkeyInputCommand("dummyId", 28640, 0, "--dbg-no-events --ignore-crashes", 1));
         assertAdbShellCommand("-s android-23920 shell monkey -v -v -s 0 --throttle 100 -p test -c main 999",
@@ -116,7 +113,7 @@ public class AdbShellCommandsTest {
     }
 
     @Test
-    public void testWithoudDeviceIdentifier() {
+    void testWithoudDeviceIdentifier() {
         assertAdbShellCommand("shell ps", SdkCliCommandFactory.getAdbShellCommandForAPILevel(25).getListProcessesCommand(null));
         assertAdbShellCommand("shell ps", SdkCliCommandFactory.getAdbShellCommandForAPILevel(22).getListProcessesCommand(""));
         assertAdbShellCommand("wait-for-device shell getprop dev.bootcomplete",

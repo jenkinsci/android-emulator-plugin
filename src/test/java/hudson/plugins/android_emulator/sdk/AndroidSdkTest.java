@@ -1,15 +1,17 @@
 package hudson.plugins.android_emulator.sdk;
 
-import junit.framework.TestCase;
+import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 
-import org.junit.Test;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
-public class AndroidSdkTest extends TestCase {
+class AndroidSdkTest {
 
     @Test
-    public void testGetSdkToolsMajorVersion() throws Exception {
+    void testGetSdkToolsMajorVersion() {
         assertEquals(0, createSdkWithTools(null).getSdkToolsMajorVersion());
         assertEquals(20, createSdkWithTools("20").getSdkToolsMajorVersion());
         assertEquals(20, createSdkWithTools("20.0").getSdkToolsMajorVersion());
@@ -19,7 +21,7 @@ public class AndroidSdkTest extends TestCase {
     }
 
     @Test
-    public void testEmulatorEngineV2Support() {
+    void testEmulatorEngineV2Support() {
         assertEqualsHelperEmulatorEngineV2Support(null, false, false);
         assertEqualsHelperEmulatorEngineV2Support("24", false, false);
         assertEqualsHelperEmulatorEngineV2Support("24.1.1", false, false);
@@ -33,7 +35,7 @@ public class AndroidSdkTest extends TestCase {
     }
 
     @Test
-    public void testUseLegacySdkStructure() {
+    void testUseLegacySdkStructure() {
         assertFalse(createSdkWithTools(null).useLegacySdkStructure());
         assertTrue(createSdkWithTools("24").useLegacySdkStructure());
         assertTrue(createSdkWithTools("24.1.1").useLegacySdkStructure());

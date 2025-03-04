@@ -3,16 +3,16 @@ package jenkins.plugin.android.emulator.sdk.cli;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.InputStream;
-import java.util.List;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
+import java.util.List;
 
 import jenkins.plugin.android.emulator.sdk.cli.Targets.TargetType;
 
-public class AVDManagerCLIBuilderTest {
+class AVDManagerCLIBuilderTest {
 
     @Test
-    public void test_list_parse() throws Exception {
+    void test_list_parse() throws Exception {
         try (InputStream is = this.getClass().getResourceAsStream("avdmanager_list_target.out")) {
             List<Targets> targets = new AVDManagerCLIBuilder.ListTargetParser().parse(is);
             assertThat(targets).hasSize(1);

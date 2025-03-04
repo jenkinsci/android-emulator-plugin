@@ -1,10 +1,6 @@
 package hudson.plugins.android_emulator.util;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.*;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -19,62 +15,62 @@ import java.util.Map;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang.SystemUtils;
-import org.junit.Test;
 import org.jvnet.hudson.test.Issue;
 
 import hudson.EnvVars;
+import org.junit.jupiter.api.Test;
 
-public class UtilsTest {
+class UtilsTest {
 
     private static final String ENV_VAR_NAME_QEMU_AUDIO_DRIVER = "QEMU_AUDIO_DRV";
     private static final String ENV_VAR_VALUE_QEMU_AUDIO_DRIVER_NONE = "none";
 
     @Test
-    public void testRelativeSubdirectory() {
+    void testRelativeSubdirectory() {
         assertRelative("/foo/bar", "/foo/bar/baz", "baz/");
     }
 
     @Test
-    public void testRelativeSubdirectory_TrailingSlash() {
+    void testRelativeSubdirectory_TrailingSlash() {
         assertRelative("/foo/bar/", "/foo/bar/baz", "baz/");
         assertRelative("/foo/bar", "/foo/bar/baz/", "baz/");
         assertRelative("/foo/bar///", "/foo/bar/baz///", "baz/");
     }
 
     @Test
-    public void testRelativeParentSubdirectory() {
+    void testRelativeParentSubdirectory() {
         assertRelative("/foo/bar", "/foo/baz", "../baz/");
     }
 
     @Test
-    public void testRelativeParentSubdirectory_TrailingSlash() {
+    void testRelativeParentSubdirectory_TrailingSlash() {
         assertRelative("/foo/bar/", "/foo/baz", "../baz/");
         assertRelative("/foo/bar", "/foo/baz/", "../baz/");
         assertRelative("/foo/bar///", "/foo//baz//", "../baz/");
     }
 
     @Test
-    public void testRelativeParentSubdirectory_Deeper() {
+    void testRelativeParentSubdirectory_Deeper() {
         assertRelative("/foo/bar/app", "/foo/bar/tests/unit", "../tests/unit/");
     }
 
     @Test
-    public void testRelativePathNothingInCommon() {
+    void testRelativePathNothingInCommon() {
         assertRelative("/a/b/c", "/d/e/f/g", "../../../d/e/f/g/");
     }
 
     @Test
-    public void testRelativeRoot() {
+    void testRelativeRoot() {
         assertRelative("/", "/x", "x/");
     }
 
     @Test
-    public void testRelativeEquivalent() {
+    void testRelativeEquivalent() {
         assertRelative("/tmp/foo", "//tmp//foo//", "");
     }
 
     @Test
-    public void testRelativeNull() {
+    void testRelativeNull() {
         assertRelative("/", null, null);
         assertRelative(null, "/", null);
     }
@@ -84,14 +80,14 @@ public class UtilsTest {
     }
 
     @Test
-    public void testNormalizePathSeparator() {
+    void testNormalizePathSeparator() {
         assertEquals("/a/b/c", Utils.normalizePathSeparators("//a/////b//c"));
         assertEquals("/a/../b/c", Utils.normalizePathSeparators("//a//..///b//c"));
         assertEquals("\\\\HOST\\b\\c\\", Utils.normalizePathSeparators("\\\\\\HOST\\\\\\\\\\b\\\\\\c\\\\"));
     }
 
     @Test
-    public void testRelativeDistance() {
+    void testRelativeDistance() {
         assertRelativeDistance("/foo/bar", "/foo/bar", 0);
         assertRelativeDistance("/foo/", "/foo/baz", 1);
         assertRelativeDistance("/foo/bar", "/foo/baz", 2);
@@ -106,7 +102,7 @@ public class UtilsTest {
     }
 
     @Test
-    public void testReadUnsupportedConfigFile() throws Exception {
+    void testReadUnsupportedConfigFile() throws Exception {
         final File temp = Files.createTempFile("temp", ".txt").toFile();
         temp.deleteOnExit();
 
@@ -121,7 +117,7 @@ public class UtilsTest {
     }
 
     @Test
-    public void testReadConfigFileInPropertiesFormat() throws Exception {
+    void testReadConfigFileInPropertiesFormat() throws Exception {
         final File temp = Files.createTempFile("temp", ".properties").toFile();
         temp.deleteOnExit();
 
@@ -138,21 +134,22 @@ public class UtilsTest {
     }
 
     @Test
-    public void testReadConfigFileInINIFormat() throws Exception {
+    void testReadConfigFileInINIFormat() throws Exception {
         final File temp = Files.createTempFile("temp", ".ini").toFile();
         temp.deleteOnExit();
 
         // value should be returned 'as-is' without removal of '\'
-        writeContentToTestFile(temp, "key=system-images\\android-24\\default\\x86_64\n"
-                + "xxx\n"
-                + "\n"
-                + "test=test\\\n"
-                + "test2=test2\n"
-                + "#comment=1\n"
-                + ";comment2=2\n"
-                + "=nokey\n"
-                + "novalue=\n"
-                + "=");
+        writeContentToTestFile(temp, """
+				key=system-images\\android-24\\default\\x86_64
+				xxx
+
+				test=test\\
+				test2=test2
+				#comment=1
+				;comment2=2
+				=nokey
+				novalue=
+				=""");
 
         assertEquals(5, ConfigFileUtils.parseConfigFile(temp).size());
 
@@ -169,12 +166,12 @@ public class UtilsTest {
     }
 
     @Test
-    public void testWriteUnsupportedConfigFile() throws Exception {
+    void testWriteUnsupportedConfigFile() throws Exception {
         final File temp = Files.createTempFile("temp", ".txt").toFile();
         temp.deleteOnExit();
 
         try {
-            ConfigFileUtils.writeConfigFile(temp, new HashMap<String, String>());
+            ConfigFileUtils.writeConfigFile(temp, new HashMap<>());
             fail("Expected exception");
         } catch (IOException expectedException) {
             // expected path
@@ -184,7 +181,7 @@ public class UtilsTest {
     }
 
     @Test
-    public void testWriteConfigFileInPropertiesFormat() throws Exception {
+    void testWriteConfigFileInPropertiesFormat() throws Exception {
         final File expected = Files.createTempFile("temp", ".properties").toFile();
         expected.deleteOnExit();
 
@@ -197,7 +194,7 @@ public class UtilsTest {
 
         // Test 1
         // Setup test data
-        final Map<String, String> keyValues = new HashMap<String, String>();
+        final Map<String, String> keyValues = new HashMap<>();
         keyValues.put("key","some\\back\\slash\\value");
 
         ConfigFileUtils.writeConfigFile(actual, keyValues);
@@ -207,7 +204,7 @@ public class UtilsTest {
         writeContentToTestFile(expected, timestamp + newLine +
                 "key=some\\\\back\\\\slash\\\\value" + newLine);
 
-        assertTrue("File contents differ!", FileUtils.contentEquals(expected, actual));
+        assertTrue(FileUtils.contentEquals(expected, actual), "File contents differ!");
 
         // Test 2
         // Setup test data
@@ -221,11 +218,11 @@ public class UtilsTest {
         writeContentToTestFile(expected, timestamp + newLine +
                 "xxx=" + newLine);
 
-        assertTrue("File contents differ!", FileUtils.contentEquals(expected, actual));
+        assertTrue(FileUtils.contentEquals(expected, actual), "File contents differ!");
     }
 
     @Test
-    public void testWriteConfigFileInINIFormat() throws Exception {
+    void testWriteConfigFileInINIFormat() throws Exception {
         final File expected = Files.createTempFile("temp", ".ini").toFile();
         expected.deleteOnExit();
 
@@ -233,7 +230,7 @@ public class UtilsTest {
         actual.deleteOnExit();
 
         // Setup test data
-        final Map<String, String> keyValues = new LinkedHashMap<String, String>();
+        final Map<String, String> keyValues = new LinkedHashMap<>();
         keyValues.put("key","system-images\\android-24\\default\\x86_64");
         keyValues.put("xxx", "");
         keyValues.put("test", "test\\");
@@ -263,7 +260,7 @@ public class UtilsTest {
     }
 
     @Test
-    public void testVersionCompare() {
+    void testVersionCompare() {
         assertTrue(Utils.isVersionOlderThan("1.0", "1.0.1"));
         assertTrue(Utils.isVersionOlderThan("1.0", "1.1"));
         assertTrue(Utils.isVersionOlderThan("1.0", "2.1"));
@@ -294,7 +291,7 @@ public class UtilsTest {
     }
 
     @Test
-    public void testfindPatternWithHighestVersionSuffix() {
+    void testfindPatternWithHighestVersionSuffix() {
         final String versions1 = "build-tools-3.3\nbuild-tools-0.1\rbuild-tools-1\r\nbuild-tools-3.1";
         final String result1 = Utils.getPatternWithHighestSuffixedVersionNumberInMultiLineInput(versions1, "build-tools");
         assertEquals("build-tools-3.3", result1);
@@ -331,7 +328,7 @@ public class UtilsTest {
 
     @Issue("JENKINS-51197")
     @Test
-    public void testPatternExcludeSnapshotVersion() {
+    void testPatternExcludeSnapshotVersion() {
         String input = "build-tools-27.0.0\nbuild-tools-27.0.1\rbuild-tools-30.0.0-rc2";
         String result = Utils.getPatternWithHighestSuffixedVersionNumberInMultiLineInput(input, "build-tools");
         assertEquals("build-tools-27.0.1", result);
@@ -339,7 +336,7 @@ public class UtilsTest {
 
     // Workaround for Bug 64356053 ('-no-audio'-, '-noaudio'- and '-audio none'-options ignored)
     @Test
-    public void testQemu2AudioEnvSettingFromCommandLine() {
+    void testQemu2AudioEnvSettingFromCommandLine() {
         assertEnvironmentDisablesAudioDriver(Utils.getEnvironmentVarsFromEmulatorArgs("--test -no-audio --xx"));
         assertEnvironmentDisablesAudioDriver(Utils.getEnvironmentVarsFromEmulatorArgs("-noaudio --xx"));
         assertEnvironmentDisablesAudioDriver(Utils.getEnvironmentVarsFromEmulatorArgs("something -noaudio"));

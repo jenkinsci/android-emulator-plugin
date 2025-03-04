@@ -1,14 +1,15 @@
 package hudson.plugins.android_emulator;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
 import hudson.plugins.android_emulator.sdk.Tool;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
-import static org.junit.Assert.assertEquals;
+class EmulatorConfigTest {
 
-public class EmulatorConfigTest {
-
-    @Test // JENKINS-26338
-    public void shouldSelectExecutor64WhenPassedAsExecutorAndAvdIsSelected() {
+    // JENKINS-26338
+    @Test
+    void shouldSelectExecutor64WhenPassedAsExecutorAndAvdIsSelected() {
         EmulatorConfig emulatorConfigWithAvdName =
                 EmulatorConfig.create("hudson_en-US_160_WVGA_android-21", "5.0", "160", "WVGA", "", "", false, false,
                         false, "", "", "", "", "emulator64-arm", "");
@@ -16,7 +17,7 @@ public class EmulatorConfigTest {
     }
 
     @Test
-    public void shouldSelectExecutor64WhenPassedAsExecutorAndAvdIsEmpty() {
+    void shouldSelectExecutor64WhenPassedAsExecutorAndAvdIsEmpty() {
         EmulatorConfig emulatorConfigWithNoAvdName =
                 EmulatorConfig.create("", "5.0", "160", "WVGA", "", "", false, false, false, "", "", "", "",
                         "emulator64-arm", "");
