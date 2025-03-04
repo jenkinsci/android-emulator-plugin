@@ -91,34 +91,52 @@ public class MonkeyRecorder extends Recorder {
             return new MonkeyAction(MonkeyResult.NothingToParse);
         }
 
+        Matcher matcher = Pattern.compile(":AllowPackage: (.*?)").matcher(monkeyOutput);
+
+        String packageId = "_package_";
+        if (matcher.find()) {
+            packageId = matcher.group(1);
+        }
+
         // If we don't recognise any outcomes, then say so
         MonkeyResult result = MonkeyResult.UnrecognisedFormat;
 
         // Extract common data
         int totalEventCount = 0;
-        Matcher matcher = Pattern.compile(":Monkey: seed=-?\\d+ count=(\\d+)").matcher(monkeyOutput);
-        if (matcher.find()) {
-            totalEventCount = Integer.parseInt(matcher.group(1));
+        int outputCount = 0;
+        matcher = Pattern.compile(":Monkey: seed=-?\\d+ count=(\\d+)").matcher(monkeyOutput);
+        while (matcher.find()) {
+            totalEventCount += Integer.parseInt(matcher.group(1));
+            outputCount++;
         }
 
         // Determine outcome
+        int finishCount = 0;
+        matcher = Pattern.compile("// Monkey finished").matcher(monkeyOutput);
+        while (matcher.find()) {
+            finishCount++;
+        }
         int eventsCompleted = 0;
-        if (monkeyOutput.contains("// Monkey finished")) {
+        if (finishCount > 0 && finishCount >= outputCount) {
             result = MonkeyResult.Success;
             eventsCompleted = totalEventCount;
         } else {
             // If it didn't finish, assume failure
             matcher = Pattern.compile("Events injected: (\\d+)").matcher(monkeyOutput);
-            if (matcher.find()) {
-                eventsCompleted = Integer.parseInt(matcher.group(1));
+            while (matcher.find()) {
+                eventsCompleted += Integer.parseInt(matcher.group(1));
             }
 
             // Determine failure type
-            matcher = Pattern.compile("// (CRASH|NOT RESPONDING)").matcher(monkeyOutput);
+            matcher = Pattern.compile("// (CRASH|NOT RESPONDING): (.*?) \\(pid (\\d+)\\)").matcher(monkeyOutput);
             if (matcher.find()) {
                 String reason = matcher.group(1);
                 if ("CRASH".equals(reason)) {
-                    result = MonkeyResult.Crash;
+                    if (!matcher.group(2).equals(packageId)) {
+                        result = MonkeyResult.Success;
+                    } else {
+                        result = MonkeyResult.Crash;
+                    }
                 } else if ("NOT RESPONDING".equals(reason)) {
                     result = MonkeyResult.AppNotResponding;
                 }

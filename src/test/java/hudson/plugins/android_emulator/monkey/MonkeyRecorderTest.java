@@ -17,9 +17,11 @@ import junit.framework.TestCase;
 
 public class MonkeyRecorderTest extends TestCase {
 
-    private static final String MONKEY_CRASH = "// CRASH";
-    private static final String MONKEY_ANR = "// NOT RESPONDING";
+    private static final String MONKEY_CRASH = "// CRASH: _package_ (pid 0)";
+    private static final String MONKEY_ANR = "// NOT RESPONDING: _package_ (pid 0)";
+    private static final String MONKEY_OUTSIDE_PACKAGE_CRASH = "// CRASH: _outside_package_ (pid 0)";
     private static final String MONKEY_SUCCESS = "// Monkey finished";
+    private static final String MONKEY_START_HEADER = ":Monkey: seed=0 count=1234\n";
 
     public void testNotRunForBuild_Aborted() throws InterruptedException, IOException {
         assertNoParsingForBadBuild(Result.ABORTED);
@@ -63,6 +65,10 @@ public class MonkeyRecorderTest extends TestCase {
         parseOutputAndAssert(MONKEY_CRASH, MonkeyResult.Crash);
     }
 
+    public void testOutsidePackageCrash() {
+        parseOutputAndAssert(MONKEY_OUTSIDE_PACKAGE_CRASH, MonkeyResult.Success);
+    }
+
     public void testCrash_FailureBegetsFailure() {
         parseOutputAndAssert(MONKEY_CRASH, BuildOutcome.FAILURE, Result.FAILURE, MonkeyResult.Crash);
     }
@@ -102,6 +108,26 @@ public class MonkeyRecorderTest extends TestCase {
         String output = ":Monkey: seed=0 count=1234\n";
         output += MONKEY_SUCCESS;
         parseOutputAndAssert(output, MonkeyResult.Success, 1234, 1234);
+    }
+
+    public void testPartialSuccess() {
+        String output = MONKEY_START_HEADER;
+        output += "Events injected: 1234";
+        output += MONKEY_SUCCESS;
+        output += MONKEY_START_HEADER;
+        output += "Events injected: 12";
+        output += MONKEY_CRASH;
+        parseOutputAndAssert(output, MonkeyResult.Crash, 1246, 2468);
+    }
+
+    public void testMultipleSuccess() {
+        String output = MONKEY_START_HEADER;
+        output += "Events injected: 1234";
+        output += MONKEY_SUCCESS;
+        output += MONKEY_START_HEADER;
+        output += "Events injected: 1234";
+        output += MONKEY_SUCCESS;
+        parseOutputAndAssert(output, MonkeyResult.Success, 2468, 2468);
     }
 
     private void parseOutputAndAssert(String monkeyOutput, MonkeyResult expectedResult) {
