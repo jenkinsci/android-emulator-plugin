@@ -317,7 +317,7 @@ class SdkCommandsTest {
     }
 
     @Test
-    void testWithoudDeviceIdentifier() {
+    void testWithoutDeviceIdentifier() {
         final SdkCliCommand adbInstallPkgCmdV25_3 = SdkCliCommandFactory.getCommandsForSdk("25.3").getAdbInstallPackageCommand(null, "/home/android/test.apk");
         final SdkCliCommand adbInstallPkgCmdV25 = SdkCliCommandFactory.getCommandsForSdk("25").getAdbInstallPackageCommand(null, "/home/android/test.apk");
         final SdkCliCommand adbInstallPkgCmdV17 = SdkCliCommandFactory.getCommandsForSdk("17").getAdbInstallPackageCommand("", "jenkins.apk");
