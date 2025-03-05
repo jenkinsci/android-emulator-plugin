@@ -113,7 +113,7 @@ class AdbShellCommandsTest {
     }
 
     @Test
-    void testWithoudDeviceIdentifier() {
+    void testWithoutDeviceIdentifier() {
         assertAdbShellCommand("shell ps", SdkCliCommandFactory.getAdbShellCommandForAPILevel(25).getListProcessesCommand(null));
         assertAdbShellCommand("shell ps", SdkCliCommandFactory.getAdbShellCommandForAPILevel(22).getListProcessesCommand(""));
         assertAdbShellCommand("wait-for-device shell getprop dev.bootcomplete",
