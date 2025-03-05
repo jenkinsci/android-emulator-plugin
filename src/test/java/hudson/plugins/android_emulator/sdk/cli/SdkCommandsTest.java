@@ -1,25 +1,23 @@
 package hudson.plugins.android_emulator.sdk.cli;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 
 import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
-import org.junit.Test;
 import org.jvnet.hudson.test.Issue;
 
 import hudson.plugins.android_emulator.sdk.Tool;
+import org.junit.jupiter.api.Test;
 
-public class SdkCommandsTest {
+class SdkCommandsTest {
 
     @Test
-    public void testInstallAndUpdateCommand() {
+    void testInstallAndUpdateCommand() {
         assertUpgradeParamsToAllToolVersions("platform-tools", "platform-tool");
         assertUpgradeParamsToAllToolVersions("platform-tools", "platform-tools");
 
@@ -52,7 +50,7 @@ public class SdkCommandsTest {
         assertUpgradeParamsToAllToolVersions("system-images;android-26;test;x86_64", "sys-img-x86_64-test-26");
         assertUpgradeParamsToAllToolVersions("system-images;android-24;default;x86_64", "system-images;android-24;default;x86_64");
 
-        final List<String> input = new ArrayList<String>();
+        final List<String> input = new ArrayList<>();
         input.add("tool");
         input.add("extra-android-m2repository");
         input.add("extra-google-m2repository");
@@ -75,7 +73,7 @@ public class SdkCommandsTest {
     }
 
     private void assertUpgradeParamsToAllToolVersions(final String expected, final String input) {
-        final List<String> components = new ArrayList<String>();
+        final List<String> components = new ArrayList<>();
         components.add(input);
         assertUpgradeParamsToAllToolVersions(expected, input, components);
     }
@@ -97,7 +95,7 @@ public class SdkCommandsTest {
     }
 
     @Test
-    public void testListInstalledComponentsCommand() {
+    void testListInstalledComponentsCommand() {
         final SdkCliCommand listSdkComponentsCmdV25_3 = SdkCliCommandFactory.getCommandsForSdk("25.3").getListSdkComponentsCommand();
         final SdkCliCommand listSdkComponentsCmdV25 = SdkCliCommandFactory.getCommandsForSdk("25").getListSdkComponentsCommand();
         final SdkCliCommand listSdkComponentsCmdV17 = SdkCliCommandFactory.getCommandsForSdk("17").getListSdkComponentsCommand();
@@ -115,7 +113,7 @@ public class SdkCommandsTest {
     }
 
     @Test
-    public void testListExistingTargetsCommand() {
+    void testListExistingTargetsCommand() {
         final SdkCliCommand listExistingTargetsCmdV25_3 = SdkCliCommandFactory.getCommandsForSdk("25.3").getListExistingTargetsCommand();
         final SdkCliCommand listExistingTargetsCmdV25 = SdkCliCommandFactory.getCommandsForSdk("25").getListExistingTargetsCommand();
         final SdkCliCommand listExistingTargetsCmdV17 = SdkCliCommandFactory.getCommandsForSdk("17").getListExistingTargetsCommand();
@@ -133,7 +131,7 @@ public class SdkCommandsTest {
     }
 
     @Test
-    public void testListSystemImagesCommand() {
+    void testListSystemImagesCommand() {
         final SdkCliCommand listSystemImagesCmdV25_3 = SdkCliCommandFactory.getCommandsForSdk("25.3").getListSystemImagesCommand();
         final SdkCliCommand listSystemImagesCmdV25 = SdkCliCommandFactory.getCommandsForSdk("25").getListSystemImagesCommand();
         final SdkCliCommand listSystemImagesCmdV17 = SdkCliCommandFactory.getCommandsForSdk("17").getListSystemImagesCommand();
@@ -151,10 +149,10 @@ public class SdkCommandsTest {
     }
 
     @Test
-    public void testIsImageForPlatformAndABIInstalledParser() throws Exception {
+    void testIsImageForPlatformAndABIInstalledParser() throws Exception {
         String listOutput = null;
         try (InputStream is = getClass().getResourceAsStream("sdkmanager-list.out")) {
-            listOutput = StringUtils.join(IOUtils.readLines(is), "\n");
+            listOutput = StringUtils.join(IOUtils.readLines(is, StandardCharsets.UTF_8), "\n");
         }
         assertNotNull(listOutput);
 
@@ -186,7 +184,7 @@ public class SdkCommandsTest {
 
     @Issue("JENKINS-63508")
     @Test
-    public void testCreateAvdCommand() {
+    void testCreateAvdCommand() {
         // no snapshot, no sdcard
         final SdkCliCommand createAvdBasicCmdV25_3 = SdkCliCommandFactory.getCommandsForSdk("25.3")
                 .getCreatedAvdCommand("test25", false, null, "dummy", "9",
@@ -283,7 +281,7 @@ public class SdkCommandsTest {
     }
 
     @Test
-    public void testAdbInstallPackageCommand() {
+    void testAdbInstallPackageCommand() {
         final SdkCliCommand adbInstallPkgCmdV25_3 = SdkCliCommandFactory.getCommandsForSdk("25.3").getAdbInstallPackageCommand("dummyId", "/home/android/test.apk");
         final SdkCliCommand adbInstallPkgCmdV25 = SdkCliCommandFactory.getCommandsForSdk("25").getAdbInstallPackageCommand("dummyId", "/home/android/test.apk");
         final SdkCliCommand adbInstallPkgCmdV17 = SdkCliCommandFactory.getCommandsForSdk("17").getAdbInstallPackageCommand("android-23920", "jenkins.apk");
@@ -301,7 +299,7 @@ public class SdkCommandsTest {
     }
 
     @Test
-    public void testAdbUninstallPackageCommand() {
+    void testAdbUninstallPackageCommand() {
         final SdkCliCommand adbUninstallPkgCmdV25_3 = SdkCliCommandFactory.getCommandsForSdk("25.3").getAdbUninstallPackageCommand("dummyId", "org.test.package");
         final SdkCliCommand adbUninstallPkgCmdV25 = SdkCliCommandFactory.getCommandsForSdk("25").getAdbUninstallPackageCommand("dummyId", "org.test.package");
         final SdkCliCommand adbUninstallPkgCmdV17 = SdkCliCommandFactory.getCommandsForSdk("17").getAdbUninstallPackageCommand("android-23920", "test.jenkins");
@@ -319,7 +317,7 @@ public class SdkCommandsTest {
     }
 
     @Test
-    public void testWithoudDeviceIdentifier() {
+    void testWithoutDeviceIdentifier() {
         final SdkCliCommand adbInstallPkgCmdV25_3 = SdkCliCommandFactory.getCommandsForSdk("25.3").getAdbInstallPackageCommand(null, "/home/android/test.apk");
         final SdkCliCommand adbInstallPkgCmdV25 = SdkCliCommandFactory.getCommandsForSdk("25").getAdbInstallPackageCommand(null, "/home/android/test.apk");
         final SdkCliCommand adbInstallPkgCmdV17 = SdkCliCommandFactory.getCommandsForSdk("17").getAdbInstallPackageCommand("", "jenkins.apk");
@@ -352,7 +350,7 @@ public class SdkCommandsTest {
     }
 
     @Test
-    public void testCreateSdkCardCommand() {
+    void testCreateSdkCardCommand() {
         final SdkCliCommand createSdCardCmdV25_3 = SdkCliCommandFactory.getCommandsForSdk("25.3").getCreateSdkCardCommand("/dev/null", "32G");
         final SdkCliCommand createSdCardCmdV25 = SdkCliCommandFactory.getCommandsForSdk("25").getCreateSdkCardCommand("/dev/null", "32G");
         final SdkCliCommand createSdCardCmdV17 = SdkCliCommandFactory.getCommandsForSdk("17").getCreateSdkCardCommand(".android/avd/test.img", "16M");
@@ -370,7 +368,7 @@ public class SdkCommandsTest {
     }
 
     @Test
-    public void testEmulatorListSnapshotsCommand() {
+    void testEmulatorListSnapshotsCommand() {
         final SdkCliCommand emulatorListSnapshotsCmdV25_3 = SdkCliCommandFactory.getCommandsForSdk("25.3")
                 .getEmulatorListSnapshotsCommand("avdtest", Tool.EMULATOR64_X86);
         final SdkCliCommand emulatorListSnapshotsCmdV25 = SdkCliCommandFactory.getCommandsForSdk("25")
@@ -390,8 +388,9 @@ public class SdkCommandsTest {
         assertEquals("-snapshot-list -no-window -avd dummy", emulatorListSnapshotsCmdV17.getArgs());
         assertEquals("-snapshot-list -no-window -avd test", emulatorListSnapshotsCmdV04.getArgs());
     }
+
     @Test
-    public void testAdbStartServerCommand() {
+    void testAdbStartServerCommand() {
         final SdkCliCommand adbStartServerCmdV25_3 = SdkCliCommandFactory.getCommandsForSdk("25.3").getAdbStartServerCommand();
         final SdkCliCommand adbStartServerCmdV25 = SdkCliCommandFactory.getCommandsForSdk("25").getAdbStartServerCommand();
         final SdkCliCommand adbStartServerCmdV17 = SdkCliCommandFactory.getCommandsForSdk("17").getAdbStartServerCommand();
@@ -409,7 +408,7 @@ public class SdkCommandsTest {
     }
 
     @Test
-    public void testAdbKillServerCommand() {
+    void testAdbKillServerCommand() {
         final SdkCliCommand adbKillServerCmdV25_3 = SdkCliCommandFactory.getCommandsForSdk("25.3").getAdbKillServerCommand();
         final SdkCliCommand adbKillServerCmdV25 = SdkCliCommandFactory.getCommandsForSdk("25").getAdbKillServerCommand();
         final SdkCliCommand adbKillServerCmdV17 = SdkCliCommandFactory.getCommandsForSdk("17").getAdbKillServerCommand();
@@ -427,13 +426,13 @@ public class SdkCommandsTest {
     }
 
     @Test
-    public void testUpdateProjectCommand() {
+    void testUpdateProjectCommand() {
         final SdkCliCommand updateProjectCmdV25_3 = SdkCliCommandFactory.getCommandsForSdk("25.3").getUpdateProjectCommand("proj1");
         final SdkCliCommand updateProjectCmdV25 = SdkCliCommandFactory.getCommandsForSdk("25").getUpdateProjectCommand("proj1");
         final SdkCliCommand updateProjectCmdV17 = SdkCliCommandFactory.getCommandsForSdk("17").getUpdateProjectCommand("proj2");
         final SdkCliCommand updateProjectCmdV04 = SdkCliCommandFactory.getCommandsForSdk("4").getUpdateProjectCommand(".");
 
-        assertEquals(null, updateProjectCmdV25_3.getTool());
+	    assertNull(updateProjectCmdV25_3.getTool());
         assertEquals(Tool.ANDROID_LEGACY, updateProjectCmdV25.getTool());
         assertEquals(Tool.ANDROID_LEGACY, updateProjectCmdV17.getTool());
         assertEquals(Tool.ANDROID_LEGACY, updateProjectCmdV04.getTool());
@@ -450,13 +449,13 @@ public class SdkCommandsTest {
     }
 
     @Test
-    public void testUpdateTestProjectCommand() {
+    void testUpdateTestProjectCommand() {
         final SdkCliCommand updateTestProjectCmdV25_3 = SdkCliCommandFactory.getCommandsForSdk("25.3").getUpdateTestProjectCommand("testProj1", null);
         final SdkCliCommand updateTestProjectCmdV25 = SdkCliCommandFactory.getCommandsForSdk("25").getUpdateTestProjectCommand("testProj1", "com.test.class");
         final SdkCliCommand updateTestProjectCmdV17 = SdkCliCommandFactory.getCommandsForSdk("17").getUpdateTestProjectCommand("testProj2", "com.test.class");
         final SdkCliCommand updateTestProjectCmdV04 = SdkCliCommandFactory.getCommandsForSdk("4").getUpdateTestProjectCommand(".", "org.comp.proj.test.testclass");
 
-        assertEquals(null, updateTestProjectCmdV25_3.getTool());
+	    assertNull(updateTestProjectCmdV25_3.getTool());
         assertEquals(Tool.ANDROID_LEGACY, updateTestProjectCmdV25.getTool());
         assertEquals(Tool.ANDROID_LEGACY, updateTestProjectCmdV17.getTool());
         assertEquals(Tool.ANDROID_LEGACY, updateTestProjectCmdV04.getTool());
@@ -473,13 +472,13 @@ public class SdkCommandsTest {
     }
 
     @Test
-    public void testUpdateLibProjectCommand() {
+    void testUpdateLibProjectCommand() {
         final SdkCliCommand updateLibraryProjectCmdV25_3 = SdkCliCommandFactory.getCommandsForSdk("25.3").getUpdateLibProjectCommand("libProj1");
         final SdkCliCommand updateLibraryProjectCmdV25 = SdkCliCommandFactory.getCommandsForSdk("25").getUpdateLibProjectCommand("libProj1");
         final SdkCliCommand updateLibraryProjectCmdV17 = SdkCliCommandFactory.getCommandsForSdk("17").getUpdateLibProjectCommand("libProj2");
         final SdkCliCommand updateLibraryProjectCmdV04 = SdkCliCommandFactory.getCommandsForSdk("4").getUpdateLibProjectCommand(".");
 
-        assertEquals(null, updateLibraryProjectCmdV25_3.getTool());
+	    assertNull(updateLibraryProjectCmdV25_3.getTool());
         assertEquals(Tool.ANDROID_LEGACY, updateLibraryProjectCmdV25.getTool());
         assertEquals(Tool.ANDROID_LEGACY, updateLibraryProjectCmdV17.getTool());
         assertEquals(Tool.ANDROID_LEGACY, updateLibraryProjectCmdV04.getTool());

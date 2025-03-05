@@ -2,14 +2,18 @@ package hudson.plugins.android_emulator;
 
 import java.util.Arrays;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
-import junit.framework.TestCase;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
-public class AndroidPlatformTest extends TestCase {
+class AndroidPlatformTest {
 
     @Test
-    public void testValidPlatformString() {
+    void testValidPlatformString() {
         assertNotNull(AndroidPlatform.valueOf("2.3.3"));
         assertNotNull(AndroidPlatform.valueOf("Some:Addon:11"));
 
@@ -28,7 +32,7 @@ public class AndroidPlatformTest extends TestCase {
     }
 
     @Test
-    public void testCreateInvalidPlatform() {
+    void testCreateInvalidPlatform() {
         assertNull(AndroidPlatform.valueOf(null));
 
         final String name = "iOS 6.1";
@@ -38,7 +42,7 @@ public class AndroidPlatformTest extends TestCase {
     }
 
     @Test
-    public void testGetSdkLevel() {
+    void testGetSdkLevel() {
         assertEquals(4, AndroidPlatform.valueOf("1.6").getSdkLevel());
         assertEquals(4, AndroidPlatform.valueOf("4").getSdkLevel());
         assertEquals(4, AndroidPlatform.valueOf("android-4").getSdkLevel());
@@ -60,7 +64,7 @@ public class AndroidPlatformTest extends TestCase {
     }
 
     @Test
-    public void testIsCustomPlatform() {
+    void testIsCustomPlatform() {
         assertFalse(AndroidPlatform.valueOf("2.3").isCustomPlatform());
         assertTrue(AndroidPlatform.valueOf("Some:Addon:12").isCustomPlatform());
         assertTrue(AndroidPlatform.valueOf("Google Inc.:Google APIs:23").isCustomPlatform());
@@ -71,7 +75,7 @@ public class AndroidPlatformTest extends TestCase {
     }
 
     @Test
-    public void testRequiresAbi() {
+    void testRequiresAbi() {
         assertFalse(AndroidPlatform.valueOf("1.1").requiresAbi());
         assertTrue(AndroidPlatform.valueOf("2.3.3").requiresAbi()); // See JENKINS-14741 & commit 485d72b
         assertFalse(AndroidPlatform.valueOf("3.2").requiresAbi());
@@ -83,7 +87,7 @@ public class AndroidPlatformTest extends TestCase {
     }
 
     @Test
-    public void testName() {
+    void testName() {
         assertEquals("Google Inc.:Google APIs:23", AndroidPlatform.valueOf("Google Inc.:Google APIs:23").getName());
         assertEquals("Google Inc.:Google APIs:24", AndroidPlatform.valueOf("Google Inc.:Google APIs:24").getName());
         assertEquals("android-23", AndroidPlatform.valueOf("android-23").getName());
@@ -95,7 +99,7 @@ public class AndroidPlatformTest extends TestCase {
     }
 
     @Test
-    public void testTargetName() {
+    void testTargetName() {
         assertEquals("Some:Addon:11", AndroidPlatform.valueOf("Some:Addon:11").getTargetName());
         assertEquals("Google Inc.:Google APIs:23", AndroidPlatform.valueOf("Google Inc.:Google APIs:23").getTargetName());
         assertEquals("Google Inc.:Google APIs:24", AndroidPlatform.valueOf("Google Inc.:Google APIs:24").getTargetName());
@@ -109,7 +113,7 @@ public class AndroidPlatformTest extends TestCase {
     }
 
     @Test
-    public void testAndroidTargetName() {
+    void testAndroidTargetName() {
         assertEquals("android-23", AndroidPlatform.valueOf("Google Inc.:Google APIs:23").getAndroidTargetName());
         assertEquals("android-24", AndroidPlatform.valueOf("Google Inc.:Google APIs:24").getAndroidTargetName());
         assertEquals("android-24", AndroidPlatform.valueOf("Apple Inc.:Apple APIs:24").getAndroidTargetName());
@@ -122,7 +126,7 @@ public class AndroidPlatformTest extends TestCase {
     }
 
     @Test
-    public void testPlatformName() {
+    void testPlatformName() {
         assertEquals("Google APIs", AndroidPlatform.valueOf("Google Inc.:Google APIs:23").getPlatformName());
         assertEquals("Google APIs", AndroidPlatform.valueOf("Google Inc.:Google APIs:24").getPlatformName());
         assertEquals("Android API 23", AndroidPlatform.valueOf("android-23").getPlatformName());
@@ -139,7 +143,7 @@ public class AndroidPlatformTest extends TestCase {
     }
 
     @Test
-    public void testVendor() {
+    void testVendor() {
         assertEquals("Google Inc.", AndroidPlatform.valueOf("Google Inc.:Google APIs:23").getVendorName());
         assertEquals("Google Inc.", AndroidPlatform.valueOf("Google Inc.:Google APIs:24").getVendorName());
         assertEquals("", AndroidPlatform.valueOf("android-23").getVendorName());
@@ -156,7 +160,7 @@ public class AndroidPlatformTest extends TestCase {
     }
 
     @Test
-    public void testAddonName() {
+    void testAddonName() {
         assertEquals("addon-google_apis-google-23", AndroidPlatform.valueOf("Google Inc.:Google APIs:23").getAddonName());
         assertEquals("addon-google_apis-google-24", AndroidPlatform.valueOf("Google Inc.:Google APIs:24").getAddonName());
         assertEquals("addon-apple_apis-apple-99", AndroidPlatform.valueOf("Apple Inc.:Apple APIs:99").getAddonName());
@@ -167,7 +171,7 @@ public class AndroidPlatformTest extends TestCase {
     }
 
     @Test
-    public void testSystemImageName() {
+    void testSystemImageName() {
         assertEquals("sys-img-x86-android-23", AndroidPlatform.valueOf("android-23").getSystemImageName("x86"));
         assertEquals("sys-img-x86-google_apis-23", AndroidPlatform.valueOf("Google Inc.:Google APIs:23").getSystemImageName("x86"));
         assertEquals("sys-img-x86-google_apis-24", AndroidPlatform.valueOf("Google Inc.:Google APIs:24").getSystemImageName("x86"));
@@ -193,7 +197,7 @@ public class AndroidPlatformTest extends TestCase {
     }
 
     @Test
-    public void testSystemImageNameLegacyFormat() {
+    void testSystemImageNameLegacyFormat() {
         assertEquals("sysimg-23", AndroidPlatform.valueOf("Google Inc.:Google APIs:23").getSystemImageNameLegacyFormat());
         assertEquals("sysimg-24", AndroidPlatform.valueOf("Google Inc.:Google APIs:24").getSystemImageNameLegacyFormat());
         assertEquals("sysimg-24", AndroidPlatform.valueOf("Apple Inc.:Apple APIs:24").getSystemImageNameLegacyFormat());
@@ -204,7 +208,7 @@ public class AndroidPlatformTest extends TestCase {
     }
 
     @Test
-    public void testPackagePathOfSystemImage() {
+    void testPackagePathOfSystemImage() {
         assertEquals("system-images;android-23;google_apis;x86", AndroidPlatform.valueOf("Google Inc.:Google APIs:23").getPackagePathOfSystemImage("x86"));
         assertEquals("system-images;android-24;google_apis;x86", AndroidPlatform.valueOf("Google Inc.:Google APIs:24").getPackagePathOfSystemImage("x86"));
         assertEquals("system-images;android-24;apple_apis;x86_64", AndroidPlatform.valueOf("Apple Inc.:Apple APIs:24").getPackagePathOfSystemImage("x86_64"));
@@ -238,7 +242,7 @@ public class AndroidPlatformTest extends TestCase {
     }
 
     @Test
-    public void testAllPossibleVersionNames() {
+    void testAllPossibleVersionNames() {
         // test for plausible size
         assertEquals(AndroidPlatformVersions.values().length * 2, AndroidPlatform.getAllPossibleVersionNames().length);
         // random content check
@@ -252,7 +256,7 @@ public class AndroidPlatformTest extends TestCase {
     }
 
     @Test
-    public void testToString() {
+    void testToString() {
         assertEquals("Google Inc.:Google APIs:23", AndroidPlatform.valueOf("Google Inc.:Google APIs:23").toString());
         assertEquals("Google Inc.:Google APIs:24", AndroidPlatform.valueOf("Google Inc.:Google APIs:24").toString());
         assertEquals("android-23", AndroidPlatform.valueOf("android-23").toString());

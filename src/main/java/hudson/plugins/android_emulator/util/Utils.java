@@ -299,6 +299,7 @@ public class Utils {
      * @param androidSdkHome
      * @return A {@link File} representing the directory in which the ".android" subdirectory should go.
      */
+    @SuppressFBWarnings(value = "ENV_USE_PROPERTY_INSTEAD_OF_ENV", justification = "Same scheme as the Android SDK does it")
     public static File getAndroidSdkHomeDirectory(String androidSdkHome) {
         // From git://android.git.kernel.org/platform/external/qemu.git/android/utils/bufprint.c
         String homeDirPath = System.getenv(Constants.ENV_VAR_ANDROID_SDK_HOME);
@@ -328,6 +329,7 @@ public class Utils {
      *
      * @return A {@link File} representing the home directory.
      */
+    @SuppressFBWarnings(value = "ENV_USE_PROPERTY_INSTEAD_OF_ENV", justification = "Same scheme as the Android SDK does it")
     public static File getHomeDirectory() {
         // From https://android.googlesource.com/platform/external/qemu/android/base/system/System.cpp
         String path = null;
