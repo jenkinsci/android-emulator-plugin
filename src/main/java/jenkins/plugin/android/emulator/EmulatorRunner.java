@@ -60,7 +60,6 @@ public class EmulatorRunner {
     private final EmulatorConfig config;
     private final ToolLocator locator;
 
-    @SuppressFBWarnings(value = "EI_EXPOSE_REP2")
     public EmulatorRunner(@NonNull EmulatorConfig config, @NonNull ToolLocator locator) {
         this.config = config;
         this.locator = locator;
