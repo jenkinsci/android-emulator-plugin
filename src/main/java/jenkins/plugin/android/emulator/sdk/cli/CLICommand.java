@@ -67,7 +67,6 @@ public class CLICommand<R> {
         this.env = env;
     }
 
-    @SuppressFBWarnings(value = "EI_EXPOSE_REP")
     public ArgumentListBuilder arguments() {
         return arguments;
     }

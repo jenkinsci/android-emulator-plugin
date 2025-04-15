@@ -104,7 +104,6 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
 
 
     @DataBoundConstructor
-    @SuppressFBWarnings("EI_EXPOSE_REP2")
     public AndroidEmulator(String avdName, String osVersion, String screenDensity,
             String screenResolution, String deviceLocale, String sdCardSize,
             HardwareProperty[] hardwareProperties, boolean wipeData, boolean showWindow,

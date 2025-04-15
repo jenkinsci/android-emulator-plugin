@@ -184,7 +184,6 @@ public class SDKManagerCLIBuilder {
 
     private final FilePath executable;
     private ProxyConfiguration proxy;
-    @SuppressFBWarnings(value = "NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE")
     private String sdkRoot;
     private Channel channel;
     private boolean verbose;
@@ -201,7 +200,6 @@ public class SDKManagerCLIBuilder {
         return new SDKManagerCLIBuilder(sdkmanager);
     }
 
-    @SuppressFBWarnings(value = "EI_EXPOSE_REP2")
     public SDKManagerCLIBuilder proxy(ProxyConfiguration proxy) {
         this.proxy = proxy;
         return this;

@@ -133,7 +133,6 @@ public class EmulatorConfig {
         this.targetABI = Util.fixEmptyAndTrim(targetABI);
     }
 
-    @SuppressFBWarnings(value = "EI_EXPOSE_REP")
     public List<HardwareProperty> getHardwareProperties() {
         return hardwareProperties;
     }

@@ -22,7 +22,6 @@ public class ScreenDensity implements Serializable {
             EXTRA_HIGH, EXTRA_HIGH_400, EXTRA_HIGH_420, EXTRA_EXTRA_HIGH, EXTRA_EXTRA_HIGH_560,
             EXTRA_EXTRA_EXTRA_HIGH };
 
-    @SuppressFBWarnings("MS_EXPOSE_REP")
     public static ScreenDensity[] values() {
         return PRESETS;
     }

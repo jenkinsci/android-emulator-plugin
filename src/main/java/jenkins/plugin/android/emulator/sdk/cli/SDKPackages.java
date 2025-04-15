@@ -6,7 +6,6 @@ import java.util.Objects;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
-@SuppressFBWarnings(value = "EI_EXPOSE_REP")
 public class SDKPackages {
     public static class SDKPackage implements Comparable<SDKPackage> {
         private String id;

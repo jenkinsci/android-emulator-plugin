@@ -254,12 +254,10 @@ public class AndroidEmulatorBuild extends SimpleBuildWrapper {
         this.targetABI = targetABI;
     }
 
-    @SuppressFBWarnings(value = "EI_EXPOSE_REP")
     public List<HardwareProperty> getHardwareProperties() {
         return hardwareProperties;
     }
 
-    @SuppressFBWarnings(value = "EI_EXPOSE_REP")
     @DataBoundSetter
     public void setHardwareProperties(List<HardwareProperty> hardwareProperties) {
         this.hardwareProperties = hardwareProperties;
