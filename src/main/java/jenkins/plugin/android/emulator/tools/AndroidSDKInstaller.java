@@ -66,7 +66,6 @@ public class AndroidSDKInstaller extends DownloadFromUrlInstaller {
 
     public class AndroidSDKInstallable extends NodeSpecificInstallable {
 
-        @SuppressFBWarnings(value = "EI_EXPOSE_REP2")
         public AndroidSDKInstallable(Installable inst) {
             super(inst);
         }
