@@ -82,7 +82,6 @@ public class EmulatorCLIBuilder {
         return this;
     }
 
-    @SuppressFBWarnings(value = "EI_EXPOSE_REP2")
     public EmulatorCLIBuilder proxy(ProxyConfiguration proxy) {
         this.proxy = proxy;
         return this;
