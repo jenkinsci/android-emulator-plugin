@@ -201,7 +201,6 @@ public class SDKManagerCLIBuilder {
         return new SDKManagerCLIBuilder(sdkmanager);
     }
 
-    @SuppressFBWarnings(value = "EI_EXPOSE_REP2")
     public SDKManagerCLIBuilder proxy(ProxyConfiguration proxy) {
         this.proxy = proxy;
         return this;
