@@ -118,7 +118,6 @@ public class AndroidEmulatorContext {
 		return listener;
 	}
 
-	@SuppressFBWarnings(value = "EI_EXPOSE_REP")
 	public Launcher launcher() {
 		return launcher;
 	}
