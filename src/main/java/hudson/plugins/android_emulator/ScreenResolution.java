@@ -21,7 +21,6 @@ public class ScreenResolution implements Serializable {
                                                                        WVGA, FWVGA, WSVGA,
                                                                        WXGA_720, WXGA_800, WXGA };
 
-    @SuppressFBWarnings("MS_EXPOSE_REP")
     public static ScreenResolution[] values() {
         return PRESETS;
     }
