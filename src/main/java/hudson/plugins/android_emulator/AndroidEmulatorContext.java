@@ -123,7 +123,6 @@ public class AndroidEmulatorContext {
 		return launcher;
 	}
 
-	@SuppressFBWarnings(value = "EI_EXPOSE_REP")
 	public AndroidSdk sdk() {
 		return sdk;
 	}
