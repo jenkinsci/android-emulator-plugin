@@ -36,7 +36,6 @@ public class AndroidEmulatorContext {
 	private BuildListener listener;
 	private Launcher launcher;
 
-	@SuppressFBWarnings(value = "EI_EXPOSE_REP2")
 	public AndroidEmulatorContext(AbstractBuild<?, ?> build_,
 			Launcher launcher_, BuildListener listener_, AndroidSdk sdk_)
 			throws InterruptedException, IOException {
