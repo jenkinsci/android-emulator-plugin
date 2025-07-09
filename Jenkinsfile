@@ -5,6 +5,5 @@
 buildPlugin(
         useContainerAgent: false, // Set to `false` if you need to use Docker for containerized tests
         configurations: [
-                [platform: 'arm64linux', jdk: 21],
                 [platform: 'linux', jdk: 25],
         ])
