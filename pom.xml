@@ -5,8 +5,8 @@
     <parent>
         <groupId>org.jenkins-ci.plugins</groupId>
         <artifactId>plugin</artifactId>
-        <version>5.20</version>
-        <relativePath/>
+        <version>5.23</version>
+        <relativePath />
     </parent>
 
     <artifactId>android-emulator</artifactId>
