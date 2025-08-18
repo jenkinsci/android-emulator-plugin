@@ -25,7 +25,7 @@ import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import org.apache.commons.lang.exception.ExceptionUtils;
+import org.apache.commons.lang3.exception.ExceptionUtils;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.EnvVars;
@@ -168,10 +168,10 @@ public class Utils {
             return channel.call(task);
         } catch (IOException e) {
             // Ignore, log only
-            log(logger, ExceptionUtils.getFullStackTrace(e));
+            log(logger, ExceptionUtils.getStackTrace(e));
         } catch (InterruptedException e) {
             // Ignore, log only
-            log(logger, ExceptionUtils.getFullStackTrace(e));
+            log(logger, ExceptionUtils.getStackTrace(e));
         }
 
         return null;

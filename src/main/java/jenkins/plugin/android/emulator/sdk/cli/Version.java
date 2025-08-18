@@ -26,7 +26,7 @@ package jenkins.plugin.android.emulator.sdk.cli;
 import java.text.MessageFormat;
 import java.util.StringTokenizer;
 
-import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang3.StringUtils;
 
 /**
  * NodeJSVersion identifier.
