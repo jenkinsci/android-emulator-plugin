@@ -3,7 +3,7 @@ package hudson.plugins.android_emulator.monkey;
 import hudson.model.Action;
 import hudson.plugins.android_emulator.Messages;
 
-import org.apache.commons.lang.builder.HashCodeBuilder;
+import org.apache.commons.lang3.builder.HashCodeBuilder;
 import org.kohsuke.stapler.export.Exported;
 
 public class MonkeyAction implements Action {
