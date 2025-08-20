@@ -329,7 +329,7 @@ public class AndroidEmulatorBuild extends SimpleBuildWrapper {
                 try {
                     ScreenResolution.valueOf(screenResolution);
                 } catch (IllegalArgumentException e) {
-                    return FormValidation.error(Messages.AndroidEmulatorBuild_wrongDensity());
+                    return FormValidation.error(Messages.AndroidEmulatorBuild_wrongResolution());
                 }
             }
             return FormValidation.ok();
