@@ -304,8 +304,12 @@ public class AndroidEmulatorBuild extends SimpleBuildWrapper {
         public FormValidation doCheckScreenDensity(@QueryParameter @CheckForNull String screenDensity) {
             if (StringUtils.isBlank(screenDensity)) {
                 return FormValidation.error(Messages.required());
-            } else if (ScreenDensity.valueOf(screenDensity) == null) {
-                return FormValidation.error(Messages.AndroidEmulatorBuild_wrongDensity());
+            } else {
+                try {
+                    ScreenDensity.valueOf(screenDensity);
+                } catch (IllegalArgumentException e) {
+                    return FormValidation.error(Messages.AndroidEmulatorBuild_wrongDensity());
+                }
             }
             return FormValidation.ok();
         }
@@ -321,8 +325,12 @@ public class AndroidEmulatorBuild extends SimpleBuildWrapper {
         public FormValidation doCheckScreenResolution(@QueryParameter @CheckForNull String screenResolution) {
             if (StringUtils.isBlank(screenResolution)) {
                 return FormValidation.error(Messages.required());
-            } else if (ScreenResolution.valueOf(screenResolution) == null) {
-                return FormValidation.error(Messages.AndroidEmulatorBuild_wrongDensity());
+            } else {
+                try {
+                    ScreenResolution.valueOf(screenResolution);
+                } catch (IllegalArgumentException e) {
+                    return FormValidation.error(Messages.AndroidEmulatorBuild_wrongDensity());
+                }
             }
             return FormValidation.ok();
         }

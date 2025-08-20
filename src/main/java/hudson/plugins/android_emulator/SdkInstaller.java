@@ -24,7 +24,6 @@ import java.util.Map;
 import java.util.WeakHashMap;
 import java.util.concurrent.Semaphore;
 
-import org.apache.commons.lang3.StringUtils;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.EnvVars;
@@ -206,7 +205,7 @@ public class SdkInstaller {
         String proxySettings = getProxySettings();
 
         // Build the command to install the given component(s)
-        log(logger, Messages.INSTALLING_SDK_COMPONENTS(StringUtils.join(components, ',')));
+        log(logger, Messages.INSTALLING_SDK_COMPONENTS(String.join(",", components)));
         final SdkCliCommand sdkInstallAndUpdateCmd = SdkCliCommandFactory.getCommandsForSdk(sdk)
                 .getSdkInstallAndUpdateCommand(proxySettings, components);
         ArgumentListBuilder cmd = Utils.getToolCommand(sdk, launcher.isUnix(), sdkInstallAndUpdateCmd);
