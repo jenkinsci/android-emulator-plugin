@@ -8,7 +8,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.commons.io.IOUtils;
-import org.apache.commons.lang3.StringUtils;
 import org.jvnet.hudson.test.Issue;
 
 import hudson.plugins.android_emulator.sdk.Tool;
@@ -152,7 +151,7 @@ class SdkCommandsTest {
     void testIsImageForPlatformAndABIInstalledParser() throws Exception {
         String listOutput = null;
         try (InputStream is = getClass().getResourceAsStream("sdkmanager-list.out")) {
-            listOutput = StringUtils.join(IOUtils.readLines(is, StandardCharsets.UTF_8), "\n");
+            listOutput = IOUtils.toString(is, StandardCharsets.UTF_8);
         }
         assertNotNull(listOutput);
 
