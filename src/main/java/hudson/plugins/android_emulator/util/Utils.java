@@ -651,6 +651,31 @@ public class Utils {
     }
 
     /**
+     * Returns true if path is a Windows UNC path (starts with \\).
+     */
+    private static boolean isWindowsUncPath(String path) {
+        return path.startsWith("\\\\");
+    }
+
+    /**
+     * Resolves a path to its canonical form. For Windows UNC paths, falls back to
+     * absolute path when canonical resolution fails (getCanonicalPath triggers a
+     * network lookup that may throw IOException for unreachable hosts). Returns null
+     * for any other IOException, preserving the original failure behaviour.
+     */
+    private static String resolveCanonicalPath(String path) {
+        try {
+            return new File(path).getCanonicalPath();
+        } catch (IOException e) {
+            if (isWindowsUncPath(path)) {
+                return new File(path).getAbsolutePath();
+            }
+            e.printStackTrace();
+            return null;
+        }
+    }
+
+    /**
      * Determines the relative path required to get from one path to another.
      *
      * @param from Path to go from.
@@ -663,13 +688,10 @@ public class Utils {
             return null;
         }
 
-        String fromPath, toPath;
-        try {
-            // normalize separators first to avoid '//' typos on unix to get converted to UNC paths on windows
-            fromPath = new File(normalizePathSeparators(from)).getCanonicalPath();
-            toPath = new File(normalizePathSeparators(to)).getCanonicalPath();
-        } catch (IOException e1) {
-            e1.printStackTrace();
+        // normalize separators first to avoid '//' typos on unix to get converted to UNC paths on windows
+        String fromPath = resolveCanonicalPath(normalizePathSeparators(from));
+        String toPath = resolveCanonicalPath(normalizePathSeparators(to));
+        if (fromPath == null || toPath == null) {
             return null;
         }
 
