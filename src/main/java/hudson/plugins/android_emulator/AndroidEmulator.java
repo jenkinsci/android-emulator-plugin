@@ -104,7 +104,6 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
 
 
     @DataBoundConstructor
-    @SuppressFBWarnings("EI_EXPOSE_REP2")
     public AndroidEmulator(String avdName, String osVersion, String screenDensity,
             String screenResolution, String deviceLocale, String sdCardSize,
             HardwareProperty[] hardwareProperties, boolean wipeData, boolean showWindow,
@@ -1029,8 +1028,8 @@ public class AndroidEmulator extends BuildWrapper implements Serializable {
         }
 
         public FormValidation doCheckScreenResolution(@QueryParameter String value,
-                @QueryParameter String density, @QueryParameter String osVersion) {
-            return doCheckScreenResolution(value, density, osVersion, true).getFormValidation();
+                @QueryParameter String screenDensity, @QueryParameter String osVersion) {
+            return doCheckScreenResolution(value, screenDensity, osVersion, true).getFormValidation();
         }
 
         private ValidationResult doCheckScreenResolution(String resolution, String density,

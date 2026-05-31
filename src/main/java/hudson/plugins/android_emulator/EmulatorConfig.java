@@ -30,7 +30,7 @@ import java.util.regex.Pattern;
 import jenkins.security.MasterToSlaveCallable;
 
 import org.apache.commons.io.FileUtils;
-import org.apache.commons.lang.exception.ExceptionUtils;
+import org.apache.commons.lang3.exception.ExceptionUtils;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
@@ -626,10 +626,10 @@ class EmulatorConfig implements Serializable {
                 // Wait for happy ending
                 process.waitFor();
             } catch (IOException e) {
-                AndroidEmulator.log(logger, ExceptionUtils.getFullStackTrace(e), true);
+                AndroidEmulator.log(logger, ExceptionUtils.getStackTrace(e), true);
                 throw new EmulatorCreationException(Messages.AVD_CREATION_ABORTED(), e);
             } catch (InterruptedException e) {
-                AndroidEmulator.log(logger, ExceptionUtils.getFullStackTrace(e), true);
+                AndroidEmulator.log(logger, ExceptionUtils.getStackTrace(e), true);
                 throw new EmulatorCreationException(Messages.AVD_CREATION_INTERRUPTED(), e);
             } finally {
                 process.destroy();

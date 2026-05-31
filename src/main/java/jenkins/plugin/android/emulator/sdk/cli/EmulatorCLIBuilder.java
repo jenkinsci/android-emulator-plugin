@@ -7,7 +7,7 @@ import java.util.Locale;
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.Nullable;
 
-import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang3.StringUtils;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.EnvVars;
@@ -82,7 +82,6 @@ public class EmulatorCLIBuilder {
         return this;
     }
 
-    @SuppressFBWarnings(value = "EI_EXPOSE_REP2")
     public EmulatorCLIBuilder proxy(ProxyConfiguration proxy) {
         this.proxy = proxy;
         return this;

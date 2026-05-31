@@ -25,7 +25,7 @@ import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import org.apache.commons.lang.exception.ExceptionUtils;
+import org.apache.commons.lang3.exception.ExceptionUtils;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.EnvVars;
@@ -168,10 +168,10 @@ public class Utils {
             return channel.call(task);
         } catch (IOException e) {
             // Ignore, log only
-            log(logger, ExceptionUtils.getFullStackTrace(e));
+            log(logger, ExceptionUtils.getStackTrace(e));
         } catch (InterruptedException e) {
             // Ignore, log only
-            log(logger, ExceptionUtils.getFullStackTrace(e));
+            log(logger, ExceptionUtils.getStackTrace(e));
         }
 
         return null;
@@ -299,6 +299,7 @@ public class Utils {
      * @param androidSdkHome
      * @return A {@link File} representing the directory in which the ".android" subdirectory should go.
      */
+    @SuppressFBWarnings(value = "ENV_USE_PROPERTY_INSTEAD_OF_ENV", justification = "Same scheme as the Android SDK does it")
     public static File getAndroidSdkHomeDirectory(String androidSdkHome) {
         // From git://android.git.kernel.org/platform/external/qemu.git/android/utils/bufprint.c
         String homeDirPath = System.getenv(Constants.ENV_VAR_ANDROID_SDK_HOME);
@@ -328,6 +329,7 @@ public class Utils {
      *
      * @return A {@link File} representing the home directory.
      */
+    @SuppressFBWarnings(value = "ENV_USE_PROPERTY_INSTEAD_OF_ENV", justification = "Same scheme as the Android SDK does it")
     public static File getHomeDirectory() {
         // From https://android.googlesource.com/platform/external/qemu/android/base/system/System.cpp
         String path = null;
@@ -649,6 +651,31 @@ public class Utils {
     }
 
     /**
+     * Returns true if path is a Windows UNC path (starts with \\).
+     */
+    private static boolean isWindowsUncPath(String path) {
+        return path.startsWith("\\\\");
+    }
+
+    /**
+     * Resolves a path to its canonical form. For Windows UNC paths, falls back to
+     * absolute path when canonical resolution fails (getCanonicalPath triggers a
+     * network lookup that may throw IOException for unreachable hosts). Returns null
+     * for any other IOException, preserving the original failure behaviour.
+     */
+    private static String resolveCanonicalPath(String path) {
+        try {
+            return new File(path).getCanonicalPath();
+        } catch (IOException e) {
+            if (isWindowsUncPath(path)) {
+                return new File(path).getAbsolutePath();
+            }
+            e.printStackTrace();
+            return null;
+        }
+    }
+
+    /**
      * Determines the relative path required to get from one path to another.
      *
      * @param from Path to go from.
@@ -661,13 +688,10 @@ public class Utils {
             return null;
         }
 
-        String fromPath, toPath;
-        try {
-            // normalize separators first to avoid '//' typos on unix to get converted to UNC paths on windows
-            fromPath = new File(normalizePathSeparators(from)).getCanonicalPath();
-            toPath = new File(normalizePathSeparators(to)).getCanonicalPath();
-        } catch (IOException e1) {
-            e1.printStackTrace();
+        // normalize separators first to avoid '//' typos on unix to get converted to UNC paths on windows
+        String fromPath = resolveCanonicalPath(normalizePathSeparators(from));
+        String toPath = resolveCanonicalPath(normalizePathSeparators(to));
+        if (fromPath == null || toPath == null) {
             return null;
         }
 

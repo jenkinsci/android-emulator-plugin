@@ -31,7 +31,7 @@ import java.util.Set;
 
 import edu.umd.cs.findbugs.annotations.Nullable;
 
-import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang3.StringUtils;
 
 import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -60,7 +60,6 @@ public class EmulatorRunner {
     private final EmulatorConfig config;
     private final ToolLocator locator;
 
-    @SuppressFBWarnings(value = "EI_EXPOSE_REP2")
     public EmulatorRunner(@NonNull EmulatorConfig config, @NonNull ToolLocator locator) {
         this.config = config;
         this.locator = locator;

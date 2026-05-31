@@ -28,7 +28,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Locale;
 
-import org.apache.commons.lang.LocaleUtils;
+import org.apache.commons.lang3.LocaleUtils;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.Util;
@@ -133,7 +133,6 @@ public class EmulatorConfig {
         this.targetABI = Util.fixEmptyAndTrim(targetABI);
     }
 
-    @SuppressFBWarnings(value = "EI_EXPOSE_REP")
     public List<HardwareProperty> getHardwareProperties() {
         return hardwareProperties;
     }

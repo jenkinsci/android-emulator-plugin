@@ -1,4 +1,4 @@
-<?jelly escape-by-default=true?>
+<?jelly escape-by-default='true'?>
 <div>
   Starts an Android emulator with given properties before a build, then shuts it down after.
 </div>

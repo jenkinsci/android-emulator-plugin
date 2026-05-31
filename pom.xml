@@ -1,10 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/maven-v4_0_0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/maven-v4_0_0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <parent>
         <groupId>org.jenkins-ci.plugins</groupId>
         <artifactId>plugin</artifactId>
-        <version>4.76</version>
+        <version>6.2189.v695a_c41f5249</version>
         <relativePath />
     </parent>
 
@@ -12,13 +13,14 @@
     <packaging>hpi</packaging>
     <version>${changelist}</version>
     <name>Android Emulator Plugin</name>
-    <url>http://wiki.jenkins-ci.org/display/JENKINS/Android+Emulator+Plugin</url>
+    <url>https://github.com/jenkinsci/android-emulator-plugin</url>
 
     <properties>
-        <revision>3.1.5</revision>
         <changelist>999999-SNAPSHOT</changelist>
-        <jenkins.version>2.401.3</jenkins.version>
+        <jenkins.baseline>2.479</jenkins.baseline>
+        <jenkins.version>${jenkins.baseline}.3</jenkins.version>
         <gitHubRepo>jenkinsci/${project.artifactId}-plugin</gitHubRepo>
+        <ban-junit4-imports.skip>false</ban-junit4-imports.skip>
     </properties>
 
     <developers>
@@ -48,10 +50,10 @@
         <dependencies>
             <dependency>
                 <groupId>io.jenkins.tools.bom</groupId>
-                <artifactId>bom-2.401.x</artifactId>
-                <version>2705.vf5c48c31285b_</version>
-                <scope>import</scope>
+                <artifactId>bom-${jenkins.baseline}.x</artifactId>
+                <version>5054.v620b_5d2b_d5e6</version>
                 <type>pom</type>
+                <scope>import</scope>
             </dependency>
         </dependencies>
     </dependencyManagement>
@@ -64,7 +66,7 @@
         <dependency>
             <groupId>org.jenkins-ci.plugins</groupId>
             <artifactId>port-allocator</artifactId>
-            <version>1.10</version>
+            <version>351.v7a_94cf6e4677</version>
             <scope>compile</scope>
         </dependency>
         <dependency>
@@ -91,7 +93,7 @@
         <dependency>
             <groupId>org.assertj</groupId>
             <artifactId>assertj-core</artifactId>
-            <version>3.25.1</version>
+            <version>3.27.7</version>
             <scope>test</scope>
         </dependency>
     </dependencies>
